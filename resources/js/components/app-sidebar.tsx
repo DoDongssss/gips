@@ -16,6 +16,8 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
+import { useCan } from '@/hooks/use-can';
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -38,6 +40,10 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    
+    const { can } = useCan();
+    const visibleItems = mainNavItems.filter((item) => !item.permission || can(item.permission));
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -53,7 +59,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={visibleItems} />
             </SidebarContent>
 
             <SidebarFooter>
