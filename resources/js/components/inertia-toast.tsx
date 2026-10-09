@@ -2,8 +2,6 @@ import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-import { Toaster } from '@/components/ui/sonner';
-
 type FlashProps = {
     flash?: {
         success?: string | null;
@@ -12,14 +10,13 @@ type FlashProps = {
 };
 
 /**
- * Mount once (for example inside AppLayout). It turns backend results into toasts:
- *  - success flash       -> green toast (controller: back()->with('success', '...'))
- *  - error flash         -> red toast   (controller: back()->with('error', '...'))
- *  - validation errors   -> the first error message from Laravel
- *  - non-Inertia replies -> a toast instead of the white debug popup
- *  - network failures    -> a toast
+ * Mount once (for example inside AppLayout). It only LISTENS and calls toast();
+ * the app's existing <Toaster /> does the displaying, so we don't render another one.
  *
- * If your app already renders a <Toaster />, remove the one at the bottom of this file.
+ *  - success / error flash -> controller: back()->with('success', '...')
+ *  - validation errors     -> the first error message from Laravel
+ *  - non-Inertia replies   -> a toast instead of the white debug popup
+ *  - network failures      -> a toast
  */
 export function InertiaToasts() {
     useEffect(() => {
@@ -76,5 +73,5 @@ export function InertiaToasts() {
         };
     }, []);
 
-    return <Toaster richColors position="top-right" />;
+    return null;
 }

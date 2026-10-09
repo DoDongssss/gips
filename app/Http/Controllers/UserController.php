@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller implements HasMiddleware
 {
@@ -30,29 +31,49 @@ class UserController extends Controller implements HasMiddleware
         $actor = $request->user();
         $search = $request->string('search')->toString();
 
-        $users = User::query()
-            ->with('roles:id,name')
-            // Only a super-admin can see super-admin accounts.
-            ->unless(
-                $actor->hasRole('super-admin'),
-                fn ($query) => $query->whereDoesntHave(
-                    'roles',
-                    fn ($roles) => $roles->where('name', 'super-admin'),
-                ),
-            )
-            ->when($search !== '', fn ($query) => $query->where(
-                fn ($q) => $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%"),
-            ))
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString()
-            ->through(fn (User $user) => $this->present($user, $actor));
+        $sortable = ['name', 'email', 'role', 'is_active'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
 
         return Inertia::render('users/index', [
-            'users' => $users,
+            'users' => Inertia::optional(fn () => User::query()
+                ->with('roles:id,name')
+                ->unless(
+                    $actor->hasRole('super-admin'),
+                    fn ($query) => $query->whereDoesntHave(
+                        'roles',
+                        fn ($roles) => $roles->where('name', 'super-admin'),
+                    ),
+                )
+                ->when($search !== '', fn ($query) => $query->where(
+                    fn ($q) => $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%"),
+                ))
+                ->when($sort === 'role', fn ($query) => $query->orderBy(
+                    DB::table('model_has_roles')
+                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                        ->whereColumn('model_has_roles.model_id', 'users.id')
+                        ->where('model_has_roles.model_type', (new User)->getMorphClass())
+                        ->select('roles.name')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when(
+                    in_array($sort, ['name', 'email', 'is_active'], true),
+                    fn ($query) => $query->orderBy($sort, $direction),
+                )
+                ->when($sort !== 'name', fn ($query) => $query->orderBy('name'))
+                ->orderBy('id')
+                ->paginate(10)
+                ->withQueryString()
+                ->through(fn (User $user) => $this->present($user, $actor))
+            ),
             'roles' => $this->assignableRoles(),
-            'filters' => ['search' => $search],
+            'filters' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 

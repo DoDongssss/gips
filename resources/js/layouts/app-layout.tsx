@@ -11,9 +11,8 @@ export default function AppLayout({
 }) {
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
+            {children}         
             <InertiaToasts/>
-
-            {children}            
         </AppLayoutTemplate>
     );
 }

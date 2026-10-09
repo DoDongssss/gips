@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 
@@ -31,7 +32,7 @@ export default function CredentialReset({ userId, userName }: { userId: number; 
         setCopied(false);
 
         router.post(
-            UserController.resetCredentials.url(userId),
+            route('users.reset-credentials', { user: userId }),
             { type },
             {
                 preserveScroll: true,

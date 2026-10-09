@@ -14,7 +14,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { create, edit, index as userIndex } from '@/routes/users'
+import { index as userIndex } from '@/routes/users'
 import type { NavItem } from '@/types';
 
 import { useCan } from '@/hooks/use-can';

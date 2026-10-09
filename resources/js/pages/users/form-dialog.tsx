@@ -62,7 +62,6 @@ const selectClass =
     'border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function FormDialog({ open, onOpenChange, mode, user, roles }: Props) {
-    // Only treat it as an edit when a user was actually provided.
     const target = mode === 'edit' ? user : undefined;
     const editing = target !== undefined;
 
