@@ -14,6 +14,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { create, edit, index as userIndex } from '@/routes/users'
 import type { NavItem } from '@/types';
 
 import { useCan } from '@/hooks/use-can';
@@ -23,6 +24,12 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'User',
+        href: userIndex(),
+        icon: LayoutGrid,
+        permission: 'user.view'
     },
 ];
 
@@ -45,7 +52,7 @@ export function AppSidebar() {
     const visibleItems = mainNavItems.filter((item) => !item.permission || can(item.permission));
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="floating">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

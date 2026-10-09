@@ -13,6 +13,7 @@ class PermissionSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = [
+            'user'      => ['view', 'create', 'update', 'delete', 'reset-credentials'],
             'menu'      => ['view', 'create', 'update', 'delete'],
             'order'     => ['view', 'create', 'update', 'void'],
             'discount'  => ['apply', 'manage'],
@@ -21,7 +22,6 @@ class PermissionSeeder extends Seeder
             'shift'     => ['open', 'close', 'view-all'],
             'inventory' => ['view', 'adjust', 'count', 'receive'],
             'report'    => ['view', 'export'],
-            'user'      => ['view', 'create', 'update', 'delete'],
             'role'      => ['manage'],
             'setting'   => ['view', 'update'],
             'device'    => ['manage'],

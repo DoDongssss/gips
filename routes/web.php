@@ -9,13 +9,10 @@ Route::inertia('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
     
-    Route::middleware('permission:user.view')->group(function () {
-        Route::get('users', [UserController::class, 'index'])->name('users.index');
-    });
-    
-    Route::post('users', [UserController::class, 'store'])
-        ->middleware('permission:user.create')
-        ->name('users.store');
+    // users route
+    Route::resource('users', UserController::class)->only(['index', 'store', 'update']);
+    Route::post('users/{user}/reset-credentials', [UserController::class, 'resetCredentials'])
+        ->name('users.reset-credentials');
 });
 
 require __DIR__.'/settings.php';

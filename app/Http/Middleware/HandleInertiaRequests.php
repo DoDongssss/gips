@@ -43,6 +43,13 @@ class HandleInertiaRequests extends Middleware
                 'roles'       => $request->user()?->getRoleNames() ?? [],
                 'permissions' => $request->user()?->getAllPermissions()->pluck('name'),
             ],
+            'flash' => [
+                'generated_credential' => fn () => $request->session()->get('generated_credential'),
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                // 'invalid' => fn () => $request->session()->get('invalid'),
+                // 'exception' => fn () => $request->session()->get('exception'),
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
