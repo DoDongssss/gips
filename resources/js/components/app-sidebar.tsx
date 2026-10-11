@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Settings, SquareUserRound, User } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -20,16 +20,22 @@ import type { NavItem } from '@/types';
 import { useCan } from '@/hooks/use-can';
 
 const mainNavItems: NavItem[] = [
+    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+    { title: 'User', href: userIndex(), icon: SquareUserRound, permission: 'user.view' },
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'User',
-        href: userIndex(),
-        icon: LayoutGrid,
-        permission: 'user.view'
+        title: 'Settings',
+        href: '#', 
+        icon: Settings,
+        children: [
+            { title: 'Lean Season', href: '/settings/lean-season' },
+            { title: 'Reservation Schedule', href: '/settings/reservation-schedule' },
+            { title: 'Company Images', href: '/settings/company-images' },
+            { title: 'Payment Types', href: '/settings/payment-types' },
+            { title: 'Trip Schedules', href: '/settings/trip-schedules' },
+            { title: 'Configurations', href: '/settings/configurations' },
+            { title: 'Station Legends', href: '/settings/station-legends' },
+            { title: 'Passenger Types', href: '/settings/passenger-types' },
+        ],
     },
 ];
 
@@ -49,13 +55,18 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     
     const { can } = useCan();
-    const visibleItems = mainNavItems.filter((item) => !item.permission || can(item.permission));
+    const visibleItems = mainNavItems
+    .filter((item) => !item.permission || can(item.permission))
+    .map((item) => ({
+        ...item,
+        children: item.children?.filter((c) => !c.permission || can(c.permission)),
+    }));
 
     return (
         <Sidebar collapsible="icon" variant="floating">
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem>
+                    <SidebarMenuItem className='border-b border-gray-300'>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />

@@ -36,14 +36,14 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
         
-        $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
-            if (! app()->environment(['local', 'testing'])
-                && in_array($response->getStatusCode(), [403, 404, 419, 500, 503])) {
-                return Inertia::render('error', ['status' => $response->getStatusCode()])
-                    ->toResponse($request)
-                    ->setStatusCode($response->getStatusCode());
-            }
+        // $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
+        //     if (! app()->environment(['local', 'testing'])
+        //         && in_array($response->getStatusCode(), [403, 404, 419, 500, 503])) {
+        //         return Inertia::render('error', ['status' => $response->getStatusCode()])
+        //             ->toResponse($request)
+        //             ->setStatusCode($response->getStatusCode());
+        //     }
 
-            return $response;
-        });
+        //     return $response;
+        // });
     })->create();
