@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Settings, SquareUserRound, User } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, LayoutList, Settings, SquareUserRound, User } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -15,26 +15,41 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as userIndex } from '@/routes/users'
+import { index as ConfigurationIndex } from '@/routes/configurations'
+import { index as AuditLogsIndex } from '@/routes/audit-logs'
+import { index as CategoriesIndex } from '@/routes/menu/categories'
+import { index as ProductsIndex } from '@/routes/menu/products'
+import { index as GroupsIndex } from '@/routes/menu/groups'
+
+
+
 import type { NavItem } from '@/types';
 
 import { useCan } from '@/hooks/use-can';
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
-    { title: 'User', href: userIndex(), icon: SquareUserRound, permission: 'user.view' },
+    { title: 'User', href: userIndex(), icon: User, permission: 'user.view' },
+    {
+        title: 'Menu',
+        href: '#', 
+        icon: LayoutList,
+        children: [
+            { title: 'Products', href: ProductsIndex() },
+            { title: 'Category', href: CategoriesIndex() },
+            { title: 'Modifier', href: GroupsIndex() },
+        ],
+    },
     {
         title: 'Settings',
         href: '#', 
         icon: Settings,
         children: [
-            { title: 'Lean Season', href: '/settings/lean-season' },
-            { title: 'Reservation Schedule', href: '/settings/reservation-schedule' },
-            { title: 'Company Images', href: '/settings/company-images' },
-            { title: 'Payment Types', href: '/settings/payment-types' },
-            { title: 'Trip Schedules', href: '/settings/trip-schedules' },
-            { title: 'Configurations', href: '/settings/configurations' },
-            { title: 'Station Legends', href: '/settings/station-legends' },
-            { title: 'Passenger Types', href: '/settings/passenger-types' },
+            { title: 'Configuration', href: ConfigurationIndex() },
+            { title: 'Audit Logs', href: AuditLogsIndex() },
+            { title: 'Idempotency Keys', href: '/settings/company-images' },
+            { title: 'Notifications', href: '/settings/payment-types' },
+            { title: 'Permissions', href: '/settings/trip-schedules' },
         ],
     },
 ];

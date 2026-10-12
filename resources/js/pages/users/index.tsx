@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { columnClassNames, getColumns } from '@/pages/users/columns';
 import UserFormDialog from '@/pages/users/form-dialog';
 import type { UserRecord } from '@/pages/users/form-dialog';
-import type { BreadcrumbItem } from '@/types';
 
 import { index } from '@/routes/users';
 
@@ -40,8 +39,6 @@ type DialogState = {
 // Partial reloads: only these props are requested, which is also what makes
 // the optional `users` prop come back.
 const ONLY = ['users', 'filters'];
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Users', href: UserController.index.url() }];
 
 export default function Index({ users, roles, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
