@@ -23,7 +23,15 @@ import { DiscountDialog } from '@/pages/pos/discount-dialog';
 import { buildCartPayload, useCartStore } from '@/stores/cart-store';
 
 type PayMethod = { code: string; name: string; type: string; requires_reference: boolean };
-type Row = { uid: string; method: string; amount: string; reference: string };
+type Row = {
+    uid: string;
+    method: string;
+    amount: string;
+    reference: string;
+    tip: string;
+    /** Non-cash rows follow the remaining balance until the cashier types an amount. */
+    auto: boolean;
+};
 type Attempt = { signature: string; key: string };
 type Outcome = { number: string; paid: boolean; change: number; total: number };
 
@@ -53,12 +61,16 @@ function settle(rows: Row[], methods: PayMethod[], total: number) {
     let blocked = false;
     let tooMuch = false;
     const before: number[] = [];
+    const shown: number[] = [];
     const payments: PayRow[] = [];
 
     rows.forEach((row) => {
         before.push(outstanding);
         const method = methods.find((m) => m.code === row.method);
-        const value = toCents(row.amount);
+        const isCash = method?.type === 'cash';
+        const value = !isCash && row.auto ? Math.max(outstanding, 0) : toCents(row.amount);
+        const tip = toCents(row.tip);
+        shown.push(value);
 
         if (!method || value <= 0) {
             return;
@@ -70,11 +82,15 @@ function settle(rows: Row[], methods: PayMethod[], total: number) {
             return;
         }
 
-        if (method.type === 'cash') {
-            const applied = Math.min(value, outstanding);
-            change += value - applied;
+        if (isCash) {
+            if (value - tip <= 0) {
+                return;
+            }
+
+            const applied = Math.min(value - tip, outstanding);
+            change += value - applied - tip;
             outstanding -= applied;
-            payments.push({ method: method.code, tendered_cents: value });
+            payments.push({ method: method.code, tendered_cents: value, ...(tip > 0 ? { tip_cents: tip } : {}) });
 
             return;
         }
@@ -90,10 +106,15 @@ function settle(rows: Row[], methods: PayMethod[], total: number) {
         }
 
         outstanding -= value;
-        payments.push({ method: method.code, amount_cents: value, reference_no: row.reference.trim() || undefined });
+        payments.push({
+            method: method.code,
+            amount_cents: value,
+            reference_no: row.reference.trim() || undefined,
+            ...(tip > 0 ? { tip_cents: tip } : {}),
+        });
     });
 
-    return { payments, before, remaining: outstanding, change, blocked, tooMuch };
+    return { payments, before, shown, remaining: outstanding, change, blocked, tooMuch };
 }
 
 /** Handy cash amounts: the exact balance, then the next round bills. */
@@ -118,7 +139,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const { summary, calculating, error: previewError } = usePricedCart({ exact: true });
 
     const methods = (config?.payment_methods ?? []) as PayMethod[];
-    const [rows, setRows] = useState<Row[]>(() => [{ uid: uuid(), method: '', amount: '', reference: '' }]);
+    const [rows, setRows] = useState<Row[]>(() => [{ uid: uuid(), method: '', amount: '', reference: '', tip: '', auto: false }]);
     const [discountOpen, setDiscountOpen] = useState(false);
     const [extrasToggled, setExtrasToggled] = useState<boolean | null>(null);
     const [created, setCreated] = useState<OrderDetail | null>(null);
@@ -218,9 +239,8 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     function chooseMethod(index: number, code: string) {
         const method = methods.find((m) => m.code === code);
         const isCash = method?.type === 'cash';
-        const due = result.before[index] ?? total;
 
-        patchRow(index, { method: code, reference: '', amount: isCash ? '' : due > 0 ? toPesos(due) : '' });
+        patchRow(index, { method: code, reference: '', amount: '', auto: !isCash && method !== undefined });
     }
 
     function addRow() {
@@ -229,7 +249,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
 
         setRows((current) => [
             ...current,
-            { uid: uuid(), method: next?.code ?? '', amount: isCash || result.remaining <= 0 ? '' : toPesos(result.remaining), reference: '' },
+            { uid: uuid(), method: next?.code ?? '', amount: '', reference: '', tip: '', auto: !isCash },
         ]);
     }
 
@@ -358,19 +378,29 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                                             placeholder={isCash ? 'Amount received' : 'Amount'}
                                             aria-label={isCash ? 'Amount received' : 'Amount'}
                                             autoFocus={index === 0}
-                                            value={row.amount}
-                                            onChange={(event) => patchRow(index, { amount: event.target.value.replace(/[^0-9.]/g, '') })}
+                                            value={!isCash && row.auto ? (result.shown[index] > 0 ? toPesos(result.shown[index]) : '') : row.amount}
+                                            onChange={(event) => patchRow(index, { amount: event.target.value.replace(/[^0-9.]/g, ''), auto: false })}
                                         />
 
                                         {isCash && due > 0 && (
                                             <div className="flex flex-wrap gap-1.5">
                                                 {quickAmounts(due).map((amount, i) => (
-                                                    <Button key={amount} type="button" variant="outline" size="sm" className="h-10" onClick={() => patchRow(index, { amount: toPesos(amount) })}>
+                                                    <Button key={amount} type="button" variant="outline" size="sm" className="h-10" onClick={() => patchRow(index, { amount: toPesos(amount + toCents(row.tip)) })}>
                                                         {i === 0 ? 'Exact' : formatPeso(amount)}
                                                     </Button>
                                                 ))}
                                             </div>
                                         )}
+
+                                        <Input
+                                            id={`pay-tip-${row.uid}`}
+                                            className="h-11"
+                                            inputMode="decimal"
+                                            placeholder="Tip (optional)"
+                                            aria-label="Tip (optional)"
+                                            value={row.tip}
+                                            onChange={(event) => patchRow(index, { tip: event.target.value.replace(/[^0-9.]/g, '') })}
+                                        />
 
                                         {method?.requires_reference && (
                                             <Input

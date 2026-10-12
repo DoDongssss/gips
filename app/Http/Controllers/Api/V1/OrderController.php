@@ -96,7 +96,9 @@ class OrderController extends Controller implements HasMiddleware
     public function cancel(OrderActionRequest $request, Order $order, OrderStatusService $statuses, OrderService $orders): JsonResponse
     {
         $order = $statuses->transition($order, OrderStatus::Cancelled, $request->user(), $request->validated('reason'));
-        Audit::record('order.cancelled', $order, [], ['reason' => $request->validated('reason')]);
+        Audit::record('orders', 'order.cancelled', "Order {$order->order_number} cancelled", $order, [
+            'reason' => $request->validated('reason'),
+        ]);
 
         return $this->respond($orders->load($order));
     }
@@ -114,7 +116,7 @@ class OrderController extends Controller implements HasMiddleware
         $reason = $request->validated('reason');
         $order = $statuses->transition($order, OrderStatus::Voided, $request->user(), $reason);
 
-        Audit::record('order.voided', $order, [], [
+        Audit::record('orders', 'order.voided', "Order {$order->order_number} voided", $order, [
             'reason' => $reason,
             'total_cents' => $order->total_cents,
             'paid_cents' => $order->paid_cents,

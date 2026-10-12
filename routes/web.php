@@ -4,21 +4,21 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\Menu\AvailabilityController;
 use App\Http\Controllers\Menu\CategoryController;
+use App\Http\Controllers\Menu\ModifierGroupController;
 use App\Http\Controllers\Menu\ProductController;
 use App\Http\Controllers\Menu\ProductImageController;
 use App\Http\Controllers\Menu\ProductModifierGroupController;
-use App\Http\Controllers\Menu\ModifierGroupController;
 use App\Http\Controllers\Menu\ProductVariantController;
 use App\Http\Controllers\PinLoginController;
+use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
-    
+
     // users route
     Route::resource('users', UserController::class)->only(['index', 'store', 'update']);
     Route::post('users/{user}/reset-credentials', [UserController::class, 'resetCredentials'])
@@ -26,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // configuration route
     Route::resource('configurations', ConfigurationController::class)->only(['index', 'update']);
+
+    // tax routes
+    Route::resource('taxes', TaxController::class)->only(['index', 'store', 'update']);
 
     // audit routes
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

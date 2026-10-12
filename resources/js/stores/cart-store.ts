@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import type { Approval, CartPayload } from '@/lib/pos-api';
 import { uuid } from '@/lib/uuid';
@@ -61,66 +62,108 @@ const sameChoice = (a: Omit<CartLine, 'uid' | 'quantity'>, b: Omit<CartLine, 'ui
     a.notes.trim() === b.notes.trim() &&
     [...a.modifier_ids].sort().join(',') === [...b.modifier_ids].sort().join(',');
 
-export const useCartStore = create<CartState>((set) => ({
-    type: 'takeout',
-    customerName: '',
-    notes: '',
-    lines: [],
-    discounts: [],
-    approval: null,
+export const useCartStore = create<CartState>()(
+    persist(
+        (set) => ({
+            type: 'takeout',
+            customerName: '',
+            notes: '',
+            lines: [],
+            discounts: [],
+            approval: null,
 
-    setType: (type) => set({ type }),
-    setCustomerName: (customerName) => set({ customerName }),
-    setNotes: (notes) => set({ notes }),
+            setType: (type) => set({ type }),
+            setCustomerName: (customerName) => set({ customerName }),
+            setNotes: (notes) => set({ notes }),
 
-    addLine: (line) =>
-        set((state) => {
-            const existing = state.lines.find((l) => sameChoice(l, line));
+            addLine: (line) =>
+                set((state) => {
+                    const existing = state.lines.find((l) => sameChoice(l, line));
 
-            if (existing) {
-                return {
-                    lines: state.lines.map((l) =>
-                        l.uid === existing.uid ? { ...l, quantity: Math.min(MAX_QUANTITY, l.quantity + line.quantity) } : l,
-                    ),
-                };
-            }
+                    if (existing) {
+                        return {
+                            lines: state.lines.map((l) =>
+                                l.uid === existing.uid
+                                    ? {
+                                          ...l,
+                                          quantity: Math.min(MAX_QUANTITY, l.quantity + line.quantity),
+                                      }
+                                    : l,
+                            ),
+                        };
+                    }
 
-            return { lines: [...state.lines, { ...line, uid: uid() }] };
-        }),
+                    return { lines: [...state.lines, { ...line, uid: uid() }] };
+                }),
 
-    updateLine: (lineUid, line) =>
-        set((state) => ({ lines: state.lines.map((l) => (l.uid === lineUid ? { ...line, uid: lineUid } : l)) })),
+            updateLine: (lineUid, line) =>
+                set((state) => ({
+                    lines: state.lines.map((l) => (l.uid === lineUid ? { ...line, uid: lineUid } : l)),
+                })),
 
-    setQuantity: (lineUid, quantity) =>
-        set((state) => {
-            if (quantity <= 0) {
-                return {
+            setQuantity: (lineUid, quantity) =>
+                set((state) => {
+                    if (quantity <= 0) {
+                        return {
+                            lines: state.lines.filter((l) => l.uid !== lineUid),
+                            discounts: state.discounts.filter((d) => d.line_uid !== lineUid),
+                        };
+                    }
+
+                    return {
+                        lines: state.lines.map((l) =>
+                            l.uid === lineUid
+                                ? {
+                                      ...l,
+                                      quantity: Math.min(MAX_QUANTITY, quantity),
+                                  }
+                                : l,
+                        ),
+                    };
+                }),
+
+            removeLine: (lineUid) =>
+                set((state) => ({
                     lines: state.lines.filter((l) => l.uid !== lineUid),
+                    // A discount tied to a removed item has nothing left to apply to.
                     discounts: state.discounts.filter((d) => d.line_uid !== lineUid),
-                };
-            }
+                })),
 
-            return {
-                lines: state.lines.map((l) => (l.uid === lineUid ? { ...l, quantity: Math.min(MAX_QUANTITY, quantity) } : l)),
-            };
+            addDiscount: (discount) =>
+                set((state) => ({
+                    discounts: [...state.discounts, { ...discount, uid: uid() }],
+                })),
+            removeDiscount: (discountUid) =>
+                set((state) => ({
+                    discounts: state.discounts.filter((d) => d.uid !== discountUid),
+                })),
+
+            setApproval: (approval) => set({ approval }),
+
+            clear: () =>
+                set({
+                    type: 'takeout',
+                    customerName: '',
+                    notes: '',
+                    lines: [],
+                    discounts: [],
+                    approval: null,
+                }),
         }),
-
-    removeLine: (lineUid) =>
-        set((state) => ({
-            lines: state.lines.filter((l) => l.uid !== lineUid),
-            // A discount tied to a removed item has nothing left to apply to.
-            discounts: state.discounts.filter((d) => d.line_uid !== lineUid),
-        })),
-
-    addDiscount: (discount) => set((state) => ({ discounts: [...state.discounts, { ...discount, uid: uid() }] })),
-    removeDiscount: (discountUid) =>
-        set((state) => ({ discounts: state.discounts.filter((d) => d.uid !== discountUid) })),
-
-    setApproval: (approval) => set({ approval }),
-
-    clear: () =>
-        set({ type: 'takeout', customerName: '', notes: '', lines: [], discounts: [], approval: null }),
-}));
+        {
+            name: 'pos-cart',
+            version: 1,
+            // The manager approval holds a PIN, so it is never written to storage.
+            partialize: (state) => ({
+                type: state.type,
+                customerName: state.customerName,
+                notes: state.notes,
+                lines: state.lines,
+                discounts: state.discounts,
+            }),
+        },
+    ),
+);
 
 /** The request body for /orders/preview and /orders. Names and prices never go to the server. */
 export function buildCartPayload(

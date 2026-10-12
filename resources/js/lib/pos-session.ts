@@ -22,7 +22,7 @@ export type PosSessionData = {
     orders: PosOrderRow[];
 };
 
-export type PayRow = { method: string; amount_cents?: number; tendered_cents?: number; reference_no?: string };
+export type PayRow = { method: string; amount_cents?: number; tendered_cents?: number; tip_cents?: number; reference_no?: string };
 
 const STORAGE_KEY = 'pos.session.started_at';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;

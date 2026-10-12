@@ -22,6 +22,7 @@ import { index as ProductsIndex } from '@/routes/menu/products'
 import { index as GroupsIndex } from '@/routes/menu/groups'
 import { index as OrdersIndex } from '@/routes/orders'
 import { index as DiscountsIndex } from '@/routes/discounts'
+import { index as TaxesIndex } from '@/routes/taxes'
 
 
 
@@ -59,6 +60,7 @@ const mainNavItems: NavItem[] = [
         icon: Settings,
         children: [
             { title: 'Configuration', href: ConfigurationIndex() },
+            { title: 'Tax', href: TaxesIndex(), permission: 'setting.view' },
             { title: 'Audit Logs', href: AuditLogsIndex() },
             { title: 'Idempotency Keys', href: '/settings/company-images' },
             { title: 'Notifications', href: '/settings/payment-types' },

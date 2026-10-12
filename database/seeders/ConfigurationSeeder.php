@@ -61,11 +61,6 @@ class ConfigurationSeeder extends Seeder
                 'business_tin' => ['type' => 'string', 'value' => null],
             ],
 
-            'tax' => [
-                'tax_default_rate' => ['type' => 'decimal', 'value' => 12],
-                'tax_is_inclusive' => ['type' => 'bool', 'value' => true],
-            ],
-
             'receipt' => [
                 'receipt_header' => ['type' => 'text', 'value' => null],
                 'receipt_footer' => ['type' => 'text', 'value' => 'Thank you for your purchase!'],

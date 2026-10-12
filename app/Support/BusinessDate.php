@@ -10,7 +10,7 @@ class BusinessDate
     public static function current(?CarbonInterface $at = null): string
     {
         $at = ($at ?? now())->copy();
-        $cutoff = (int) PosSettings::get('orders', 'business_day_cutoff_hour', 4);
+        $cutoff = (int) PosSettings::get('orders', 'cutoff_hour', 4);
 
         if ($at->hour < $cutoff) {
             $at = $at->subDay();

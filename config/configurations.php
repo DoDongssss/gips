@@ -49,29 +49,6 @@ return [
             ],
         ],
 
-        'tax' => [
-            'label' => 'Tax',
-            'description' => 'Used when calculating order totals.',
-            'fields' => [
-                'tax_default_rate' => [
-                    'label' => 'Default tax rate (%)',
-                    'type' => 'decimal',
-                    'default' => 12,
-                    'min' => 0,
-                    'max' => 100,
-                    'step' => 0.01,
-                    'help' => 'Confirm the correct rate with your accountant.',
-                    'rules' => ['required', 'numeric', 'between:0,100'],
-                ],
-                'tax_is_inclusive' => [
-                    'label' => 'Menu prices already include tax',
-                    'type' => 'bool',
-                    'default' => true,
-                    'rules' => ['boolean'],
-                ],
-            ],
-        ],
-
         'receipt' => [
             'label' => 'Receipt',
             'description' => 'Text printed at the top and bottom of every receipt.',

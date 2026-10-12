@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  * Reads and writes store configurations.
  *
  * Usage anywhere in the app:
- *   app(ConfigurationsService::class)->get('tax_default_rate');   // 12.0
+ *   app(ConfigurationsService::class)->get('business_name');   // 'My Coffee Shop'
  *   app(ConfigurationsService::class)->get('shifts_require_open_shift'); // true
  *
  * Values are cached, and the cache is cleared whenever a configuration changes.

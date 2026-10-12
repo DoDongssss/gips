@@ -169,6 +169,10 @@ class OrderPricingService
     /** @return array<int, array<string, mixed>> */
     private function resolveDiscounts(array $requested, int $lineCount, ?User $user, ?array $approval, bool $enforceApproval): array
     {
+        if ($requested !== [] && $user && ! $user->can('discount.apply')) {
+            $this->fail('discounts', 'You are not allowed to apply discounts.');
+        }
+
         $ids = collect($requested)->pluck('discount_id')->unique();
         $models = Discount::usable()->whereIn('id', $ids)->get()->keyBy('id');
 
