@@ -152,6 +152,28 @@
     --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Tighter corners while the register is open (set on <html> by PosLayout). */
+.pos-compact {
+    --radius: 0.5rem;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --background: #ffffff;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --foreground: #111827;
+    --card-foreground: #111827;
+    --popover-foreground: #111827;
+    --secondary-foreground: #374151;
+    --accent-foreground: #374151;
+    --muted: #f3f4f6;
+    --secondary: #f3f4f6;
+    --accent: #f3f4f6;
+    --muted-foreground: #6b7280;
+    --border: #e5e7eb;
+    --input: #d1d5db;
+    --ring: #3b82f6;
+}
+
 @layer base {
     * {
         @apply border-border;

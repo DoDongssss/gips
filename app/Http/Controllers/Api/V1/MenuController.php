@@ -6,16 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Services\Menu\MenuService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MenuController extends Controller
 {
-    /**
-     * GET /api/v1/menu
-     * Active items only; sold-out items are hidden unless staff with
-     * menu.availability ask for them (so the POS can toggle them back on).
-     */
+
     public function index(Request $request, MenuService $menu): JsonResponse
     {
+        Log::info([$request->user()]);
         $includeUnavailable = $request->boolean('include_unavailable')
             && (bool) $request->user()?->can('menu.availability');
 

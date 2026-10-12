@@ -1,20 +1,33 @@
 <?php
 
 use App\Http\Controllers\Api\V1\MenuController;
+use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PosConfigController;
+use App\Http\Controllers\Api\V1\PosSessionController;
 use App\Http\Controllers\Menu\AvailabilityController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
 
-Route::prefix('v1')->name('api.v1.')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->name('api.v1.')->middleware(['web', 'auth'])->group(function () {
     Route::get('menu', [MenuController::class, 'index'])
         ->middleware('permission:menu.view')
         ->name('menu');
 
-    // Sold-out toggle for the POS screen
     Route::patch('products/{product}/availability', [AvailabilityController::class, 'product'])->name('products.availability');
     Route::patch('modifiers/{modifier}/availability', [AvailabilityController::class, 'modifier'])->name('modifiers.availability');
+
+    Route::get('pos/config', PosConfigController::class)->name('pos.config');
+    Route::get('pos/my-orders', PosSessionController::class)->name('pos.my-orders');
+
+
+    Route::post('orders/preview', [OrderController::class, 'preview'])->name('orders.preview');
+    Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::get('orders/lookup/{number}', [OrderController::class, 'lookup'])->name('orders.lookup');
+    Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::post('orders/{order}/confirm', [OrderController::class, 'confirm'])->name('orders.confirm');
+    Route::post('orders/{order}/complete', [OrderController::class, 'complete'])->name('orders.complete');
+    Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('orders/{order}/void', [OrderController::class, 'void'])->name('orders.void');
+    Route::post('orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
 });

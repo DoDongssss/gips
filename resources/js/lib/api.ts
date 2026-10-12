@@ -12,6 +12,8 @@ type ApiOptions = {
     method?: Method;
     body?: unknown;
     signal?: AbortSignal;
+    /** Extra headers, for example `Idempotency-Key` on order and payment calls. */
+    headers?: Record<string, string>;
 };
 
 export class ApiError extends Error {
@@ -32,7 +34,7 @@ function xsrfToken(): string {
     return match ? decodeURIComponent(match[1]) : '';
 }
 
-export async function api<T>(url: string, { method = 'GET', body, signal }: ApiOptions = {}): Promise<T> {
+export async function api<T>(url: string, { method = 'GET', body, signal, headers }: ApiOptions = {}): Promise<T> {
     const hasBody = body !== undefined;
 
     const response = await fetch(url, {
@@ -44,6 +46,7 @@ export async function api<T>(url: string, { method = 'GET', body, signal }: ApiO
             'X-Requested-With': 'XMLHttpRequest',
             'X-XSRF-TOKEN': xsrfToken(),
             ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+            ...headers,
         },
         body: hasBody ? JSON.stringify(body) : undefined,
     });
@@ -77,4 +80,26 @@ export async function api<T>(url: string, { method = 'GET', body, signal }: ApiO
     }
 
     return (await response.json()) as T;
+}
+
+/** Every validation message from an error, flattened, for a simple inline alert. */
+export function errorMessages(error: unknown): string[] {
+    if (error instanceof ApiError) {
+        const all = Object.values(error.errors ?? {}).flat();
+
+        return all.length > 0 ? all : [error.message];
+    }
+
+    return error instanceof Error ? [error.message] : ['Something went wrong. Please try again.'];
+}
+
+/** The first message for one field, or any field starting with the given key (e.g. `approval`). */
+export function fieldError(error: unknown, key: string): string | undefined {
+    if (!(error instanceof ApiError) || !error.errors) {
+        return undefined;
+    }
+
+    const match = Object.entries(error.errors).find(([name]) => name === key || name.startsWith(`${key}.`));
+
+    return match?.[1][0];
 }

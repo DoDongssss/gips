@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, LayoutList, Settings, SquareUserRound, User } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, LayoutList, Receipt, Settings, SquareUserRound, User } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -20,6 +20,8 @@ import { index as AuditLogsIndex } from '@/routes/audit-logs'
 import { index as CategoriesIndex } from '@/routes/menu/categories'
 import { index as ProductsIndex } from '@/routes/menu/products'
 import { index as GroupsIndex } from '@/routes/menu/groups'
+import { index as OrdersIndex } from '@/routes/orders'
+import { index as DiscountsIndex } from '@/routes/discounts'
 
 
 
@@ -31,18 +33,29 @@ const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
     { title: 'User', href: userIndex(), icon: User, permission: 'user.view' },
     {
-        title: 'Menu',
-        href: '#', 
-        icon: LayoutList,
+        title: 'Sales',
+        href: '#',
+        icon: Receipt,
+        permission: 'order.view',
         children: [
-            { title: 'Products', href: ProductsIndex() },
-            { title: 'Category', href: CategoriesIndex() },
-            { title: 'Modifier', href: GroupsIndex() },
+            { title: 'Orders', href: OrdersIndex(), permission: 'order.view' },
+            { title: 'Discounts', href: DiscountsIndex(), permission: 'discount.manage' },
+        ],
+    },
+    {
+        title: 'Menu',
+        href: '#',
+        icon: LayoutList,
+        permission: 'menu.view',
+        children: [
+            { title: 'Products', href: ProductsIndex(), permission: 'menu.view' },
+            { title: 'Category', href: CategoriesIndex(), permission: 'menu.view' },
+            { title: 'Modifier', href: GroupsIndex(), permission: 'menu.view' },
         ],
     },
     {
         title: 'Settings',
-        href: '#', 
+        href: '#',
         icon: Settings,
         children: [
             { title: 'Configuration', href: ConfigurationIndex() },
