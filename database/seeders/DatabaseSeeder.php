@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PaymentMethodSeeder::class,
             TaxSeeder::class,
             DiscountSeeder::class,
+            StationSeeder::class,
             // UserSeeder::class,
             // ConfigurationSeeder::class,
         ]);

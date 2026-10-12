@@ -36,6 +36,7 @@ type Props = {
     // Optional on the server: undefined until the person asks for it.
     products?: Paginated<ProductRow>;
     categories: Option[];
+    stations?: Option[];
     // Set while the edit dialog is open (?edit=ID), otherwise null.
     editing: ProductDetail | null;
     modifierGroups: AttachableGroup[];
@@ -47,7 +48,7 @@ type Props = {
 const LIST = ['products', 'filters'];
 const ALL = 'all';
 
-export default function Index({ products, categories, editing, modifierGroups, filters }: Props) {
+export default function Index({ products, categories, editing, modifierGroups, stations, filters }: Props) {
     const { can } = useCan();
 
     const canUpdate = can('menu.update');
@@ -237,7 +238,7 @@ export default function Index({ products, categories, editing, modifierGroups, f
 
             <ProductFormDialog open={creating} onOpenChange={setCreating} categories={categories} />
 
-            <ProductEditDialog product={editing ?? null} categories={categories} modifierGroups={modifierGroups ?? []} onClose={closeEdit} />
+            <ProductEditDialog product={editing ?? null} categories={categories} stations={stations ?? []} modifierGroups={modifierGroups ?? []} onClose={closeEdit} />
         </>
     );
 }

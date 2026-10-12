@@ -37,16 +37,26 @@ async function request<T>(method: string, url: string, body?: unknown, extra: Re
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        throw new PosHttpError(response.status, payload?.message ?? 'Something went wrong. Please try again.', payload?.errors ?? {});
+        throw new PosHttpError(
+            response.status,
+            payload?.message ?? 'Something went wrong. Please try again.',
+            payload?.errors ?? {},
+        );
     }
 
     return payload as T;
 }
 
-export const posGet = <T>(url: string): Promise<T> => request<T>('GET', url);
+export const posGet = <T>(url: string, headers: Record<string, string> = {}): Promise<T> =>
+    request<T>('GET', url, undefined, headers);
 
-export const posPost = <T>(url: string, body: unknown, idempotencyKey?: string): Promise<T> =>
-    request<T>('POST', url, body, idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {});
+export const posPost = <T>(
+    url: string,
+    body: unknown,
+    idempotencyKey?: string,
+    headers: Record<string, string> = {},
+): Promise<T> =>
+    request<T>('POST', url, body, { ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...headers });
 
 /** Readable messages for any error: ours, or one thrown by @/lib/pos-api. */
 export function errorList(error: unknown): string[] {

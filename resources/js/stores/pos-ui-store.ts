@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import type { PosOrderRow } from '@/lib/pos-session';
 import { readSessionStart, writeSessionStart } from '@/lib/pos-session';
 
-export type DrawerTab = 'unpaid' | 'all';
+export type DrawerTab = 'unpaid' | 'all' | 'ready';
 
 type PosUiState = {
     /** Which tab of the orders drawer is open; null = closed. */

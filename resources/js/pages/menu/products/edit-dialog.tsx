@@ -14,11 +14,12 @@ type Props = {
     /** The product to edit. The dialog is open exactly while this is set. */
     product: ProductDetail | null;
     categories: Option[];
+    stations: Option[];
     modifierGroups: AttachableGroup[];
     onClose: () => void;
 };
 
-export default function ProductEditDialog({ product, categories, modifierGroups, onClose }: Props) {
+export default function ProductEditDialog({ product, categories, stations, modifierGroups, onClose }: Props) {
     return (
         <Dialog open={Boolean(product)} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="top-[5vh] max-h-[90vh] translate-y-0 overflow-y-auto sm:max-w-3xl">
@@ -48,7 +49,7 @@ export default function ProductEditDialog({ product, categories, modifierGroups,
                             </TabsList>
 
                             <TabsContent value="details" className="pt-2">
-                                <DetailsTab product={product} categories={categories} />
+                                <DetailsTab product={product} categories={categories} stations={stations} />
                             </TabsContent>
                             <TabsContent value="variants" className="pt-2">
                                 {/* Remounts after a save, so rows added just now pick up their new ids. */}

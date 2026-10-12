@@ -7,6 +7,7 @@ use App\Http\Requests\Menu\ProductRequest;
 use App\Models\Category;
 use App\Models\ModifierGroup;
 use App\Models\Product;
+use App\Models\Station;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -88,6 +89,7 @@ class ProductController extends Controller implements HasMiddleware
             // Only built while the dialog is open, so the normal list stays light.
             'editing' => $editing ? $this->detail($editing) : null,
             'modifierGroups' => $editing ? $this->attachableGroups() : [],
+            'stations' => $editing ? Station::active()->ordered()->get(['id', 'name']) : [],
 
             'filters' => [
                 'search' => $search,
@@ -143,6 +145,7 @@ class ProductController extends Controller implements HasMiddleware
         return [
             'id' => $product->id,
             'category_id' => $product->category_id,
+            'station_id' => $product->station_id,
             'name' => $product->name,
             'sku' => $product->sku,
             'description' => $product->description,

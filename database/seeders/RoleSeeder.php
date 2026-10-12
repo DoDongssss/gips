@@ -41,6 +41,11 @@ class RoleSeeder extends Seeder
                 'shift.open', 'shift.close',
             ],
 
+            // Kitchen staff: the kitchen screens only.
+            'kitchen' => [
+                'kds.view', 'kds.bump',
+            ],
+
             'barista' => [
                 'menu.view',
                 'order.view',

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, LayoutList, Receipt, Settings, SquareUserRound, User } from 'lucide-react';
+import { BookOpen, ChefHat, FolderGit2, LayoutGrid, LayoutList, Receipt, Settings, SquareUserRound, User } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -23,6 +23,9 @@ import { index as GroupsIndex } from '@/routes/menu/groups'
 import { index as OrdersIndex } from '@/routes/orders'
 import { index as DiscountsIndex } from '@/routes/discounts'
 import { index as TaxesIndex } from '@/routes/taxes'
+import { index as StationsIndex } from '@/routes/stations'
+import { index as KitchenIndex } from '@/routes/kitchen'
+import { index as DevicesIndex } from '@/routes/devices'
 
 
 
@@ -43,6 +46,7 @@ const mainNavItems: NavItem[] = [
             { title: 'Discounts', href: DiscountsIndex(), permission: 'discount.manage' },
         ],
     },
+    { title: 'Kitchen', href: KitchenIndex(), icon: ChefHat, permission: 'kds.view' },
     {
         title: 'Menu',
         href: '#',
@@ -61,6 +65,8 @@ const mainNavItems: NavItem[] = [
         children: [
             { title: 'Configuration', href: ConfigurationIndex() },
             { title: 'Tax', href: TaxesIndex(), permission: 'setting.view' },
+            { title: 'Stations', href: StationsIndex(), permission: 'setting.view' },
+            { title: 'Devices', href: DevicesIndex(), permission: 'setting.view' },
             { title: 'Audit Logs', href: AuditLogsIndex() },
             { title: 'Idempotency Keys', href: '/settings/company-images' },
             { title: 'Notifications', href: '/settings/payment-types' },

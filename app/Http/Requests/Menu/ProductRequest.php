@@ -18,6 +18,7 @@ class ProductRequest extends FormRequest
 
         return [
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at')],
+            'station_id' => ['nullable', 'integer', Rule::exists('stations', 'id')],
             'name' => ['required', 'string', 'max:150'],
             'sku' => ['nullable', 'string', 'max:64', Rule::unique('products', 'sku')->ignore($product?->id)],
             'description' => ['nullable', 'string', 'max:2000'],

@@ -44,6 +44,8 @@ export type ProductImage = { id: number; url: string; alt: string | null; is_pri
 export type ProductDetail = {
     id: number;
     category_id: number;
+    /** Kitchen station override; null means the category's station. */
+    station_id: number | null;
     name: string;
     sku: string | null;
     description: string | null;

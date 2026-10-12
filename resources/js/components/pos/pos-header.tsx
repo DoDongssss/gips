@@ -1,6 +1,19 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useQuery } from '@tanstack/react-query';
-import { Banknote, CalendarDays, ChevronDown, ClipboardList, Clock, LayoutGrid, LogOut, Receipt, RotateCcw, Settings, ShoppingCart } from 'lucide-react';
+import {
+    Banknote,
+    BellRing,
+    CalendarDays,
+    ChevronDown,
+    ClipboardList,
+    Clock,
+    LayoutGrid,
+    LogOut,
+    Receipt,
+    RotateCcw,
+    Settings,
+    ShoppingCart,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,6 +26,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useRealtimeRefetch } from '@/hooks/use-realtime';
+import { readyOrdersQuery } from '@/lib/kds';
 import { formatPeso } from '@/lib/money';
 import { myOrdersQuery } from '@/lib/pos-session';
 import { dashboard } from '@/routes';
@@ -44,7 +59,15 @@ const initials = (name: string) =>
         .join('')
         .toUpperCase();
 
-function Chip({ icon: Icon, children, tone = 'blue' }: { icon: typeof Clock; children: React.ReactNode; tone?: 'blue' | 'green' }) {
+function Chip({
+    icon: Icon,
+    children,
+    tone = 'blue',
+}: {
+    icon: typeof Clock;
+    children: React.ReactNode;
+    tone?: 'blue' | 'green';
+}) {
     const colors = tone === 'green' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700';
 
     return (
@@ -63,6 +86,8 @@ export function PosHeader() {
     const newSession = usePosUi((state) => state.newSession);
 
     const { data } = useQuery(myOrdersQuery(since));
+    useRealtimeRefetch('pos.orders', 'order.updated', readyOrdersQuery().queryKey);
+    const readyCount = (useQuery(readyOrdersQuery()).data ?? []).length;
     const summary = data?.summary;
     const unpaidCount = summary?.unpaid_count ?? 0;
     const salesCount = summary?.sales_count ?? 0;
@@ -89,7 +114,10 @@ export function PosHeader() {
             </div>
 
             <div className="flex items-center gap-3">
-                <div className="hidden items-center gap-2 lg:flex" title={`Your sales since ${timeText(new Date(since))}`}>
+                <div
+                    className="hidden items-center gap-2 lg:flex"
+                    title={`Your sales since ${timeText(new Date(since))}`}
+                >
                     <Chip icon={Banknote} tone="green">
                         {formatPeso(summary?.sales_cents ?? 0)}
                     </Chip>
@@ -107,16 +135,39 @@ export function PosHeader() {
                 >
                     <ClipboardList className="size-5" />
                     Orders
-                    {unpaidCount > 0 && <span className="rounded-md bg-blue-600 px-1.5 text-sm leading-6 font-medium text-white tabular-nums">{unpaidCount}</span>}
+                    {unpaidCount > 0 && (
+                        <span className="rounded-md bg-blue-600 px-1.5 text-sm leading-6 font-medium text-white tabular-nums">
+                            {unpaidCount}
+                        </span>
+                    )}
                 </Button>
+
+                {readyCount > 0 && (
+                    <Button
+                        variant="outline"
+                        className="h-11 gap-2 border-green-300 bg-green-50 px-4 text-base text-green-700 hover:bg-green-100 hover:text-green-800"
+                        onClick={() => openDrawer('ready')}
+                    >
+                        <BellRing className="size-5" />
+                        Ready
+                        <span className="rounded-md bg-green-600 px-1.5 text-sm leading-6 font-medium text-white tabular-nums">
+                            {readyCount}
+                        </span>
+                    </Button>
+                )}
 
                 <div className="hidden h-6 w-px bg-gray-200 sm:block" />
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <button type="button" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-base font-medium text-gray-700 hover:bg-gray-100">
+                        <button
+                            type="button"
+                            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-base font-medium text-gray-700 hover:bg-gray-100"
+                        >
                             <Avatar className="size-9">
-                                <AvatarFallback className="bg-blue-100 font-medium text-blue-700">{initials(auth.user.name)}</AvatarFallback>
+                                <AvatarFallback className="bg-blue-100 font-medium text-blue-700">
+                                    {initials(auth.user.name)}
+                                </AvatarFallback>
                             </Avatar>
                             <span className="hidden max-w-32 truncate xl:inline">{auth.user.name}</span>
                             <ChevronDown className="size-5 text-gray-500" />
@@ -126,7 +177,9 @@ export function PosHeader() {
                         <DropdownMenuLabel className="space-y-0.5">
                             <p className="truncate text-base font-medium">{auth.user.name}</p>
                             <p className="truncate text-sm font-normal text-gray-500">{auth.user.email}</p>
-                            <p className="text-sm font-normal text-gray-500">Session started {timeText(new Date(since))}</p>
+                            <p className="text-sm font-normal text-gray-500">
+                                Session started {timeText(new Date(since))}
+                            </p>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>

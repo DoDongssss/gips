@@ -19,7 +19,7 @@ enum OrderStatus: string
             self::Open => [self::Confirmed, self::Cancelled],
             self::Confirmed => [self::Preparing, self::Ready, self::Cancelled, self::Voided],
             self::Preparing => [self::Ready, self::Cancelled, self::Voided],
-            self::Ready => [self::Completed, self::Voided],
+            self::Ready => [self::Completed, self::Voided, self::Preparing], // Preparing: kitchen recalled a bump
             self::Completed => [self::Voided],
             self::Cancelled, self::Voided => [],
         };

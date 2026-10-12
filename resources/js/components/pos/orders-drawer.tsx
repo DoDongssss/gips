@@ -1,9 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { completeOrder, readyOrdersQuery } from '@/lib/kds';
+import type { ReadyOrder } from '@/lib/kds';
 import { formatPeso } from '@/lib/money';
+import { errorList } from '@/lib/pos-http';
 import type { PosOrderRow } from '@/lib/pos-session';
 import { myOrdersQuery } from '@/lib/pos-session';
 import type { DrawerTab } from '@/stores/pos-ui-store';
@@ -36,7 +40,61 @@ function StatusText({ order }: { order: PosOrderRow }) {
 
     const paid = order.payment_status === 'paid';
 
-    return <span className={`text-sm font-medium ${paid ? 'text-green-600' : 'text-blue-600'}`}>{PAYMENT_LABEL[order.payment_status] ?? order.payment_status}</span>;
+    return (
+        <span className={`text-sm font-medium ${paid ? 'text-green-600' : 'text-blue-600'}`}>
+            {PAYMENT_LABEL[order.payment_status] ?? order.payment_status}
+        </span>
+    );
+}
+
+/** Orders the kitchen finished. The cashier hands them over here, which completes the order. */
+function ReadyList({ orders, onPay }: { orders: ReadyOrder[]; onPay: (orderId: number) => void }) {
+    const queryClient = useQueryClient();
+    const handOver = useMutation({
+        mutationFn: (orderId: number) => completeOrder(orderId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pos'] }),
+        onError: (error) => errorList(error).forEach((message) => toast.error(message)),
+    });
+
+    if (orders.length === 0) {
+        return <p className="text-muted-foreground py-8 text-center text-base">No orders waiting at the counter.</p>;
+    }
+
+    return (
+        <div className="divide-y">
+            {orders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between gap-2 py-2">
+                    <div className="min-w-0">
+                        <p className="text-lg leading-tight font-semibold">{order.order_number}</p>
+                        <p className="text-muted-foreground truncate text-sm">
+                            {order.items_count} {order.items_count === 1 ? 'item' : 'items'} ·{' '}
+                            {order.type === 'dine_in' ? 'Dine in' : 'Takeout'}
+                            {order.customer_name && ` · ${order.customer_name}`}
+                        </p>
+                    </div>
+                    {order.balance_cents > 0 ? (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-11 px-4 text-base"
+                            onClick={() => onPay(order.id)}
+                        >
+                            Pay {formatPeso(order.balance_cents)}
+                        </Button>
+                    ) : (
+                        <Button
+                            size="sm"
+                            className="h-11 px-4 text-base"
+                            disabled={handOver.isPending}
+                            onClick={() => handOver.mutate(order.id)}
+                        >
+                            Hand over
+                        </Button>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
 }
 
 export function OrdersDrawer() {
@@ -48,9 +106,12 @@ export function OrdersDrawer() {
 
     const { data, isPending, isError, refetch } = useQuery(myOrdersQuery(since));
 
+    const ready = useQuery({ ...readyOrdersQuery(), enabled: drawer !== null });
+
     const all = data?.orders ?? [];
     const unpaid = all.filter(canPay);
-    const rows = drawer === 'unpaid' ? unpaid : all;
+    const rows = drawer === 'unpaid' ? unpaid : drawer === 'all' ? all : [];
+    const readyOrders = ready.data ?? [];
 
     return (
         <Sheet open={drawer !== null} onOpenChange={(open) => !open && closeDrawer()}>
@@ -60,13 +121,20 @@ export function OrdersDrawer() {
                     <SheetDescription className="text-sm">Orders you took today.</SheetDescription>
                 </SheetHeader>
 
-                <Tabs value={drawer ?? 'unpaid'} onValueChange={(value) => openDrawer(value as DrawerTab)} className="flex min-h-0 flex-1 flex-col gap-0">
-                    <TabsList className="mx-3 mt-2 grid h-10 grid-cols-2">
+                <Tabs
+                    value={drawer ?? 'unpaid'}
+                    onValueChange={(value) => openDrawer(value as DrawerTab)}
+                    className="flex min-h-0 flex-1 flex-col gap-0"
+                >
+                    <TabsList className="mx-3 mt-2 grid h-10 grid-cols-3">
                         <TabsTrigger value="unpaid" className="text-sm">
                             Pay later ({unpaid.length})
                         </TabsTrigger>
                         <TabsTrigger value="all" className="text-sm">
                             All today ({all.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="ready" className="text-sm">
+                            Ready ({readyOrders.length})
                         </TabsTrigger>
                     </TabsList>
 
@@ -82,9 +150,25 @@ export function OrdersDrawer() {
                             </div>
                         )}
 
-                        {!isPending && !isError && rows.length === 0 && (
+                        {drawer === 'ready' && (
+                            <ReadyList
+                                orders={readyOrders}
+                                onPay={(orderId) => {
+                                    const row = all.find((order) => order.id === orderId);
+                                    if (row) {
+                                        startPaying(row);
+                                    } else {
+                                        toast.error('Open the order from All today to take payment.');
+                                    }
+                                }}
+                            />
+                        )}
+
+                        {drawer !== 'ready' && !isPending && !isError && rows.length === 0 && (
                             <p className="text-muted-foreground py-8 text-center text-base">
-                                {drawer === 'unpaid' ? 'No saved orders waiting for payment.' : 'No orders taken yet today.'}
+                                {drawer === 'unpaid'
+                                    ? 'No saved orders waiting for payment.'
+                                    : 'No orders taken yet today.'}
                             </p>
                         )}
 
@@ -96,8 +180,12 @@ export function OrdersDrawer() {
                                             {order.order_number} <StatusText order={order} />
                                         </p>
                                         <p className="text-muted-foreground truncate text-sm">
-                                            {new Date(order.created_at).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })} · {order.items_count}{' '}
-                                            {order.items_count === 1 ? 'item' : 'items'} · {order.type === 'dine_in' ? 'Dine in' : 'Takeout'}
+                                            {new Date(order.created_at).toLocaleTimeString('en-PH', {
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                            })}{' '}
+                                            · {order.items_count} {order.items_count === 1 ? 'item' : 'items'} ·{' '}
+                                            {order.type === 'dine_in' ? 'Dine in' : 'Takeout'}
                                             {order.customer_name && ` · ${order.customer_name}`}
                                         </p>
                                     </div>
@@ -105,11 +193,17 @@ export function OrdersDrawer() {
                                         <div className="text-right text-base tabular-nums">
                                             <p className="font-medium">{formatPeso(order.total_cents)}</p>
                                             {canPay(order) && order.paid_cents > 0 && (
-                                                <p className="text-muted-foreground text-sm">{formatPeso(order.balance_cents)} left</p>
+                                                <p className="text-muted-foreground text-sm">
+                                                    {formatPeso(order.balance_cents)} left
+                                                </p>
                                             )}
                                         </div>
                                         {canPay(order) && (
-                                            <Button size="sm" className="h-11 px-4 text-base" onClick={() => startPaying(order)}>
+                                            <Button
+                                                size="sm"
+                                                className="h-11 px-4 text-base"
+                                                onClick={() => startPaying(order)}
+                                            >
                                                 Pay
                                             </Button>
                                         )}

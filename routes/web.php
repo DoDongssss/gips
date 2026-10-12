@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConfigurationController;
+use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\Menu\AvailabilityController;
 use App\Http\Controllers\Menu\CategoryController;
 use App\Http\Controllers\Menu\ModifierGroupController;
@@ -10,6 +12,7 @@ use App\Http\Controllers\Menu\ProductImageController;
 use App\Http\Controllers\Menu\ProductModifierGroupController;
 use App\Http\Controllers\Menu\ProductVariantController;
 use App\Http\Controllers\PinLoginController;
+use App\Http\Controllers\StationController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +32,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // tax routes
     Route::resource('taxes', TaxController::class)->only(['index', 'store', 'update']);
+
+    // station routes (kitchen routing)
+    Route::resource('stations', StationController::class)->only(['index', 'store', 'update']);
+
+    // kitchen display
+    Route::get('kitchen', [KitchenController::class, 'index'])->name('kitchen.index');
+    Route::get('kitchen/{station}', [KitchenController::class, 'show'])->whereNumber('station')->name('kitchen.show');
+
+    // kitchen screens (devices)
+    Route::resource('devices', DeviceController::class)->only(['index', 'store', 'update']);
+    Route::post('devices/{device}/reset-pairing', [DeviceController::class, 'resetPairing'])->name('devices.reset-pairing');
 
     // audit routes
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
@@ -65,6 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
 });
+
+// A paired kitchen screen has no staff login: it opens this page and signs in with its token.
+Route::inertia('kitchen-screen', 'kitchen/device')->name('kitchen.device');
 
 Route::middleware('guest')->group(function () {
     Route::get('pin-login', [PinLoginController::class, 'create'])->name('pin-login');

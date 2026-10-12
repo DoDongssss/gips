@@ -6,6 +6,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import KitchenLayout from './layouts/kitchen-layout';
 import PosLayout from './layouts/pos-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'GIPS';
@@ -29,6 +30,8 @@ void createInertiaApp({
                 return null;
             case name.startsWith('pos/'):
                 return PosLayout;
+            case name.startsWith('kitchen/'):
+                return KitchenLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

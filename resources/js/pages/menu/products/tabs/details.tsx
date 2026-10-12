@@ -12,12 +12,15 @@ import { FieldError } from '@/components/fieldError';
 import { update } from '@/routes/menu/products';
 import type { Option, ProductDetail } from '@/types/menu';
 
-type Props = { product: ProductDetail; categories: Option[] };
+type Props = { product: ProductDetail; categories: Option[]; stations: Option[] };
 
-export function DetailsTab({ product, categories }: Props) {
+const CATEGORY_STATION = 'category';
+
+export function DetailsTab({ product, categories, stations }: Props) {
     const form = useForm({
         name: product.name,
         category_id: String(product.category_id),
+        station_id: product.station_id ? String(product.station_id) : CATEGORY_STATION,
         sku: product.sku ?? '',
         description: product.description ?? '',
         price: centsToPesos(product.base_price_cents),
@@ -32,6 +35,7 @@ export function DetailsTab({ product, categories }: Props) {
         form.transform((data) => ({
             name: data.name,
             category_id: data.category_id,
+            station_id: data.station_id === CATEGORY_STATION ? null : data.station_id,
             sku: data.sku || null,
             description: data.description || null,
             base_price_cents: pesosToCents(data.price),
@@ -47,7 +51,11 @@ export function DetailsTab({ product, categories }: Props) {
         <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="product-edit-name">Name</Label>
-                <Input id="product-edit-name" value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />
+                <Input
+                    id="product-edit-name"
+                    value={form.data.name}
+                    onChange={(event) => form.setData('name', event.target.value)}
+                />
                 <FieldError message={form.errors.name} />
             </div>
 
@@ -70,8 +78,30 @@ export function DetailsTab({ product, categories }: Props) {
                 </div>
 
                 <div className="space-y-2">
+                    <Label>Kitchen station</Label>
+                    <Select value={form.data.station_id} onValueChange={(value) => form.setData('station_id', value)}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={CATEGORY_STATION}>Same as the category</SelectItem>
+                            {stations.map((station) => (
+                                <SelectItem key={station.id} value={String(station.id)}>
+                                    {station.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FieldError message={(form.errors as Record<string, string>).station_id} />
+                </div>
+
+                <div className="space-y-2">
                     <Label htmlFor="product-edit-sku">SKU (optional)</Label>
-                    <Input id="product-edit-sku" value={form.data.sku} onChange={(event) => form.setData('sku', event.target.value)} />
+                    <Input
+                        id="product-edit-sku"
+                        value={form.data.sku}
+                        onChange={(event) => form.setData('sku', event.target.value)}
+                    />
                     <FieldError message={form.errors.sku} />
                 </div>
 
@@ -83,7 +113,9 @@ export function DetailsTab({ product, categories }: Props) {
                         value={form.data.price}
                         onChange={(event) => form.setData('price', event.target.value)}
                     />
-                    <p className="text-muted-foreground text-xs">Used when the product has no sizes. Sizes carry their own full price.</p>
+                    <p className="text-muted-foreground text-xs">
+                        Used when the product has no sizes. Sizes carry their own full price.
+                    </p>
                     <FieldError message={(form.errors as Record<string, string>).base_price_cents} />
                 </div>
 
@@ -111,11 +143,17 @@ export function DetailsTab({ product, categories }: Props) {
 
             <div className="flex flex-wrap gap-6">
                 <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={form.data.is_taxable} onCheckedChange={(value) => form.setData('is_taxable', value)} />
+                    <Switch
+                        checked={form.data.is_taxable}
+                        onCheckedChange={(value) => form.setData('is_taxable', value)}
+                    />
                     Taxable
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={form.data.is_active} onCheckedChange={(value) => form.setData('is_active', value)} />
+                    <Switch
+                        checked={form.data.is_active}
+                        onCheckedChange={(value) => form.setData('is_active', value)}
+                    />
                     Show on POS and kiosk
                 </label>
             </div>
