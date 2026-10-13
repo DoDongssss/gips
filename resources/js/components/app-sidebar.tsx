@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, ChefHat, FolderGit2, LayoutGrid, LayoutList, Receipt, Settings, SquareUserRound, User } from 'lucide-react';
+import { Banknote, BarChart3, BookOpen, ChefHat, FolderGit2, LayoutGrid, LayoutList, MonitorSmartphone, Receipt, Settings, SquareUserRound, User } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -22,10 +22,15 @@ import { index as ProductsIndex } from '@/routes/menu/products'
 import { index as GroupsIndex } from '@/routes/menu/groups'
 import { index as OrdersIndex } from '@/routes/orders'
 import { index as DiscountsIndex } from '@/routes/discounts'
+import { index as PosIndex } from '@/routes/pos'
+import { index as ShiftsIndex } from '@/routes/shifts'
 import { index as TaxesIndex } from '@/routes/taxes'
 import { index as StationsIndex } from '@/routes/stations'
 import { index as KitchenIndex } from '@/routes/kitchen'
 import { index as DevicesIndex } from '@/routes/devices'
+import { index as ReportsIndex } from '@/routes/reports'
+import { index as ZReportsIndex } from '@/routes/z-reports'
+
 
 
 
@@ -46,6 +51,8 @@ const mainNavItems: NavItem[] = [
             { title: 'Discounts', href: DiscountsIndex(), permission: 'discount.manage' },
         ],
     },
+    { title: 'Register', href: PosIndex(), icon: MonitorSmartphone, permission: 'order.create' },
+    { title: 'Shift', href: ShiftsIndex(), icon: Banknote, permission: 'shift.open' },
     { title: 'Kitchen', href: KitchenIndex(), icon: ChefHat, permission: 'kds.view' },
     {
         title: 'Menu',
@@ -62,15 +69,23 @@ const mainNavItems: NavItem[] = [
         title: 'Settings',
         href: '#',
         icon: Settings,
+        permission: 'setting.view',
         children: [
             { title: 'Configuration', href: ConfigurationIndex() },
             { title: 'Tax', href: TaxesIndex(), permission: 'setting.view' },
             { title: 'Stations', href: StationsIndex(), permission: 'setting.view' },
             { title: 'Devices', href: DevicesIndex(), permission: 'setting.view' },
-            { title: 'Audit Logs', href: AuditLogsIndex() },
-            { title: 'Idempotency Keys', href: '/settings/company-images' },
-            { title: 'Notifications', href: '/settings/payment-types' },
-            { title: 'Permissions', href: '/settings/trip-schedules' },
+            { title: 'Audit Logs', href: AuditLogsIndex(), permission: 'setting.view'},
+        ],
+    },
+    {
+        title: 'Reports',
+        href: '#',
+        icon: BarChart3,
+        permission: 'report.view',
+        children: [
+            { title: 'Sales Reports', href: ReportsIndex(), permission: 'report.view' },
+            { title: 'Z Reports', href: ZReportsIndex(), permission: 'report.view' },
         ],
     },
 ];

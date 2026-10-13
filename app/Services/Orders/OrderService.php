@@ -2,14 +2,17 @@
 
 namespace App\Services\Orders;
 
+use App\Enums\ApprovalAction;
 use App\Enums\OrderChannel;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Shifts\ShiftService;
 use App\Support\Audit;
 use App\Support\BusinessDate;
+use App\Support\ClosedDay;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
@@ -18,6 +21,8 @@ class OrderService
         private OrderPricingService $pricing,
         private OrderNumberService $numbers,
         private OrderStatusService $statuses,
+        private ShiftService $shifts,
+        private ApprovalService $approvals,
     ) {}
 
     /**
@@ -33,12 +38,14 @@ class OrderService
         ?int $deviceId = null,
         bool $confirm = true,
     ): Order {
-        $order = DB::transaction(function () use ($input, $user, $channel, $deviceId, $confirm) {
+        $order = DB::transaction(function () use ($input, $user, $channel, $deviceId) {
             $priced = $this->pricing->price($input, $user, enforceApproval: true);
             $calc = $priced['calc'];
             $businessDate = BusinessDate::current();
+            ClosedDay::assertOpen($businessDate, 'order');
 
             $order = Order::create([
+                'shift_id' => $this->shifts->current($user)?->id,
                 'order_number' => $this->numbers->next($businessDate),
                 'business_date' => $businessDate,
                 'channel' => $channel,
@@ -101,6 +108,7 @@ class OrderService
                 ]);
 
                 if ($row['approved_by']) {
+                    $this->approvals->record($user, User::findOrFail($row['approved_by']), ApprovalAction::Discount, $order, $discount->name);
                     Audit::record(
                         'discounts',
                         'discount.approved',
@@ -140,7 +148,7 @@ class OrderService
     public function load(Order $order): Order
     {
         return $order->load([
-            'items.modifiers', 'discounts', 'taxes', 'payments.method', 'receipts', 'statusHistory',
+            'items.modifiers', 'discounts', 'taxes', 'payments.method', 'payments.refunds', 'refunds', 'receipts', 'statusHistory',
         ]);
     }
 }

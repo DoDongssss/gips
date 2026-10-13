@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PosConfigController;
 use App\Http\Controllers\Api\V1\PosSessionController;
 use App\Http\Controllers\Api\V1\ReadyBoardController;
+use App\Http\Controllers\Api\V1\RefundController;
+use App\Http\Controllers\Api\V1\XReportController;
 use App\Http\Controllers\Menu\AvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,4 +53,7 @@ Route::prefix('v1')->name('api.v1.')->middleware(['web', 'auth'])->group(functio
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/void', [OrderController::class, 'void'])->name('orders.void');
     Route::post('orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
+    Route::post('orders/{order}/refunds', [RefundController::class, 'store'])->name('orders.refunds.store');
+
+    Route::post('reports/x', XReportController::class)->name('reports.x');
 });

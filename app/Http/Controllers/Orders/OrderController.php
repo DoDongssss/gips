@@ -92,6 +92,7 @@ class OrderController extends Controller implements HasMiddleware
             'order' => (new OrderResource($orders->load($order)))->resolve(),
             // Managers whose PIN can approve a void, for cashiers who cannot void alone.
             'approvers' => Approvers::for(['order.void']),
+            'refund_approvers' => Approvers::for(['payment.refund']),
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\ApprovalAction;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\RequireIdempotencyKey;
@@ -15,12 +16,14 @@ use App\Services\Orders\ApprovalService;
 use App\Services\Orders\OrderPricingService;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderStatusService;
+use App\Services\Payments\RefundService;
 use App\Support\Audit;
 use App\Support\BusinessDate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller implements HasMiddleware
 {
@@ -109,19 +112,28 @@ class OrderController extends Controller implements HasMiddleware
         Order $order,
         ApprovalService $approvals,
         OrderStatusService $statuses,
+        RefundService $refunds,
         OrderService $orders,
     ): JsonResponse {
-        $approver = $approvals->resolve($request->user(), $request->validated('approval'), 'order.void');
-
+        $user = $request->user();
+        $approver = $approvals->resolve($user, $request->validated('approval'), 'order.void');
         $reason = $request->validated('reason');
-        $order = $statuses->transition($order, OrderStatus::Voided, $request->user(), $reason);
 
-        Audit::record('orders', 'order.voided', "Order {$order->order_number} voided", $order, [
-            'reason' => $reason,
-            'total_cents' => $order->total_cents,
-            'paid_cents' => $order->paid_cents,
-            'approved_by' => $approver->id,
-        ]);
+        $order = DB::transaction(function () use ($order, $user, $approver, $reason, $statuses, $refunds, $approvals) {
+            $order = $statuses->transition($order, OrderStatus::Voided, $user, $reason);
+            $returned = $refunds->refundAllForVoid($order, $user, $approver, $reason);
+            $approvals->record($user, $approver, ApprovalAction::Void, $order, $reason);
+
+            Audit::record('orders', 'order.voided', "Order {$order->order_number} voided", $order, [
+                'reason' => $reason,
+                'total_cents' => $order->total_cents,
+                'paid_cents' => $order->paid_cents,
+                'refunded_cents' => $returned->sum('amount_cents'),
+                'approved_by' => $approver->id,
+            ]);
+
+            return $order;
+        });
 
         return $this->respond($orders->load($order));
     }

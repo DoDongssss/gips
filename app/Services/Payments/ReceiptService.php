@@ -6,8 +6,10 @@ use App\Enums\ReceiptType;
 use App\Models\DocumentSequence;
 use App\Models\Order;
 use App\Models\Receipt;
+use App\Models\Refund;
 use App\Models\User;
 use App\Support\PosSettings;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ReceiptService
@@ -28,6 +30,56 @@ class ReceiptService
                 'issued_by' => $user?->id,
             ]);
         });
+    }
+
+    /** A refund slip for one refund. Call inside the refund's transaction. */
+    public function issueRefund(Refund $refund, ?User $user = null): Receipt
+    {
+        $order = $refund->order->fresh(['creator']);
+        $refund->loadMissing('payment.method');
+
+        return $this->issueRefundLike($order, ReceiptType::Refund, [[
+            'method' => $refund->payment->method->name,
+            'amount_cents' => $refund->amount_cents,
+            'reference_no' => $refund->payment->reference_no,
+        ]], $refund->reason, $user);
+    }
+
+    /** One slip for a voided order, listing everything handed back. @param  Collection<int, Refund>  $refunds */
+    public function issueVoid(Order $order, Collection $refunds, string $reason, ?User $user = null): Receipt
+    {
+        $lines = $refunds->each(fn (Refund $r) => $r->loadMissing('payment.method'))->map(fn (Refund $r) => [
+            'method' => $r->payment->method->name,
+            'amount_cents' => $r->amount_cents,
+            'reference_no' => $r->payment->reference_no,
+        ])->values()->all();
+
+        return $this->issueRefundLike($order->fresh(['creator']), ReceiptType::Void, $lines, $reason, $user);
+    }
+
+    /**
+     * @param  array<int, array{method: string, amount_cents: int, reference_no: ?string}>  $lines
+     */
+    private function issueRefundLike(Order $order, ReceiptType $type, array $lines, string $reason, ?User $user): Receipt
+    {
+        $content = $this->snapshot($order->load(['items', 'discounts', 'taxes', 'payments.method']));
+        $content['items'] = [];
+        $content['discounts'] = [];
+        $content['tax'] = null;
+        $content['payments'] = [];
+        $content['refund'] = [
+            'type' => $type->value,
+            'reason' => $reason,
+            'lines' => $lines,
+            'total_cents' => array_sum(array_column($lines, 'amount_cents')),
+        ];
+
+        return $order->receipts()->create([
+            'receipt_number' => 'R-'.str_pad((string) DocumentSequence::next('receipt'), 8, '0', STR_PAD_LEFT),
+            'type' => $type,
+            'content' => $content,
+            'issued_by' => $user?->id,
+        ]);
     }
 
     /** Count a print or reprint. The stored snapshot is what gets printed, never live data. */

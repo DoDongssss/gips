@@ -11,6 +11,8 @@ use App\Models\Order;
 use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Services\Orders\OrderStatusService;
+use App\Services\Shifts\ShiftService;
+use App\Support\ClosedDay;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +21,7 @@ class PaymentService
     public function __construct(
         private ReceiptService $receipts,
         private OrderStatusService $statuses,
+        private ShiftService $shifts,
     ) {}
 
     /**
@@ -42,6 +45,9 @@ class PaymentService
             if ($order->payment_status === PaymentStatus::Paid || $order->balanceCents() === 0) {
                 $this->fail('order', 'This order has nothing left to pay.');
             }
+
+            ClosedDay::assertOpen($order->business_date->toDateString(), 'order');
+            $shift = $this->shifts->forMoney($user);
 
             $methods = PaymentMethod::where('is_active', true)->get()->keyBy('code');
             $outstanding = $order->balanceCents();
@@ -89,6 +95,7 @@ class PaymentService
                     'tip_cents' => $tip,
                     'status' => PaymentRecordStatus::Completed,
                     'reference_no' => $row['reference_no'] ?? null,
+                    'shift_id' => $shift?->id,
                     'device_id' => $deviceId,
                     'received_by' => $user->id,
                     'paid_at' => now(),
@@ -132,7 +139,7 @@ class PaymentService
             DB::afterCommit(fn () => event(new OrderPaid($order)));
         }
 
-        return $order->load(['items.modifiers', 'discounts', 'taxes', 'payments.method', 'receipts', 'statusHistory']);
+        return $order->load(['items.modifiers', 'discounts', 'taxes', 'payments.method', 'payments.refunds', 'refunds', 'receipts', 'statusHistory']);
     }
 
     private function fail(string $field, string $message): never

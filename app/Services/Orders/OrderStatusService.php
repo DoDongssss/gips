@@ -4,7 +4,6 @@ namespace App\Services\Orders;
 
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
-use App\Enums\PaymentRecordStatus;
 use App\Enums\PaymentStatus;
 use App\Events\OrderConfirmed;
 use App\Events\OrderStatusChanged;
@@ -13,7 +12,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-/** The only place an order's status changes. Invalid jumps are rejected. */
+/**
+ * The only place an order's status changes. Invalid jumps are rejected.
+ * Voiding a paid order is finished by RefundService::refundAllForVoid(), which hands the money back.
+ */
 class OrderStatusService
 {
     public function transition(
@@ -61,16 +63,6 @@ class OrderStatusService
                     'voided_at' => now(),
                     'void_reason' => $note,
                 ]);
-            }
-
-            if ($to === OrderStatus::Voided) {
-                // Phase 5 adds refund records and shift reconciliation on top of this.
-                $hadPayments = $order->payments()->where('status', PaymentRecordStatus::Completed->value)->exists();
-                $order->payments()->where('status', PaymentRecordStatus::Completed->value)
-                    ->update(['status' => PaymentRecordStatus::Voided->value]);
-                if ($hadPayments) {
-                    $order->update(['payment_status' => PaymentStatus::Refunded]);
-                }
             }
 
             $order->statusHistory()->create([

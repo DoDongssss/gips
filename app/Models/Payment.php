@@ -44,6 +44,16 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'received_by');
     }
 
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(PaymentTransaction::class);

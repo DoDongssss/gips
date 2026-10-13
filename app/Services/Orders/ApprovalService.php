@@ -2,7 +2,10 @@
 
 namespace App\Services\Orders;
 
+use App\Enums\ApprovalAction;
+use App\Models\DiscountApproval;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -11,7 +14,7 @@ use Illuminate\Validation\ValidationException;
  * Who approved a sensitive action (senior/PWD discount, void)?
  *  - If the person acting already holds the permission, they approve themselves.
  *  - Otherwise a manager's user id + PIN must come with the request.
- * Phase 5 extends this to record each approval in discount_approvals.
+ * record() then writes the approval to discount_approvals, self-approvals included.
  */
 class ApprovalService
 {
@@ -48,5 +51,19 @@ class ApprovalService
         RateLimiter::clear($throttle);
 
         return $approver;
+    }
+
+    /** Keep a permanent record of who approved what, for the order, payment or refund it was about. */
+    public function record(User $requester, User $approver, ApprovalAction $action, Model $approvable, ?string $reason = null): DiscountApproval
+    {
+        return DiscountApproval::create([
+            'approvable_type' => $approvable->getMorphClass(),
+            'approvable_id' => $approvable->getKey(),
+            'action' => $action,
+            'requested_by' => $requester->id,
+            'approved_by' => $approver->id,
+            'reason' => $reason,
+            'approved_at' => now(),
+        ]);
     }
 }

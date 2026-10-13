@@ -59,6 +59,13 @@ export type ReceiptContent = {
         change_cents: number;
         reference_no: string | null;
     }[];
+    /** Present on refund and void slips. */
+    refund?: {
+        type: 'refund' | 'void';
+        reason: string;
+        lines: { method: string; amount_cents: number; reference_no: string | null }[];
+        total_cents: number;
+    };
 };
 
 export type OrderReceipt = {
@@ -97,6 +104,15 @@ export type OrderPayment = {
     status: string;
     reference_no: string | null;
     paid_at: string | null;
+    refunded_cents: number;
+};
+
+export type OrderRefund = {
+    id: number;
+    payment_id: number;
+    amount_cents: number;
+    reason: string;
+    refunded_at: string | null;
 };
 
 export type OrderDetail = {
@@ -135,6 +151,7 @@ export type OrderDetail = {
     }[];
     taxes?: { name: string; rate: string; is_inclusive: boolean; taxable_cents: number; tax_cents: number }[];
     payments?: OrderPayment[];
+    refunds?: OrderRefund[];
     receipts?: OrderReceipt[];
     status_history?: { from: string | null; to: string; note: string | null; at: string | null }[];
 };
@@ -160,6 +177,7 @@ export type PaymentMethodOption = {
 };
 
 export type PosConfig = {
+    shift: { required: boolean; open: boolean; opened_at: string | null };
     discounts: PosDiscount[];
     payment_methods: PaymentMethodOption[];
     tax: { name: string; rate: string; is_inclusive: boolean } | null;

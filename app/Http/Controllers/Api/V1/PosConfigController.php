@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Discount;
 use App\Models\PaymentMethod;
 use App\Models\Tax;
+use App\Services\Shifts\ShiftService;
 use App\Support\Approvers;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
@@ -19,11 +21,13 @@ class PosConfigController extends Controller implements HasMiddleware
     }
 
     /** Everything the payment and discount screens need besides the menu. */
-    public function __invoke(): JsonResponse
+    public function __invoke(Request $request, ShiftService $shifts): JsonResponse
     {
+        $shift = $shifts->current($request->user());
         $tax = Tax::where('is_active', true)->where('is_default', true)->first();
 
         return response()->json(['data' => [
+            'shift' => ['required' => $shifts->isRequired(), 'open' => $shift !== null, 'opened_at' => $shift?->opened_at->toIso8601String()],
             'discounts' => Discount::usable()->orderBy('name')->get()->map(fn (Discount $d) => [
                 'id' => $d->id,
                 'name' => $d->name,

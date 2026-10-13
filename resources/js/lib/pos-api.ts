@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { XReport } from '@/lib/reports';
 import type { OrderDetail, PosConfig } from '@/pages/orders/types';
 import { normalizeMenu } from '@/pages/pos/menu-adapter';
 import type { MenuCategory, PricedSummary } from '@/pages/pos/types';
@@ -76,4 +77,22 @@ export async function orderAction(
     body?: { reason: string; approval?: Approval },
 ): Promise<OrderDetail> {
     return (await api<{ data: OrderDetail }>(`${BASE}/orders/${orderId}/${action}`, { method: 'POST', body: body ?? {} })).data;
+}
+
+export async function refundPayment(
+    orderId: number,
+    body: { payment_id: number; amount_cents: number; reason: string; approval?: Approval },
+    key: string,
+): Promise<OrderDetail> {
+    return (
+        await api<{ data: OrderDetail }>(`${BASE}/orders/${orderId}/refunds`, {
+            method: 'POST',
+            body,
+            headers: { 'Idempotency-Key': key },
+        })
+    ).data;
+}
+
+export async function makeXReport(scope: 'shift' | 'day'): Promise<XReport> {
+    return (await api<{ data: XReport }>(`${BASE}/reports/x`, { method: 'POST', body: { scope } })).data;
 }

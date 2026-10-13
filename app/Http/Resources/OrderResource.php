@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Order */
+/** @mixin Order */
 class OrderResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -85,6 +86,15 @@ class OrderResource extends JsonResource
                 'status' => $p->status->value,
                 'reference_no' => $p->reference_no,
                 'paid_at' => $p->paid_at?->toIso8601String(),
+                'refunded_cents' => $p->relationLoaded('refunds') ? (int) $p->refunds->sum('amount_cents') : 0,
+            ])->values()),
+
+            'refunds' => $this->whenLoaded('refunds', fn () => $this->refunds->map(fn ($r) => [
+                'id' => $r->id,
+                'payment_id' => $r->payment_id,
+                'amount_cents' => $r->amount_cents,
+                'reason' => $r->reason,
+                'refunded_at' => $r->refunded_at?->toIso8601String(),
             ])->values()),
 
             'receipts' => $this->whenLoaded('receipts', fn () => $this->receipts->map(fn ($r) => [

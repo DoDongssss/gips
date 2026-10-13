@@ -74,6 +74,16 @@ class Order extends Model
         return $this->hasMany(Receipt::class)->orderBy('id');
     }
 
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class)->orderBy('id');
+    }
+
     public function balanceCents(): int
     {
         return max(0, $this->total_cents - $this->paid_cents);
