@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePosSince } from '@/hooks/use-pos-since';
 import { completeOrder, readyOrdersQuery } from '@/lib/kds';
 import type { ReadyOrder } from '@/lib/kds';
 import { formatPeso } from '@/lib/money';
@@ -99,7 +100,7 @@ function ReadyList({ orders, onPay }: { orders: ReadyOrder[]; onPay: (orderId: n
 
 export function OrdersDrawer() {
     const drawer = usePosUi((state) => state.drawer);
-    const since = usePosUi((state) => state.since);
+    const since = usePosSince();
     const openDrawer = usePosUi((state) => state.openDrawer);
     const closeDrawer = usePosUi((state) => state.closeDrawer);
     const startPaying = usePosUi((state) => state.startPaying);

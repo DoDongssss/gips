@@ -12,7 +12,6 @@ import { newIdempotencyKey, takePayments } from '@/lib/pos-api';
 import type { PaymentInput } from '@/lib/pos-api';
 import { printReceipt, ReceiptView } from '@/pages/orders/receipt';
 import type { OrderDetail, PaymentMethodOption } from '@/pages/orders/types';
-import { uuid } from '@/lib/uuid';
 
 type Line = {
     uid: string;
@@ -52,7 +51,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
             return;
         }
 
-        setLines([{ uid: uuid(), method: firstMethod.code, amount: '', tendered: '', tip: '', reference: '' }]);
+        setLines([{ uid: crypto.randomUUID(), method: firstMethod.code, amount: '', tendered: '', tip: '', reference: '' }]);
         setResult(null);
         attempt.current = null;
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,7 +165,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
         setLines((current) => [
             ...current,
             {
-                uid: uuid(),
+                uid: crypto.randomUUID(),
                 method: method.code,
                 amount: method.type === 'cash' ? '' : centsToPesos(Math.max(remaining, 0)),
                 tendered: '',
@@ -204,9 +203,9 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                         {result.payment_status === 'paid' ? (
                             <div className="space-y-4">
                                 {totalChange > 0 && (
-                                    <div className="bg-muted rounded-md p-4 text-center">
-                                        <p className="text-muted-foreground text-sm">Change due</p>
-                                        <p className="text-3xl font-semibold">{formatPeso(totalChange)}</p>
+                                    <div className="rounded-xl bg-emerald-50 p-5 text-center dark:bg-emerald-950/40">
+                                        <p className="text-sm text-emerald-700 dark:text-emerald-300">Change due</p>
+                                        <p className="text-4xl font-semibold tracking-tight text-emerald-800 dark:text-emerald-200">{formatPeso(totalChange)}</p>
                                     </div>
                                 )}
 
@@ -226,7 +225,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                     Print receipt
                                 </Button>
                             )}
-                            <Button type="button" onClick={close}>
+                            <Button type="button" className="bg-blue-600 text-white hover:bg-blue-700" onClick={close}>
                                 Done
                             </Button>
                         </DialogFooter>
@@ -242,9 +241,9 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="bg-muted rounded-md p-4 text-center">
-                                <p className="text-muted-foreground text-sm">Amount due</p>
-                                <p className="text-3xl font-semibold">{formatPeso(balance)}</p>
+                            <div className="rounded-xl bg-sky-50 p-5 text-center dark:bg-sky-950/40">
+                                <p className="text-sm text-sky-700 dark:text-sky-300">Amount due</p>
+                                <p className="text-4xl font-semibold tracking-tight text-sky-900 dark:text-sky-100">{formatPeso(balance)}</p>
                             </div>
 
                             <div className="space-y-3">
@@ -255,7 +254,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                     const lineError = fieldError(pay.error, `payments.${index}`);
 
                                     return (
-                                        <div key={line.uid} className="space-y-3 rounded-md border p-3">
+                                        <div key={line.uid} className="space-y-3 rounded-xl border border-sky-100 p-3 dark:border-sky-900">
                                             <div className="flex items-end gap-2">
                                                 <div className="flex-1 space-y-1.5">
                                                     <Label>Method</Label>
@@ -301,6 +300,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                                             type="button"
                                                             size="sm"
                                                             variant="outline"
+                                                            className="rounded-full border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
                                                             onClick={() => patch(line.uid, { tendered: centsToPesos(Math.max(remaining + c.applied, 0)) })}
                                                         >
                                                             Exact
@@ -311,6 +311,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                                                 type="button"
                                                                 size="sm"
                                                                 variant="outline"
+                                                                className="rounded-full border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
                                                                 onClick={() => patch(line.uid, { tendered: String(pesos) })}
                                                             >
                                                                 ₱{pesos}
@@ -318,7 +319,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                                         ))}
                                                     </div>
                                                     {c.change > 0 && (
-                                                        <p className="text-sm font-medium">Change: {formatPeso(c.change)}</p>
+                                                        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Change: {formatPeso(c.change)}</p>
                                                     )}
                                                 </div>
                                             ) : (
@@ -391,6 +392,7 @@ export function PaymentDialog({ order, methods, onClose }: Props) {
                                     </Button>
                                     <Button
                                         type="button"
+                                        className="bg-emerald-600 text-white hover:bg-emerald-700"
                                         disabled={totalApplied <= 0 || missingReference || pay.isPending}
                                         onClick={() => pay.mutate()}
                                     >

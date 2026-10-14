@@ -23,7 +23,7 @@ class PermissionSeeder extends Seeder
             'menu'      => ['view', 'create', 'update', 'delete', 'availability'],
 
             // Phase 3: ordering and payments
-            'order'     => ['view', 'create', 'update', 'void'],
+            'order'     => ['view', 'create', 'update', 'void', 'price-override'],
             'discount'  => ['apply', 'manage'],
             'payment'   => ['take', 'refund'],
 

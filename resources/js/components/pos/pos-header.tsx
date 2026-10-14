@@ -26,10 +26,14 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { usePosSince } from '@/hooks/use-pos-since';
 import { useRealtimeRefetch } from '@/hooks/use-realtime';
+import { useShiftGate } from '@/hooks/use-shift-gate';
 import { readyOrdersQuery } from '@/lib/kds';
 import { formatPeso } from '@/lib/money';
+import { configQuery } from '@/lib/pos-api';
 import { myOrdersQuery } from '@/lib/pos-session';
+import { ShiftChip } from '@/pages/pos/shift-chip';
 import { dashboard } from '@/routes';
 import { usePosUi } from '@/stores/pos-ui-store';
 
@@ -81,9 +85,13 @@ function Chip({
 export function PosHeader() {
     const now = useNow();
     const { auth } = usePage<{ auth: { user: { name: string; email: string } } }>().props;
-    const since = usePosUi((state) => state.since);
+    const since = usePosSince();
+    const { shift } = useShiftGate();
     const openDrawer = usePosUi((state) => state.openDrawer);
     const newSession = usePosUi((state) => state.newSession);
+
+    // Re-check the shift every time the register opens, so a shift opened a moment ago shows up.
+    useQuery({ ...configQuery, refetchOnMount: 'always' });
 
     const { data } = useQuery(myOrdersQuery(since));
     useRealtimeRefetch('pos.orders', 'order.updated', readyOrdersQuery().queryKey);
@@ -110,13 +118,14 @@ export function PosHeader() {
                 <div className="hidden items-center gap-2 md:flex">
                     <Chip icon={Clock}>{timeText(now)}</Chip>
                     <Chip icon={CalendarDays}>{dateText(now)}</Chip>
+                    <ShiftChip />
                 </div>
             </div>
 
             <div className="flex items-center gap-3">
                 <div
                     className="hidden items-center gap-2 lg:flex"
-                    title={`Your sales since ${timeText(new Date(since))}`}
+                    title={`Your sales since ${timeText(new Date(since))}${shift?.open ? ' (shift start)' : ''}`}
                 >
                     <Chip icon={Banknote} tone="green">
                         {formatPeso(summary?.sales_cents ?? 0)}
@@ -178,7 +187,7 @@ export function PosHeader() {
                             <p className="truncate text-base font-medium">{auth.user.name}</p>
                             <p className="truncate text-sm font-normal text-gray-500">{auth.user.email}</p>
                             <p className="text-sm font-normal text-gray-500">
-                                Session started {timeText(new Date(since))}
+                                {shift?.open ? 'Shift' : 'Session'} started {timeText(new Date(since))}
                             </p>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />

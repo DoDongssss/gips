@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Configurations;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -15,9 +15,11 @@ class UpdateConfigurationRequest extends FormRequest
     /** The field definitions for the group in the URL, or a 404 for an unknown group. */
     private function fields(): array
     {
-        $fields = config('configuration.groups.'.$this->route('group').'.fields');
+        $group = $this->route('configuration') ?? $this->route('group');
 
-        abort_if($fields === null, 404);
+        $fields = config("configurations.groups.{$group}.fields");
+
+        abort_if($fields === null, 404, 'Unknown settings group ['.var_export($group, true).']');
 
         return $fields;
     }

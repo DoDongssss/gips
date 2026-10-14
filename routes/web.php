@@ -28,7 +28,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('users.reset-credentials');
 
     // configuration route
-    Route::resource('configurations', ConfigurationController::class)->only(['index', 'update']);
+    Route::resource('configurations', ConfigurationController::class)
+        ->only(['index', 'update'])
+        ->parameters(['configurations' => 'group']);
 
     // tax routes
     Route::resource('taxes', TaxController::class)->only(['index', 'store', 'update']);

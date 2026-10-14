@@ -13,7 +13,6 @@ class MenuController extends Controller
 
     public function index(Request $request, MenuService $menu): JsonResponse
     {
-        Log::info([$request->user()]);
         $includeUnavailable = $request->boolean('include_unavailable')
             && (bool) $request->user()?->can('menu.availability');
 

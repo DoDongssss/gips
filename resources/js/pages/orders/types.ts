@@ -59,13 +59,6 @@ export type ReceiptContent = {
         change_cents: number;
         reference_no: string | null;
     }[];
-    /** Present on refund and void slips. */
-    refund?: {
-        type: 'refund' | 'void';
-        reason: string;
-        lines: { method: string; amount_cents: number; reference_no: string | null }[];
-        total_cents: number;
-    };
 };
 
 export type OrderReceipt = {
@@ -82,6 +75,9 @@ export type OrderItem = {
     product_name: string;
     variant_name: string | null;
     unit_price_cents: number;
+    /** Set when a manager-approved price change was applied: the list price before it. */
+    original_unit_price_cents?: number | null;
+    price_override_reason?: string | null;
     quantity: number;
     modifiers_total_cents: number;
     discount_cents: number;
@@ -102,17 +98,10 @@ export type OrderPayment = {
     change_cents: number;
     tip_cents: number;
     status: string;
+    /** Total already returned on this payment, when the API reports it. */
+    refunded_cents?: number;
     reference_no: string | null;
     paid_at: string | null;
-    refunded_cents: number;
-};
-
-export type OrderRefund = {
-    id: number;
-    payment_id: number;
-    amount_cents: number;
-    reason: string;
-    refunded_at: string | null;
 };
 
 export type OrderDetail = {
@@ -151,7 +140,7 @@ export type OrderDetail = {
     }[];
     taxes?: { name: string; rate: string; is_inclusive: boolean; taxable_cents: number; tax_cents: number }[];
     payments?: OrderPayment[];
-    refunds?: OrderRefund[];
+    refunds?: { id: number; payment_id: number; amount_cents: number; reason: string | null; refunded_at: string | null }[];
     receipts?: OrderReceipt[];
     status_history?: { from: string | null; to: string; note: string | null; at: string | null }[];
 };

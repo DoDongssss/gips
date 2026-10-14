@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { formatPeso } from '@/lib/money';
-import { printHtml } from '@/lib/print';
 import { orderTypeLabel } from '@/pages/orders/status-badges';
 import type { ReceiptContent } from '@/pages/orders/types';
 
@@ -36,11 +35,6 @@ export function ReceiptView({ content, receiptNumber }: { content: ReceiptConten
             </div>
 
             <Rule />
-            {content.refund && (
-                <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
-                    {content.refund.type === 'void' ? 'VOID' : 'REFUND'}
-                </div>
-            )}
             <Row left={`Receipt ${receiptNumber}`} />
             <Row left={`Order ${content.order_number}`} right={orderTypeLabel[content.order_type]} />
             <Row left={issued} />
@@ -48,91 +42,61 @@ export function ReceiptView({ content, receiptNumber }: { content: ReceiptConten
             {content.customer_name && <Row left={`Customer: ${content.customer_name}`} />}
             <Rule />
 
-            {content.refund && (
-                <>
-                    <Row left={`Reason: ${content.refund.reason}`} />
-                    <Rule />
-                    {content.refund.lines.map((line, index) => (
-                        <div key={index}>
-                            <Row left={`Returned to ${line.method}`} right={formatPeso(line.amount_cents)} />
-                            {line.reference_no && <Row left={`  Ref ${line.reference_no}`} />}
+            {content.items.map((item, index) => (
+                <div key={index} style={{ marginBottom: 4 }}>
+                    <Row
+                        left={`${item.quantity} × ${item.name}${item.variant ? ` (${item.variant})` : ''}`}
+                        right={formatPeso(item.line_total_cents)}
+                    />
+                    {item.modifiers.map((modifier, i) => (
+                        <div key={i} style={{ paddingLeft: 12 }}>
+                            + {modifier.name}
+                            {modifier.price_delta_cents !== 0 && ` (${formatPeso(modifier.price_delta_cents)})`}
                         </div>
                     ))}
-                    <Row left="TOTAL RETURNED" right={formatPeso(content.refund.total_cents)} bold />
-                    {content.footer && (
-                        <>
-                            <Rule />
-                            <div style={{ textAlign: 'center' }}>{content.footer}</div>
-                        </>
+                    {item.notes && <div style={{ paddingLeft: 12 }}>Note: {item.notes}</div>}
+                    {item.discount_cents > 0 && (
+                        <div style={{ paddingLeft: 12 }}>Discount −{formatPeso(item.discount_cents)}</div>
                     )}
+                </div>
+            ))}
+
+            <Rule />
+            <Row left="Subtotal" right={formatPeso(content.subtotal_cents)} />
+            {content.discounts.map((discount, index) => (
+                <Row
+                    key={index}
+                    left={`${discount.name}${discount.id_number ? ` (${discount.id_number})` : ''}`}
+                    right={`−${formatPeso(discount.amount_cents)}`}
+                />
+            ))}
+            {content.tax && (
+                <>
+                    <Row left={content.tax.is_inclusive ? 'VATable sales' : 'Taxable sales'} right={formatPeso(content.tax.vatable_sales_cents)} />
+                    <Row left={`${content.tax.name} ${Number(content.tax.rate)}%`} right={formatPeso(content.tax.tax_cents)} />
                 </>
             )}
+            <Row left="TOTAL" right={formatPeso(content.total_cents)} bold />
 
-            {!content.refund && (
+            <Rule />
+            {content.payments.map((payment, index) => (
+                <div key={index}>
+                    <Row left={payment.method} right={formatPeso(payment.amount_cents)} />
+                    {payment.tendered_cents !== null && payment.tendered_cents > 0 && (
+                        <>
+                            <Row left="  Cash received" right={formatPeso(payment.tendered_cents)} />
+                            <Row left="  Change" right={formatPeso(payment.change_cents)} />
+                        </>
+                    )}
+                    {payment.reference_no && <Row left={`  Ref ${payment.reference_no}`} />}
+                </div>
+            ))}
+            {content.tip_cents > 0 && <Row left="Tip" right={formatPeso(content.tip_cents)} />}
+
+            {content.footer && (
                 <>
-                    {content.items.map((item, index) => (
-                        <div key={index} style={{ marginBottom: 4 }}>
-                            <Row
-                                left={`${item.quantity} × ${item.name}${item.variant ? ` (${item.variant})` : ''}`}
-                                right={formatPeso(item.line_total_cents)}
-                            />
-                            {item.modifiers.map((modifier, i) => (
-                                <div key={i} style={{ paddingLeft: 12 }}>
-                                    + {modifier.name}
-                                    {modifier.price_delta_cents !== 0 && ` (${formatPeso(modifier.price_delta_cents)})`}
-                                </div>
-                            ))}
-                            {item.notes && <div style={{ paddingLeft: 12 }}>Note: {item.notes}</div>}
-                            {item.discount_cents > 0 && (
-                                <div style={{ paddingLeft: 12 }}>Discount −{formatPeso(item.discount_cents)}</div>
-                            )}
-                        </div>
-                    ))}
-
                     <Rule />
-                    <Row left="Subtotal" right={formatPeso(content.subtotal_cents)} />
-                    {content.discounts.map((discount, index) => (
-                        <Row
-                            key={index}
-                            left={`${discount.name}${discount.id_number ? ` (${discount.id_number})` : ''}`}
-                            right={`−${formatPeso(discount.amount_cents)}`}
-                        />
-                    ))}
-                    {content.tax && (
-                        <>
-                            <Row
-                                left={content.tax.is_inclusive ? 'VATable sales' : 'Taxable sales'}
-                                right={formatPeso(content.tax.vatable_sales_cents)}
-                            />
-                            <Row
-                                left={`${content.tax.name} ${Number(content.tax.rate)}%`}
-                                right={formatPeso(content.tax.tax_cents)}
-                            />
-                        </>
-                    )}
-                    <Row left="TOTAL" right={formatPeso(content.total_cents)} bold />
-
-                    <Rule />
-                    {content.payments.map((payment, index) => (
-                        <div key={index}>
-                            <Row left={payment.method} right={formatPeso(payment.amount_cents)} />
-                            {payment.tendered_cents !== null && payment.tendered_cents > 0 && (
-                                <>
-                                    <Row left="  Cash received" right={formatPeso(payment.tendered_cents)} />
-                                    <Row left="  Change" right={formatPeso(payment.change_cents)} />
-                                </>
-                            )}
-                            {payment.reference_no && <Row left={`  Ref ${payment.reference_no}`} />}
-                        </div>
-                    ))}
-                    {content.tip_cents > 0 && <Row left="Tip" right={formatPeso(content.tip_cents)} />}
-
-                    {content.footer && (
-                        <>
-                            <Rule />
-                            <div style={{ textAlign: 'center' }}>{content.footer}</div>
-                        </>
-                    )}
+                    <div style={{ textAlign: 'center' }}>{content.footer}</div>
                 </>
             )}
         </div>
@@ -141,5 +105,32 @@ export function ReceiptView({ content, receiptNumber }: { content: ReceiptConten
 
 /** Prints through an isolated hidden frame, so only the receipt is sent to the printer. */
 export function printReceipt(content: ReceiptContent, receiptNumber: string): void {
-    printHtml(receiptNumber, renderToStaticMarkup(<ReceiptView content={content} receiptNumber={receiptNumber} />));
+    const html = renderToStaticMarkup(<ReceiptView content={content} receiptNumber={receiptNumber} />);
+
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(frame);
+
+    const doc = frame.contentDocument;
+    const win = frame.contentWindow;
+
+    if (!doc || !win) {
+        frame.remove();
+
+        return;
+    }
+
+    doc.open();
+    doc.write(
+        `<!doctype html><html><head><meta charset="utf-8"><title>${receiptNumber}</title>` +
+            `<style>@page{margin:4mm}body{margin:0}</style></head><body>${html}</body></html>`,
+    );
+    doc.close();
+
+    win.focus();
+    win.print();
+
+    // Give the print dialog time to read the frame before it goes away.
+    window.setTimeout(() => frame.remove(), 2000);
 }

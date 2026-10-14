@@ -30,7 +30,7 @@ const copy = {
     },
     void: {
         title: 'Void order',
-        description: 'Voids the sale and its payments. Refund records and the cash drawer arrive in a later phase.',
+        description: 'Voids the sale and returns its payments. Cash comes out of the drawer.',
         button: 'Void order',
     },
 } as const;

@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, Plus, Tag, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useCan } from '@/hooks/use-can';
 import { usePricedCart } from '@/hooks/use-priced-cart';
+import { useShiftGate } from '@/hooks/use-shift-gate';
 import { formatPeso } from '@/lib/money';
 import { createOrder, newIdempotencyKey } from '@/lib/pos-api';
 import { errorFor, errorList } from '@/lib/pos-http';
@@ -20,6 +22,7 @@ import { uuid } from '@/lib/uuid';
 import { ApprovalFields, isApprovalComplete } from '@/pages/orders/approval-fields';
 import type { OrderDetail, PosConfig } from '@/pages/orders/types';
 import { DiscountDialog } from '@/pages/pos/discount-dialog';
+import { index as shiftsIndex } from '@/routes/shifts';
 import { buildCartPayload, useCartStore } from '@/stores/cart-store';
 
 type PayMethod = { code: string; name: string; type: string; requires_reference: boolean };
@@ -135,6 +138,7 @@ function quickAmounts(due: number): number[] {
 export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const cart = useCartStore();
     const { can } = useCan();
+    const gate = useShiftGate();
     const queryClient = useQueryClient();
     const { summary, calculating, error: previewError } = usePricedCart({ exact: true });
 
@@ -161,7 +165,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const needsApproval = cartMode && cart.discounts.some((d) => d.requires_approval) && !can('discount.manage');
     const approvalReady = !needsApproval || isApprovalComplete(cart.approval);
     const cartReady = !cartMode || (!!summary && summary.lines.length === cart.lines.length && !calculating && !previewError);
-    const canPay = can('payment.take');
+    const canPay = can('payment.take') && !gate.blocked;
 
     const submit = useMutation({
         mutationFn: async (action: 'pay' | 'save'): Promise<Outcome> => {
@@ -496,6 +500,15 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                                     <p key={message}>{message}</p>
                                 ))}
                             </div>
+                        )}
+
+                        {gate.blocked && (
+                            <p className="rounded-lg bg-amber-50 p-2.5 text-center text-sm text-amber-900" role="alert">
+                                Open your shift to take payment.{' '}
+                                <Link href={shiftsIndex.url()} className="font-semibold underline">
+                                    Open shift
+                                </Link>
+                            </p>
                         )}
 
                         <DialogFooter className="gap-1.5 sm:gap-1.5">

@@ -1,23 +1,30 @@
 import { Badge } from '@/components/ui/badge';
 import type { OrderStatus, OrderType, PaymentStatus } from '@/pages/orders/types';
 
-type Variant = 'default' | 'secondary' | 'destructive' | 'outline';
+/** One tone per meaning: green = done/paid, amber = needs attention, red = lost/returned, blue = in progress. */
+const tone = {
+    green: 'border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+    amber: 'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+    red: 'border-transparent bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300',
+    blue: 'border-transparent bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
+    gray: 'border-transparent bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+} as const;
 
-const statusVariant: Record<OrderStatus, Variant> = {
-    open: 'outline',
-    confirmed: 'secondary',
-    preparing: 'secondary',
-    ready: 'default',
-    completed: 'default',
-    cancelled: 'secondary',
-    voided: 'destructive',
+const statusTone: Record<OrderStatus, keyof typeof tone> = {
+    open: 'gray',
+    confirmed: 'blue',
+    preparing: 'blue',
+    ready: 'green',
+    completed: 'green',
+    cancelled: 'gray',
+    voided: 'red',
 };
 
-const paymentVariant: Record<PaymentStatus, Variant> = {
-    unpaid: 'outline',
-    partial: 'secondary',
-    paid: 'default',
-    refunded: 'destructive',
+const paymentTone: Record<PaymentStatus, keyof typeof tone> = {
+    unpaid: 'amber',
+    partial: 'amber',
+    paid: 'green',
+    refunded: 'red',
 };
 
 export function humanize(value: string): string {
@@ -33,9 +40,9 @@ export const orderTypeLabel: Record<OrderType, string> = {
 };
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-    return <Badge variant={statusVariant[status] ?? 'outline'}>{humanize(status)}</Badge>;
+    return <Badge variant="outline" className={tone[statusTone[status] ?? 'gray']}>{humanize(status)}</Badge>;
 }
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
-    return <Badge variant={paymentVariant[status] ?? 'outline'}>{humanize(status)}</Badge>;
+    return <Badge variant="outline" className={tone[paymentTone[status] ?? 'gray']}>{humanize(status)}</Badge>;
 }

@@ -86,13 +86,17 @@ class OrderController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function show(Order $order, OrderService $orders): Response
+    public function show(Request $request, Order $order, OrderService $orders): Response
     {
         return Inertia::render('orders/show', [
             'order' => (new OrderResource($orders->load($order)))->resolve(),
             // Managers whose PIN can approve a void, for cashiers who cannot void alone.
             'approvers' => Approvers::for(['order.void']),
             'refund_approvers' => Approvers::for(['payment.refund']),
+            'can' => [
+                'void' => $request->user()->can('void', $order),
+                'refund' => $request->user()->can('refund', $order),
+            ],
         ]);
     }
 

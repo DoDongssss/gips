@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\UpdateConfigurationRequest;
+use App\Http\Requests\Configurations\UpdateConfigurationRequest;
 use App\Services\ConfigurationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;

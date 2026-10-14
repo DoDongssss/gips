@@ -14,6 +14,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Prices a cart from the DATABASE. Anything price-like in the request is ignored:
  * the client only says which product, size, add-ons and discounts it wants.
+ *
+ * The ONE exception is a line's `price_override` (unit price + reason). It is honoured only when the
+ * signed-in person holds `order.price-override`, or a manager with that permission approves it with a PIN.
  */
 class OrderPricingService
 {
@@ -29,7 +32,13 @@ class OrderPricingService
      */
     public function price(array $input, ?User $user, bool $enforceApproval = true): array
     {
-        $lines = $this->resolveLines($input['items']);
+        // One manager PIN check covers every overridden line in the cart.
+        $overrideApprover = null;
+        $approveOverride = function () use ($user, $input, &$overrideApprover): User {
+            return $overrideApprover ??= $this->approvals->resolve($user, $input['approval'] ?? null, 'order.price-override');
+        };
+
+        $lines = $this->resolveLines($input['items'], $enforceApproval ? $approveOverride : null);
         $discounts = $this->resolveDiscounts($input['discounts'] ?? [], count($lines), $user, $input['approval'] ?? null, $enforceApproval);
         $tax = Tax::where('is_active', true)->where('is_default', true)->first();
 
@@ -60,8 +69,11 @@ class OrderPricingService
         ];
     }
 
-    /** @return array<int, array<string, mixed>> */
-    private function resolveLines(array $items): array
+    /**
+     * @param  (callable(): User)|null  $approveOverride  resolves the approver of a price override; null on the live preview
+     * @return array<int, array<string, mixed>>
+     */
+    private function resolveLines(array $items, ?callable $approveOverride): array
     {
         $products = Product::query()
             ->with([
@@ -101,12 +113,27 @@ class OrderPricingService
 
             [$modifiers, $perUnit] = $this->resolveModifiers($product, $item['modifiers'] ?? [], $i);
 
+            $listPrice = $variant ? $variant->price_cents : $product->base_price_cents;
+            $unitPrice = $listPrice;
+            $override = null;
+
+            // An override to the same price changes nothing, so it is not recorded or approved.
+            if (! empty($item['price_override']) && (int) $item['price_override']['unit_price_cents'] !== $listPrice) {
+                $unitPrice = (int) $item['price_override']['unit_price_cents'];
+                $override = [
+                    'original_unit_price_cents' => $listPrice,
+                    'reason' => trim((string) $item['price_override']['reason']),
+                    'approved_by' => $approveOverride ? $approveOverride()->id : null,
+                ];
+            }
+
             $lines[] = [
                 'product' => $product,
                 'variant' => $variant,
                 'product_name' => $product->name,
                 'variant_name' => $variant?->name,
-                'unit_price_cents' => $variant ? $variant->price_cents : $product->base_price_cents,
+                'unit_price_cents' => $unitPrice,
+                'price_override' => $override,
                 'modifiers_total_cents' => $perUnit,
                 'quantity' => (int) $item['quantity'],
                 'taxable' => (bool) $product->is_taxable,
@@ -239,6 +266,8 @@ class OrderPricingService
                 'variant_name' => $l['variant_name'],
                 'quantity' => $l['quantity'],
                 'unit_price_cents' => $l['unit_price_cents'],
+                'original_unit_price_cents' => $l['price_override']['original_unit_price_cents'] ?? null,
+                'price_override_reason' => $l['price_override']['reason'] ?? null,
                 'modifiers_total_cents' => $l['modifiers_total_cents'],
                 'modifiers' => $l['modifiers'],
                 'gross_cents' => $calc['lines'][$i]['gross_cents'],

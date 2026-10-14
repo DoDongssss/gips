@@ -20,7 +20,7 @@ class ProductController extends Controller implements HasMiddleware
     /** Columns the table may sort by (whitelist, never trust the query string). */
     private const SORTABLE = ['name', 'category_name', 'base_price_cents', 'is_available'];
 
-    private const PER_PAGE = 15;
+    private const PER_PAGE = 10;
 
     public static function middleware(): array
     {

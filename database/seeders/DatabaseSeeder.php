@@ -21,8 +21,11 @@ class DatabaseSeeder extends Seeder
             TaxSeeder::class,
             DiscountSeeder::class,
             StationSeeder::class,
-            // UserSeeder::class,
-            // ConfigurationSeeder::class,
+            UserSeeder::class,
+            ConfigurationSeeder::class,
+            DemoMenuSeeder::class,
+            PaymentMethodSeeder::class,
+
         ]);
     }
 }

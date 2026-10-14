@@ -12,15 +12,20 @@ import { configQuery, orderAction } from '@/lib/pos-api';
 import type { OrderAction } from '@/lib/pos-api';
 import { ActionDialog } from '@/pages/orders/action-dialog';
 import { PaymentDialog } from '@/pages/orders/payment-dialog';
+import { RefundDialog } from '@/pages/orders/refund-dialog';
 import { ReceiptDialog } from '@/pages/orders/receipt-dialog';
 import { humanize, OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
-import type { Approver, OrderDetail, OrderReceipt } from '@/pages/orders/types';
+import type { Approver, OrderDetail, OrderPayment, OrderReceipt } from '@/pages/orders/types';
 import { index } from '@/routes/orders';
 
 type Props = {
     order: OrderDetail;
     /** Managers who can approve a void with their PIN. */
     approvers: Approver[];
+    /** Managers who can approve a refund with their PIN. */
+    refund_approvers: Approver[];
+    /** What this person may do to this order: only its own cashier, or a manager, can void or refund. */
+    can?: { void: boolean; refund: boolean };
 };
 
 const formatDateTime = (value: string | null): string => (value ? new Date(value).toLocaleString() : '—');
@@ -43,9 +48,10 @@ function Line({ label, value, strong }: { label: string; value: string; strong?:
     );
 }
 
-export default function Show({ order, approvers }: Props) {
+export default function Show({ order, approvers, refund_approvers, can: allowed = { void: true, refund: true } }: Props) {
     const { can } = useCan();
     const [paying, setPaying] = useState(false);
+    const [refunding, setRefunding] = useState<OrderPayment | null>(null);
     const [dialog, setDialog] = useState<'cancel' | 'void' | null>(null);
     const [receipt, setReceipt] = useState<OrderReceipt | null>(null);
 
@@ -60,7 +66,9 @@ export default function Show({ order, approvers }: Props) {
     const acceptsPayment = ['open', 'confirmed', 'preparing', 'ready'].includes(order.status);
     const canPay = can('payment.take') && acceptsPayment && order.balance_cents > 0;
     const canCancel = can('order.update') && order.payment_status === 'unpaid' && ['open', 'confirmed', 'preparing'].includes(order.status);
-    const canVoid = ['confirmed', 'preparing', 'ready', 'completed'].includes(order.status);
+    const voidableStatus = ['confirmed', 'preparing', 'ready', 'completed'].includes(order.status);
+    const canVoid = voidableStatus && allowed.void;
+    const lockedOut = (voidableStatus || payments.length > 0) && (!allowed.void || !allowed.refund);
 
     function refresh() {
         router.reload({ only: ['order'] });
@@ -92,6 +100,9 @@ export default function Show({ order, approvers }: Props) {
                             {order.customer_name && ` · ${order.customer_name}`}
                         </p>
                         {order.cancel_reason && <p className="text-sm">Reason: {order.cancel_reason}</p>}
+                        {lockedOut && (
+                            <p className="text-muted-foreground text-xs">Only the cashier who took this order, or a manager, can void or refund it.</p>
+                        )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -159,6 +170,12 @@ export default function Show({ order, approvers }: Props) {
                                                         </p>
                                                     ))}
                                                     {item.notes && <p className="text-muted-foreground text-xs italic">“{item.notes}”</p>}
+                                                    {item.original_unit_price_cents != null && (
+                                                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                                                            Price changed from {formatPeso(item.original_unit_price_cents)}
+                                                            {item.price_override_reason && ` · ${item.price_override_reason}`}
+                                                        </p>
+                                                    )}
                                                     {item.discount_cents > 0 && (
                                                         <p className="text-muted-foreground text-xs">Discount −{formatPeso(item.discount_cents)}</p>
                                                     )}
@@ -224,12 +241,41 @@ export default function Show({ order, approvers }: Props) {
                                                 {payment.reference_no && ` · Ref ${payment.reference_no}`}
                                                 {payment.tendered_cents ? ` · received ${formatPeso(payment.tendered_cents)}, change ${formatPeso(payment.change_cents)}` : ''}
                                                 {payment.tip_cents > 0 && ` · tip ${formatPeso(payment.tip_cents)}`}
+                                                {(payment.refunded_cents ?? 0) > 0 && ` · refunded ${formatPeso(payment.refunded_cents ?? 0)}`}
                                             </p>
+                                            {allowed.refund &&
+                                                !['failed', 'pending', 'voided', 'refunded'].includes(payment.status) &&
+                                                (payment.refunded_cents ?? 0) < payment.amount_cents && (
+                                                    <Button size="sm" variant="outline" className="mt-1" onClick={() => setRefunding(payment)}>
+                                                        Refund
+                                                    </Button>
+                                                )}
                                         </li>
                                     ))}
                                 </ul>
                             )}
                         </Section>
+
+                        {(order.refunds ?? []).length > 0 && (
+                            <Section title="Refunds">
+                                <ul className="divide-y">
+                                    {(order.refunds ?? []).map((refund) => (
+                                        <li key={refund.id} className="space-y-0.5 py-2 text-sm first:pt-0 last:pb-0">
+                                            <div className="flex justify-between">
+                                                <span className="font-medium text-red-700 dark:text-red-300">
+                                                    {payments.find((p) => p.id === refund.payment_id)?.method ?? 'Payment'} refund
+                                                </span>
+                                                <span>−{formatPeso(refund.amount_cents)}</span>
+                                            </div>
+                                            <p className="text-muted-foreground text-xs">
+                                                {formatDateTime(refund.refunded_at)}
+                                                {refund.reason && ` · ${refund.reason}`}
+                                            </p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Section>
+                        )}
 
                         <Section title="Receipts">
                             {receipts.length === 0 ? (
@@ -292,6 +338,19 @@ export default function Show({ order, approvers }: Props) {
                 onDone={(updated) => {
                     toast.success(`Order ${updated.order_number} ${humanize(updated.status).toLowerCase()}.`);
                     setDialog(null);
+                    refresh();
+                }}
+            />
+
+            <RefundDialog
+                order={order}
+                payment={refunding}
+                approvers={refund_approvers}
+                needsApproval={!can('payment.refund')}
+                onClose={() => setRefunding(null)}
+                onDone={(updated) => {
+                    toast.success(`Refund recorded on order ${updated.order_number}.`);
+                    setRefunding(null);
                     refresh();
                 }}
             />

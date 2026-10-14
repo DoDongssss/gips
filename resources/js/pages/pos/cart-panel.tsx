@@ -1,9 +1,12 @@
+import { Link } from '@inertiajs/react';
 import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { usePricedCart } from '@/hooks/use-priced-cart';
+import { useShiftGate } from '@/hooks/use-shift-gate';
 import { errorList } from '@/lib/pos-http';
 import { formatPeso } from '@/lib/money';
+import { index as shiftsIndex } from '@/routes/shifts';
 import type { CartLine } from '@/stores/cart-store';
 import { useCartStore } from '@/stores/cart-store';
 
@@ -23,11 +26,12 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 
 export function CartPanel({ onEditLine, onCheckout }: Props) {
     const cart = useCartStore();
+    const gate = useShiftGate();
     const { hasLines, summary, priced, calculating, error, isLocal, localLines, localSubtotal } = usePricedCart();
 
     const itemCount = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
     const tax = summary?.taxes[0];
-    const canCheckout = hasLines && !calculating && !error && (isLocal || !!priced);
+    const canCheckout = hasLines && !calculating && !error && (isLocal || !!priced) && !gate.blocked;
 
     return (
         <aside className="flex min-h-0 flex-col bg-white">
@@ -157,6 +161,15 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                             <p key={message}>{message}</p>
                         ))}
                     </div>
+                )}
+
+                {gate.blocked && (
+                    <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-center text-sm text-amber-900">
+                        Open your shift to take orders.{' '}
+                        <Link href={shiftsIndex.url()} className="font-semibold underline">
+                            Open shift
+                        </Link>
+                    </p>
                 )}
 
                 <Button className="mt-3 h-14 w-full bg-blue-600 text-lg font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50" disabled={!canCheckout} onClick={onCheckout}>

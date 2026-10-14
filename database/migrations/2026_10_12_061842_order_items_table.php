@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('variant_name')->nullable(); // snapshot
             $table->unsignedBigInteger('unit_price_cents'); // snapshot: variant or base price
             $table->unsignedSmallInteger('quantity');
+            // Priceoverride
+            $table->bigInteger('original_unit_price_cents')->nullable();
+            $table->string('price_override_reason', 255)->nullable();
+            $table->foreignId('price_overridden_by')->nullable()->constrained('users')->nullOnDelete();
             // Per UNIT: sum of modifier price changes. Unit total = unit_price + modifiers_total.
             $table->bigInteger('modifiers_total_cents')->default(0);
             $table->unsignedBigInteger('discount_cents')->default(0); // this line's share of all discounts
