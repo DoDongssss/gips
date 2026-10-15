@@ -182,7 +182,7 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
             )}
 
             <main className="min-h-0 flex-1 overflow-y-auto p-4">
-                {isPending && <p className="py-20 text-center text-xl text-gray-500">Loading tickets�</p>}
+                {isPending && <p className="py-20 text-center text-xl text-gray-500">Loading tickets</p>}
 
                 {!isPending && tickets.length === 0 && (
                     <p className="py-20 text-center text-2xl text-gray-400">No open tickets. All caught up.</p>
@@ -205,7 +205,7 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
                                         <p className="text-3xl leading-none font-bold">{ticket.order.order_number}</p>
                                         <p className="mt-1 text-base text-gray-500">
                                             {ticket.order.type === 'dine_in' ? 'Dine in' : 'Takeout'}
-                                            {ticket.order.customer_name && ` � ${ticket.order.customer_name}`}
+                                            {ticket.order.customer_name && `  ${ticket.order.customer_name}`}
                                         </p>
                                     </div>
                                     <span
@@ -236,7 +236,7 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
                                                     <span
                                                         className={`mt-0.5 text-2xl font-bold tabular-nums ${done ? 'text-gray-400' : ''}`}
                                                     >
-                                                        {item.quantity}�
+                                                        {item.quantity}
                                                     </span>
                                                     <span className="min-w-0 flex-1">
                                                         <span

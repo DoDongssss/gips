@@ -1,11 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { MonitorSmartphone, LogOut } from 'lucide-react';
+import { LogOut, MonitorSmartphone } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { KdsBoard } from '@/components/kitchen/kds-board';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { errorList, posPost } from '@/lib/pos-http';
 
 type Paired = { token: string; station: { id: number; name: string; type?: string }; device: { name: string } };
@@ -57,17 +55,16 @@ export default function Device() {
                 token={paired.token}
                 onUnauthorized={forget}
                 leading={
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-12 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    <button
+                        type="button"
                         aria-label="Sign this screen out"
                         onClick={() =>
                             window.confirm('Sign this screen out? You will need a new pairing code.') && forget()
                         }
+                        className="flex size-12 items-center justify-center rounded-md bg-white text-slate-900 shadow active:bg-gray-100"
                     >
                         <LogOut className="size-6" />
-                    </Button>
+                    </button>
                 }
             />
         );
@@ -77,30 +74,37 @@ export default function Device() {
         <>
             <Head title="Pair kitchen screen" />
 
-            <main className="flex flex-1 items-center justify-center p-6">
+            <main className="flex min-h-dvh flex-1 items-center justify-center bg-slate-200 p-6">
                 <form
                     onSubmit={submit}
-                    className="w-full max-w-sm space-y-6 rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm"
+                    className="w-full max-w-sm space-y-6 overflow-hidden rounded-lg bg-white text-center shadow-md"
                 >
-                    <MonitorSmartphone className="mx-auto size-10 text-gray-400" />
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold">Pair this screen</h1>
-                        <p className="text-gray-500">Enter the 6-digit code from Settings ? Devices.</p>
+                    <div className="bg-slate-900 px-8 py-6 text-white">
+                        <MonitorSmartphone className="mx-auto mb-2 size-10" />
+                        <h1 className="text-2xl font-bold">Pair this screen</h1>
+                        <p className="mt-1 text-slate-300">Enter the 6-digit code from Settings → Devices.</p>
                     </div>
-                    <Input
-                        value={code}
-                        onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                        inputMode="numeric"
-                        autoComplete="off"
-                        autoFocus
-                        placeholder="000000"
-                        aria-label="Pairing code"
-                        className="h-16 text-center text-3xl tracking-[0.4em]"
-                    />
-                    {message && <p className="text-sm text-red-600">{message}</p>}
-                    <Button type="submit" className="h-14 w-full text-lg" disabled={busy || code.length !== 6}>
-                        {busy ? 'Pairing�' : 'Pair screen'}
-                    </Button>
+
+                    <div className="space-y-4 px-8 pb-8">
+                        <input
+                            value={code}
+                            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                            inputMode="numeric"
+                            autoComplete="off"
+                            autoFocus
+                            placeholder="000000"
+                            aria-label="Pairing code"
+                            className="h-16 w-full rounded-md bg-slate-100 text-center text-3xl tracking-[0.4em] outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                        {message && <p className="text-sm font-medium text-red-600">{message}</p>}
+                        <button
+                            type="submit"
+                            disabled={busy || code.length !== 6}
+                            className="h-14 w-full rounded-md bg-slate-900 text-lg font-semibold text-white disabled:opacity-40 active:bg-slate-700"
+                        >
+                            {busy ? 'Pairing…' : 'Pair screen'}
+                        </button>
+                    </div>
                 </form>
             </main>
         </>
