@@ -118,8 +118,6 @@ class ShiftService
                 throw ValidationException::withMessages(['shift' => 'This shift is already closed.']);
             }
 
-            dd($shift);
-            dd($this->expectedCashCents($shift));
             $expected = $this->expectedCashCents($shift);
 
             $shift->update([

@@ -15,7 +15,6 @@ class CreateKdsTickets
         try {
             $this->kds->createTickets($event->order);
         } catch (\Throwable $e) {
-            // The order is already confirmed and may be paid: log it, never fail the request.
             report($e);
         }
     }

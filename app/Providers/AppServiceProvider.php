@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\OrderPaid;
+use App\Listeners\DeductStockWhenOrderPaid;
 use App\Listeners\LogAuthEvents;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -35,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, [LogAuthEvents::class, 'onLogin']);
         Event::listen(Logout::class, [LogAuthEvents::class, 'onLogout']);
         Event::listen(Failed::class, [LogAuthEvents::class, 'onFailed']);
+
+        Event::listen(OrderPaid::class, DeductStockWhenOrderPaid::class);
     }
 
     /**

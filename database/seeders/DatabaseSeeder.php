@@ -25,7 +25,11 @@ class DatabaseSeeder extends Seeder
             ConfigurationSeeder::class,
             DemoMenuSeeder::class,
             PaymentMethodSeeder::class,
-
+            DemoInventorySeeder::class,
+            InventorySeeder::class,
+            UnitSeeder::class,
+            PosDemoSeeder::class,
+            RecipeSeeder::class,
         ]);
     }
 }

@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Star, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { Package, Plus, Star, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useCan } from '@/hooks/use-can';
 import { centsToPesos, pesosToCents } from '@/lib/money';
+import ModifierStockDialog from '@/pages/menu/groups/modifier-stock-dialog';
 import { store, update } from '@/routes/menu/groups';
 
 export type ModifierRecord = {
@@ -81,6 +83,11 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
     const errors = form.errors as Record<string, string>;
     const multiple = form.data.selection_type === 'multiple';
 
+    // Which saved option's stock effects are being edited (a new, unsaved option has no id yet).
+    const [stockFor, setStockFor] = useState<{ id: number; name: string } | null>(null);
+    const { can } = useCan();
+    const canStock = can('recipe.manage') || can('inventory.view');
+
     // Refill every time the dialog opens: blank for create, the row for edit.
     useEffect(() => {
         if (!open) {
@@ -134,6 +141,7 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
     }
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <form onSubmit={submit} className="space-y-4">
@@ -237,6 +245,11 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
                                     >
                                         <Star className="size-3.5" /> Default
                                     </Button>
+                                    {canStock && row.id !== undefined && (
+                                        <Button type="button" size="sm" variant="outline" onClick={() => setStockFor({ id: row.id!, name: row.name })}>
+                                            <Package className="size-3.5" /> Stock
+                                        </Button>
+                                    )}
                                     <label className="flex items-center gap-2 text-sm">
                                         <Switch checked={row.is_available} onCheckedChange={(value) => patch(index, { is_available: value })} />
                                         In stock
@@ -279,5 +292,8 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
                 </form>
             </DialogContent>
         </Dialog>
+
+        <ModifierStockDialog open={stockFor !== null} modifier={stockFor} onOpenChange={(next) => !next && setStockFor(null)} />
+        </>
     );
 }

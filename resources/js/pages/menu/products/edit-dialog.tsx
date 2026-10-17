@@ -3,9 +3,11 @@ import { Can } from '@/components/can';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCan } from '@/hooks/use-can';
 import { DetailsTab } from '@/pages/menu/products/tabs/details';
 import { ImagesTab } from '@/pages/menu/products/tabs/images';
 import { ModifiersTab } from '@/pages/menu/products/tabs/modifiers';
+import { RecipeTab } from '@/pages/menu/products/tabs/recipe';
 import { VariantsTab } from '@/pages/menu/products/tabs/variants';
 import { availability } from '@/routes/menu/products';
 import type { AttachableGroup, Option, ProductDetail } from '@/types/menu';
@@ -20,6 +22,9 @@ type Props = {
 };
 
 export default function ProductEditDialog({ product, categories, stations, modifierGroups, onClose }: Props) {
+    const { can } = useCan();
+    const showRecipe = can('recipe.manage') || can('inventory.view');
+
     return (
         <Dialog open={Boolean(product)} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="top-[5vh] max-h-[90vh] translate-y-0 overflow-y-auto sm:max-w-3xl">
@@ -35,7 +40,7 @@ export default function ProductEditDialog({ product, categories, stations, modif
                                     <AvailabilitySwitch url={availability.url(product.id)} available={product.is_available} label={product.name} />
                                 </Can>
                             </div>
-                            <DialogDescription>Details, sizes, images and add-ons for this product.</DialogDescription>
+                            <DialogDescription>Details, sizes, images, add-ons and recipe for this product.</DialogDescription>
                         </DialogHeader>
 
                         <Tabs defaultValue="details" key={product.id}>
@@ -46,6 +51,7 @@ export default function ProductEditDialog({ product, categories, stations, modif
                                 <TabsTrigger value="modifiers">
                                     Add-ons{product.modifier_group_ids.length > 0 && ` (${product.modifier_group_ids.length})`}
                                 </TabsTrigger>
+                                {showRecipe && <TabsTrigger value="recipe">Recipe</TabsTrigger>}
                             </TabsList>
 
                             <TabsContent value="details" className="pt-2">
@@ -61,6 +67,12 @@ export default function ProductEditDialog({ product, categories, stations, modif
                             <TabsContent value="modifiers" className="pt-2">
                                 <ModifiersTab product={product} groups={modifierGroups} />
                             </TabsContent>
+                            {showRecipe && (
+                                <TabsContent value="recipe" className="pt-2">
+                                    {/* Mounts only when the tab opens, so the recipe is fetched on demand. Remounts after sizes change. */}
+                                    <RecipeTab key={product.variants.map((variant) => variant.id).join('-')} product={product} />
+                                </TabsContent>
+                            )}
                         </Tabs>
                     </>
                 )}

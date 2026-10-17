@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConfigurationController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\Menu\AvailabilityController;
@@ -20,7 +21,8 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    // Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     // users route
     Route::resource('users', UserController::class)->only(['index', 'store', 'update']);
@@ -93,3 +95,4 @@ Route::middleware('guest')->group(function () {
 require __DIR__.'/settings.php';
 require __DIR__.'/orders.php';
 require __DIR__.'/shifts.php';
+require __DIR__.'/inventory.php';

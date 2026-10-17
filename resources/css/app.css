@@ -49,6 +49,15 @@
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
 
+    /* Links and highlights: text-link, border-link */
+    --color-link: var(--link);
+
+    /* Status colors: bg-success, text-warning, bg-success/10 ... */
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
@@ -69,109 +78,133 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/*
+ |--------------------------------------------------------------------------
+ | Palette
+ |--------------------------------------------------------------------------
+ | One navy does the heavy work: sidebar, primary buttons and text.
+ | A lighter blue is kept for the small things that need to stand out:
+ | links, focus rings and the first chart series.
+ | Every neutral leans slightly blue (hue 255) so the page, the cards and
+ | the sidebar read as one family. Change --navy or --accent-blue here and
+ | the whole app follows.
+ */
 :root {
-    --background: oklch(1 0 0);
-    /* --foreground: oklch(0.145 0 0); */
-    --foreground: #2A3038;
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    /* --primary: oklch(0.205 0 0); */
-    --primary: #2079c7;
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --radius: 0.625rem;
-    /* --sidebar: oklch(0.985 0 0); */
-    --sidebar: var(--color-1);
-    /* --sidebar-foreground: oklch(0.145 0 0); */
-    --sidebar-foreground: var(--color-3);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: #2A3038;
-    --sidebar-item: #e5e7eb;                /* default = light grey */
-    --sidebar-item-foreground: #2A3038;
-    /* --sidebar-accent-foreground: oklch(0.205 0 0); */
-    --sidebar-border: var(--color-2);
-    --sidebar-ring: oklch(0.87 0 0);
+    /* Core colors */
+    --navy: oklch(0.25 0.035 255);
+    --accent-blue: oklch(0.55 0.14 250);
+    --brand-light: oklch(0.68 0.15 245); /* markers and icons on the navy sidebar */
 
-    --color-1: #2079c7;
-    --color-2: #2079c7;
-    --color-3: #FFFFFF;
+    /* Surfaces */
+    --background: oklch(1 0 0);
+    --foreground: var(--navy);
+    --card: oklch(1 0 0);
+    --card-foreground: var(--foreground);
+    --popover: oklch(1 0 0);
+    --popover-foreground: var(--foreground);
+
+    /* Actions */
+    --primary: var(--navy);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.965 0.008 255);
+    --secondary-foreground: var(--navy);
+    --muted: oklch(0.965 0.008 255);
+    --muted-foreground: oklch(0.5 0.02 255);
+    --accent: oklch(0.955 0.015 250);
+    --accent-foreground: var(--navy);
+    --link: oklch(0.5 0.14 250);
+
+    /* Status */
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.99 0 0);
+    --success: oklch(0.6 0.14 160);
+    --success-foreground: oklch(0.99 0 0);
+    --warning: oklch(0.76 0.15 75);
+    --warning-foreground: oklch(0.25 0.05 75);
+
+    /* Lines and focus */
+    --border: oklch(0.915 0.01 255);
+    --input: oklch(0.9 0.012 255);
+    --ring: var(--accent-blue);
+
+    /* Charts: blue first, then colors that stay apart from each other */
+    --chart-1: var(--accent-blue);
+    --chart-2: oklch(0.65 0.15 165);
+    --chart-3: oklch(0.78 0.15 80);
+    --chart-4: oklch(0.6 0.2 295);
+    --chart-5: oklch(0.65 0.2 15);
+
+    --radius: 0.625rem;
+
+    /* Sidebar: the same navy in light and dark mode */
+    --sidebar: var(--navy);
+    --sidebar-foreground: oklch(0.9 0.015 255);
+    --sidebar-primary: var(--brand-light);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.32 0.04 255);
+    --sidebar-accent-foreground: oklch(0.99 0 0);
+    --sidebar-border: oklch(0.34 0.035 255);
+    --sidebar-ring: var(--brand-light);
+
+    /* Older names, kept so existing components keep working. Prefer the tokens above. */
+    --color-1: var(--navy);
+    --color-2: var(--navy);
+    --color-3: oklch(0.99 0 0);
+    --sidebar-item: var(--sidebar-accent);
+    --sidebar-item-foreground: var(--sidebar-accent-foreground);
+
+    /* Scrollbars */
+    --sb-size: 6px;
+    --sb-thumb: oklch(0.7 0.02 255 / 0.55);
+    --sb-thumb-hover: oklch(0.55 0.03 255 / 0.85);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    /* --primary: oklch(0.985 0 0); */
-    --primary: #2079c7;
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --background: oklch(0.17 0.02 255);
+    --foreground: oklch(0.96 0.005 255);
+    --card: oklch(0.2 0.025 255);
+    --card-foreground: oklch(0.96 0.005 255);
+    --popover: oklch(0.2 0.025 255);
+    --popover-foreground: oklch(0.96 0.005 255);
+
+    /* Navy buttons would vanish on a dark page, so dark mode uses the lighter blue with dark text */
+    --primary: oklch(0.7 0.13 245);
+    --primary-foreground: oklch(0.18 0.04 255);
+    --secondary: oklch(0.27 0.03 255);
+    --secondary-foreground: oklch(0.96 0.005 255);
+    --muted: oklch(0.27 0.03 255);
+    --muted-foreground: oklch(0.72 0.02 255);
+    --accent: oklch(0.27 0.03 255);
+    --accent-foreground: oklch(0.96 0.005 255);
+    --link: oklch(0.75 0.12 245);
+
+    --destructive: oklch(0.55 0.2 25);
+    --destructive-foreground: oklch(0.99 0 0);
+    --success: oklch(0.68 0.15 160);
+    --warning: oklch(0.8 0.15 80);
+
+    --border: oklch(0.3 0.03 255);
+    --input: oklch(0.32 0.03 255);
+    --ring: oklch(0.65 0.12 250);
+
+    --chart-1: oklch(0.7 0.13 245);
+    --chart-2: oklch(0.7 0.15 165);
+    --chart-3: oklch(0.8 0.15 80);
+    --chart-4: oklch(0.68 0.18 295);
+    --chart-5: oklch(0.7 0.18 15);
+
+    --sidebar: oklch(0.21 0.03 255);
+    --sidebar-accent: oklch(0.28 0.04 255);
+    --sidebar-border: oklch(0.31 0.035 255);
+
+    /* Scrollbars: lighter so they stay visible */
+    --sb-thumb: oklch(0.7 0.02 255 / 0.35);
+    --sb-thumb-hover: oklch(0.8 0.02 255 / 0.6);
 }
 
-/* Tighter corners while the register is open (set on <html> by PosLayout). */
+/* Tighter corners while the register is open (set on <html> by PosLayout). Colors stay on the palette. */
 .pos-compact {
     --radius: 0.5rem;
-    --primary: #2563eb;
-    --primary-foreground: #ffffff;
-    --background: #ffffff;
-    --card: #ffffff;
-    --popover: #ffffff;
-    --foreground: #111827;
-    --card-foreground: #111827;
-    --popover-foreground: #111827;
-    --secondary-foreground: #374151;
-    --accent-foreground: #374151;
-    --muted: #f3f4f6;
-    --secondary: #f3f4f6;
-    --accent: #f3f4f6;
-    --muted-foreground: #6b7280;
-    --border: #e5e7eb;
-    --input: #d1d5db;
-    --ring: #3b82f6;
 }
 
 @layer base {
@@ -182,4 +215,41 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/* WebKit / Blink (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+    width: var(--sb-size);
+    height: var(--sb-size);
+    background: transparent;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--sb-thumb);
+    border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--sb-thumb-hover);
+}
+
+/* Firefox */
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--sb-thumb) transparent;
+    }
+}
+
+/* Optional: hide the bar but keep scrolling, e.g. className="no-scrollbar" */
+.no-scrollbar {
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
 }
