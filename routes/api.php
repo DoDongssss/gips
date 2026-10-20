@@ -57,3 +57,5 @@ Route::prefix('v1')->name('api.v1.')->middleware(['web', 'auth'])->group(functio
 
     Route::post('reports/x', XReportController::class)->name('reports.x');
 });
+
+require __DIR__.'/kiosk-api.php';

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BarChart3, Boxes, LayoutGrid, LayoutList, Receipt, Settings, User } from 'lucide-react';
+import { BarChart3, Boxes, LayoutGrid, LayoutList, Receipt, Settings, Tablet, User } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -36,6 +36,9 @@ import { index as ReportsIndex } from '@/routes/reports';
 import { index as StationsIndex } from '@/routes/stations';
 import { index as TaxesIndex } from '@/routes/taxes';
 import { index as userIndex } from '@/routes/users';
+import { index as KioskDevicesIndex } from '@/routes/kiosk/devices'
+import { index as KioskScreensIndex } from '@/routes/kiosk/screens'
+import { index as KioskUpsellIndex } from '@/routes/kiosk/upsell'
 import { index as ZReportsIndex } from '@/routes/z-reports';
 import type { NavItem } from '@/types';
 
@@ -108,6 +111,17 @@ const sections: Section[] = [
         label: 'Administration',
         items: [
             { title: 'User', href: userIndex(), icon: User, permission: 'user.view' },
+            {
+                title: 'Kiosks',
+                href: '#',
+                icon: Tablet,
+                permission: 'device.manage',
+                children: [
+                    { title: 'Devices', href: KioskDevicesIndex(), permission: 'device.manage' },
+                    { title: 'Welcome screens', href: KioskScreensIndex(), permission: 'device.manage' },
+                    { title: 'Upsell rules', href: KioskUpsellIndex(), permission: 'device.manage' },
+                ],
+            },
             {
                 title: 'Settings',
                 href: '#',

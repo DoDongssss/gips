@@ -11,10 +11,11 @@ return new class extends Migration
         Schema::create('devices', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('type')->default('kds'); // pos, kiosk, kds (only kds is used so far)
+            $table->string('type'); // pos, kiosk, kds
             $table->uuid('identifier')->unique();
-            $table->foreignId('station_id')->nullable()->constrained('stations')->nullOnDelete(); // for kitchen screens
-            $table->string('pairing_code_hash')->nullable();
+            $table->foreignId('station_id')->nullable()->constrained('stations')->nullOnDelete();
+            $table->string('pairing_code_hash')->nullable()->index();
+            $table->dateTime('pairing_expires_at')->nullable();
             $table->dateTime('paired_at')->nullable();
             $table->boolean('is_active')->default(true);
             $table->dateTime('last_seen_at')->nullable();

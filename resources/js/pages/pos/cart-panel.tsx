@@ -1,14 +1,13 @@
-import { Link } from '@inertiajs/react';
 import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { usePricedCart } from '@/hooks/use-priced-cart';
-import { useShiftGate } from '@/hooks/use-shift-gate';
 import { errorList } from '@/lib/pos-http';
 import { formatPeso } from '@/lib/money';
-import { index as shiftsIndex } from '@/routes/shifts';
 import type { CartLine } from '@/stores/cart-store';
 import { useCartStore } from '@/stores/cart-store';
+import { cancelEditing } from '@/lib/order-edit';
+import { useOrderEdit } from '@/stores/order-edit-store';
 
 type Props = {
     onEditLine: (line: CartLine) => void;
@@ -26,12 +25,12 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 
 export function CartPanel({ onEditLine, onCheckout }: Props) {
     const cart = useCartStore();
-    const gate = useShiftGate();
+    const editing = useOrderEdit((state) => state.editing);
     const { hasLines, summary, priced, calculating, error, isLocal, localLines, localSubtotal } = usePricedCart();
 
     const itemCount = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
     const tax = summary?.taxes[0];
-    const canCheckout = hasLines && !calculating && !error && (isLocal || !!priced) && !gate.blocked;
+    const canCheckout = hasLines && !calculating && !error && (isLocal || !!priced);
 
     return (
         <aside className="flex min-h-0 flex-col bg-white">
@@ -45,7 +44,7 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                             {itemCount} {itemCount === 1 ? 'item' : 'items'}
                         </span>
                     </div>
-                    <Button variant="ghost" className="h-10 px-3 text-base text-red-600 hover:bg-red-50 hover:text-red-700" disabled={!hasLines} onClick={() => cart.clear()}>
+                    <Button variant="ghost" className="h-10 px-3 text-base text-red-600 hover:bg-red-50 hover:text-red-700" disabled={!hasLines} onClick={() => (editing ? cancelEditing() : cart.clear())}>
                         <Trash2 className="size-4" />
                         Clear
                     </Button>
@@ -67,6 +66,17 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                     ))}
                 </div>
             </div>
+
+            {editing && (
+                <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-base text-amber-900">
+                    <span>
+                        Editing order <strong>{editing.order_number}</strong>
+                    </span>
+                    <Button variant="outline" className="h-9 px-3 text-sm" onClick={cancelEditing}>
+                        Cancel edit
+                    </Button>
+                </div>
+            )}
 
             {/* Lines */}
             <div className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -163,17 +173,8 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                     </div>
                 )}
 
-                {gate.blocked && (
-                    <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-center text-sm text-amber-900">
-                        Open your shift to take orders.{' '}
-                        <Link href={shiftsIndex.url()} className="font-semibold underline">
-                            Open shift
-                        </Link>
-                    </p>
-                )}
-
                 <Button className="mt-3 h-14 w-full bg-blue-600 text-lg font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50" disabled={!canCheckout} onClick={onCheckout}>
-                    {summary ? `Checkout · ${formatPeso(summary.total_cents)}` : isLocal ? `Checkout · ${formatPeso(localSubtotal)}` : 'Checkout'}
+                    {editing ? 'Update order' : 'Checkout'}{summary ? ` · ${formatPeso(summary.total_cents)}` : isLocal ? ` · ${formatPeso(localSubtotal)}` : ''}
                 </Button>
             </div>
         </aside>

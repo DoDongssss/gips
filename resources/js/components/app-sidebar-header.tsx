@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
-import { ChefHat, ShoppingCart, Timer } from 'lucide-react';
+import { ChefHat, ShoppingCart, Tablet, Timer } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { LowStockBell } from '@/components/inventory/low-stock-bell';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { index as kitchenIndex } from '@/routes/kitchen';
 import { index as posIndex } from '@/routes/pos';
 import { index as shiftsIndex } from '@/routes/shifts';
+import { app   as kioskApp } from '@/routes/kiosk';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 type QuickLink = {
@@ -36,6 +37,14 @@ const quickLinks: QuickLink[] = [
         permission: 'kds.view',
         className:
             'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900',
+    },
+    {
+        title: 'Kiosk',
+        href: kioskApp(),
+        icon: Tablet,
+        permission: 'device.manage',
+        className:
+            'border border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-200 dark:hover:bg-violet-900',
     },
     {
         title: 'Shift',

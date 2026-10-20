@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, Plus, Tag, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -12,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useCan } from '@/hooks/use-can';
 import { usePricedCart } from '@/hooks/use-priced-cart';
-import { useShiftGate } from '@/hooks/use-shift-gate';
 import { formatPeso } from '@/lib/money';
+import { updateOrder } from '@/lib/order-edit';
 import { createOrder, newIdempotencyKey } from '@/lib/pos-api';
 import { errorFor, errorList } from '@/lib/pos-http';
 import type { PayRow, PosOrderRow } from '@/lib/pos-session';
@@ -22,8 +21,8 @@ import { uuid } from '@/lib/uuid';
 import { ApprovalFields, isApprovalComplete } from '@/pages/orders/approval-fields';
 import type { OrderDetail, PosConfig } from '@/pages/orders/types';
 import { DiscountDialog } from '@/pages/pos/discount-dialog';
-import { index as shiftsIndex } from '@/routes/shifts';
 import { buildCartPayload, useCartStore } from '@/stores/cart-store';
+import { useOrderEdit } from '@/stores/order-edit-store';
 
 type PayMethod = { code: string; name: string; type: string; requires_reference: boolean };
 type Row = {
@@ -138,7 +137,6 @@ function quickAmounts(due: number): number[] {
 export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const cart = useCartStore();
     const { can } = useCan();
-    const gate = useShiftGate();
     const queryClient = useQueryClient();
     const { summary, calculating, error: previewError } = usePricedCart({ exact: true });
 
@@ -165,7 +163,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const needsApproval = cartMode && cart.discounts.some((d) => d.requires_approval) && !can('discount.manage');
     const approvalReady = !needsApproval || isApprovalComplete(cart.approval);
     const cartReady = !cartMode || (!!summary && summary.lines.length === cart.lines.length && !calculating && !previewError);
-    const canPay = can('payment.take') && !gate.blocked;
+    const canPay = can('payment.take');
 
     const submit = useMutation({
         mutationFn: async (action: 'pay' | 'save'): Promise<Outcome> => {
@@ -184,7 +182,14 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                     createAttempt.current = { signature, key: newIdempotencyKey() };
                 }
 
-                const made = await createOrder(payload, createAttempt.current.key);
+                // Editing a saved order updates that order; otherwise a new one is created.
+                const editing = useOrderEdit.getState().editing;
+                const made = editing ? await updateOrder(editing.id, payload, createAttempt.current.key) : await createOrder(payload, createAttempt.current.key);
+
+                if (editing) {
+                    useOrderEdit.getState().stop();
+                }
+
                 createdRef.current = made;
                 createAttempt.current = null;
                 setCreated(made);
@@ -207,7 +212,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
             return { number: target.number, paid: true, change: result.change, total };
         },
         onSuccess: (outcome) => {
-            void queryClient.invalidateQueries({ queryKey: ['pos', 'my-orders'] });
+            void queryClient.invalidateQueries({ queryKey: ['pos'] });
 
             if (outcome.paid) {
                 setDone(outcome);
@@ -217,7 +222,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
         },
         onError: () => {
             // The order may have been created even if payment failed.
-            void queryClient.invalidateQueries({ queryKey: ['pos', 'my-orders'] });
+            void queryClient.invalidateQueries({ queryKey: ['pos'] });
         },
     });
 
@@ -500,15 +505,6 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                                     <p key={message}>{message}</p>
                                 ))}
                             </div>
-                        )}
-
-                        {gate.blocked && (
-                            <p className="rounded-lg bg-amber-50 p-2.5 text-center text-sm text-amber-900" role="alert">
-                                Open your shift to take payment.{' '}
-                                <Link href={shiftsIndex.url()} className="font-semibold underline">
-                                    Open shift
-                                </Link>
-                            </p>
                         )}
 
                         <DialogFooter className="gap-1.5 sm:gap-1.5">

@@ -17,6 +17,7 @@ use App\Http\Controllers\StationController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::inertia('/', 'welcome')->name('home');
 
@@ -87,6 +88,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // A paired kitchen screen has no staff login: it opens this page and signs in with its token.
 Route::inertia('kitchen-screen', 'kitchen/device')->name('kitchen.device');
 
+Route::get('kiosk', fn () => Inertia::render('kiosk/app'))->name('kiosk.app');
+
 Route::middleware('guest')->group(function () {
     Route::get('pin-login', [PinLoginController::class, 'create'])->name('pin-login');
     Route::post('pin-login', [PinLoginController::class, 'store'])->name('pin-login.store');
@@ -96,3 +99,4 @@ require __DIR__.'/settings.php';
 require __DIR__.'/orders.php';
 require __DIR__.'/shifts.php';
 require __DIR__.'/inventory.php';
+require __DIR__.'/kiosk.php';

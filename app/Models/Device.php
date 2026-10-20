@@ -2,82 +2,61 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use App\Models\Concerns\Audited;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
- * A registered screen (so far only kitchen screens). It signs in with a Sanctum token
- * it receives once, when someone enters the pairing code shown to the owner.
- * Written only by the controllers, never filled straight from a request.
+ * A registered terminal: a kiosk tablet, a POS or a kitchen screen. It authenticates with its own Sanctum
+ * token (abilities menu:read, orders:create), never with a staff login or role permissions.
  */
-class Device extends Model
+#[Fillable(['name', 'type', 'identifier', 'station_id', 'pairing_code_hash', 'pairing_expires_at', 'paired_at', 'is_active', 'last_seen_at', 'ip_address', 'app_version', 'registered_by'])]
+class Device extends Authenticatable
 {
-    use HasApiTokens;
+    use Audited, HasApiTokens;
 
-    /** A pairing code stops working this long after it was made. */
-    public const CODE_LIFETIME_HOURS = 24;
-
-    protected $guarded = [];
+    public const KIOSK = 'kiosk';
 
     protected $hidden = ['pairing_code_hash'];
-
-    protected static function booted(): void
-    {
-        static::creating(fn (Device $device) => $device->identifier ??= (string) Str::uuid());
-    }
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
             'paired_at' => 'datetime',
+            'pairing_expires_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
     }
 
-    public function station(): BelongsTo
+    protected function auditAttributes(): array
     {
-        return $this->belongsTo(Station::class);
+        return ['name', 'type', 'is_active', 'station_id'];
     }
 
-    public function registrar(): BelongsTo
+    public function settings(): HasOne
     {
-        return $this->belongsTo(User::class, 'registered_by');
+        return $this->hasOne(KioskSetting::class);
     }
 
-    public function isPaired(): bool
+    /** Settings read fresh from the database (never the copy cached on a long-lived model). */
+    public function freshSettings(): ?KioskSetting
     {
-        return $this->paired_at !== null;
+        return $this->settings()->first();
     }
 
-    /** A fresh 6-digit code, kept only as a hash. The plain code is returned once for display. */
-    public function issuePairingCode(): string
+    public function sessions(): HasMany
     {
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-        $this->tokens()->delete();
-        $this->forceFill([
-            'pairing_code_hash' => Hash::make($code),
-            'paired_at' => null,
-            'updated_at' => now(),
-        ])->save();
-
-        return $code;
+        return $this->hasMany(KioskSession::class);
     }
 
-    /** The waiting device this code belongs to, if any. */
-    public static function findByPairingCode(string $code): ?self
+    /** Seen within the offline window. */
+    public function isOnline(): bool
     {
-        return static::query()
-            ->where('type', 'kds')
-            ->where('is_active', true)
-            ->whereNull('paired_at')
-            ->whereNotNull('pairing_code_hash')
-            ->where('updated_at', '>=', now()->subHours(self::CODE_LIFETIME_HOURS))
-            ->get()
-            ->first(fn (Device $device) => Hash::check($code, $device->pairing_code_hash));
+        return $this->last_seen_at !== null
+            && $this->last_seen_at->greaterThanOrEqualTo(now()->subMinutes(config('kiosk.offline_after_minutes')));
     }
 }
