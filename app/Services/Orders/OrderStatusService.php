@@ -9,6 +9,7 @@ use App\Events\OrderConfirmed;
 use App\Events\OrderStatusChanged;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Inventory\StockReturnService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -73,10 +74,18 @@ class OrderStatusService
                 'note' => $note,
             ]);
 
-            DB::afterCommit(function () use ($order, $from, $to) {
+            DB::afterCommit(function () use ($order, $from, $to, $user) {
                 event(new OrderStatusChanged($order, $from, $to));
                 if ($to === OrderStatus::Confirmed) {
                     event(new OrderConfirmed($order));
+                }
+
+                // Voided before the kitchen started: nothing was made, so the stock goes back.
+                // A failure here must never undo the void itself.
+                try {
+                    app(StockReturnService::class)->returnIfNotPrepared($order, $from, $to, $user);
+                } catch (\Throwable $e) {
+                    report($e);
                 }
             });
 

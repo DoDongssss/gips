@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { ChefHat, ShoppingCart, Tablet, Timer } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { LowStockBell } from '@/components/inventory/low-stock-bell';
+import { KioskAlertBell } from '@/components/kiosk/kiosk-alert-bell';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useCan } from '@/hooks/use-can';
@@ -10,7 +11,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { index as kitchenIndex } from '@/routes/kitchen';
 import { index as posIndex } from '@/routes/pos';
 import { index as shiftsIndex } from '@/routes/shifts';
-import { app   as kioskApp } from '@/routes/kiosk';
+import { app as kioskApp } from '@/routes/kiosk';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 type QuickLink = {
@@ -105,6 +106,7 @@ export function AppSidebarHeader({
             <div className="ml-auto flex items-center gap-3">
                 <QuickLinks />
                 <div className="bg-border h-6 w-px" />
+                <KioskAlertBell />
                 <LowStockBell />
             </div>
         </header>

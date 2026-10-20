@@ -51,6 +51,8 @@ class PosConfigController extends Controller implements HasMiddleware
             ] : null,
             // Managers who can approve a senior/PWD discount with their PIN (the cashier picks one on screen).
             'approvers' => Approvers::for(['discount.manage']),
+            // Managers whose PIN can approve a price change.
+            'price_override_approvers' => Approvers::for(['order.price-override']),
         ]]);
     }
 }

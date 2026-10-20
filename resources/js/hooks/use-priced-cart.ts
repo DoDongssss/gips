@@ -48,7 +48,9 @@ export function usePricedCart({ exact = false }: Options = {}) {
 
             const variant = product.variants.find((v) => v.id === line.variant_id);
             const modifiers = product.groups.flatMap((group) => group.modifiers).filter((m) => line.modifier_ids.includes(m.id));
-            const unit = (variant ? variant.price_cents : product.base_price_cents) + modifiers.reduce((sum, m) => sum + m.price_delta_cents, 0);
+            // A price the cashier changed replaces the list price; add-ons still go on top.
+            const base = line.price_override ? line.price_override.unit_price_cents : variant ? variant.price_cents : product.base_price_cents;
+            const unit = base + modifiers.reduce((sum, m) => sum + m.price_delta_cents, 0);
 
             return { unit_cents: unit, gross_cents: unit * line.quantity };
         });

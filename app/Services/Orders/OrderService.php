@@ -156,6 +156,9 @@ class OrderService
                 'product_name' => $line['product_name'],
                 'variant_name' => $line['variant_name'],
                 'unit_price_cents' => $line['unit_price_cents'],
+                'original_unit_price_cents' => $line['price_override']['original_unit_price_cents'] ?? null,
+                'price_override_reason' => $line['price_override']['reason'] ?? null,
+                'price_overridden_by' => $line['price_override']['approved_by'] ?? null,
                 'quantity' => $line['quantity'],
                 'modifiers_total_cents' => $line['modifiers_total_cents'],
                 'discount_cents' => $calc['lines'][$i]['discount_cents'],
@@ -168,6 +171,17 @@ class OrderService
 
             foreach ($line['modifiers'] as $modifier) {
                 $item->modifiers()->create($modifier + ['quantity' => 1]);
+            }
+
+            if (! empty($line['price_override'])) {
+                $override = $line['price_override'];
+                $this->approvals->record($user, User::findOrFail($override['approved_by']), ApprovalAction::PriceOverride, $item, $override['reason']);
+                Audit::record('orders', 'order.price-overridden', "Order {$order->order_number}: {$item->product_name} price changed", $order, [
+                    'from_cents' => $override['original_unit_price_cents'],
+                    'to_cents' => $item->unit_price_cents,
+                    'reason' => $override['reason'],
+                    'approved_by' => $override['approved_by'],
+                ]);
             }
         }
 

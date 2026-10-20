@@ -1,12 +1,17 @@
-import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Minus, Plus, ShoppingCart, Tag, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useCan } from '@/hooks/use-can';
 import { usePricedCart } from '@/hooks/use-priced-cart';
+import { menuQuery } from '@/lib/pos-api';
 import { errorList } from '@/lib/pos-http';
 import { formatPeso } from '@/lib/money';
 import type { CartLine } from '@/stores/cart-store';
 import { useCartStore } from '@/stores/cart-store';
 import { cancelEditing } from '@/lib/order-edit';
+import { PriceOverrideDialog } from '@/pages/pos/price-override-dialog';
 import { useOrderEdit } from '@/stores/order-edit-store';
 
 type Props = {
@@ -26,6 +31,20 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 export function CartPanel({ onEditLine, onCheckout }: Props) {
     const cart = useCartStore();
     const editing = useOrderEdit((state) => state.editing);
+    const { can } = useCan();
+    const menu = useQuery(menuQuery);
+    const [priceLine, setPriceLine] = useState<CartLine | null>(null);
+
+    /** The item's list price (size price when it has sizes), before add-ons. */
+    const listPrice = (line: CartLine): number | null => {
+        const product = (menu.data ?? []).flatMap((category) => category.products).find((p) => p.id === line.product_id);
+
+        if (!product) {
+            return null;
+        }
+
+        return (product.variants.find((v) => v.id === line.variant_id)?.price_cents ?? product.base_price_cents);
+    };
     const { hasLines, summary, priced, calculating, error, isLocal, localLines, localSubtotal } = usePricedCart();
 
     const itemCount = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
@@ -108,6 +127,11 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                                         )}
                                         {line.notes && <p className="text-sm leading-snug text-gray-500 italic [overflow-wrap:anywhere]">“{line.notes}”</p>}
                                         <p className="mt-1 text-sm text-gray-600 tabular-nums">{unitPrice ? `${formatPeso(unitPrice)} each` : '…'}</p>
+                                        {line.price_override && (
+                                            <p className="text-sm text-amber-700">
+                                                Price changed{listPrice(line) !== null ? ` from ${formatPeso(listPrice(line) as number)}` : ''}
+                                            </p>
+                                        )}
                                         <p className="text-base font-semibold text-blue-600 tabular-nums">{lineTotal !== null ? formatPeso(lineTotal) : '…'}</p>
                                     </button>
 
@@ -123,6 +147,9 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                                                 <Plus className="size-4" />
                                             </Button>
                                         </div>
+                                        <Button variant="ghost" size="icon" className="size-9 text-gray-600" aria-label={`Change price of ${line.name}`} title="Change price" onClick={() => setPriceLine(line)}>
+                                            <Tag className="size-4" />
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -177,6 +204,20 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                     {editing ? 'Update order' : 'Checkout'}{summary ? ` · ${formatPeso(summary.total_cents)}` : isLocal ? ` · ${formatPeso(localSubtotal)}` : ''}
                 </Button>
             </div>
+            <PriceOverrideDialog
+                line={priceLine}
+                listPriceCents={priceLine ? listPrice(priceLine) : null}
+                current={priceLine?.price_override ?? null}
+                needsApproval={!can('order.price-override')}
+                onClose={() => setPriceLine(null)}
+                onApply={(override) => {
+                    if (priceLine) {
+                        cart.setPriceOverride(priceLine.uid, override);
+                    }
+
+                    setPriceLine(null);
+                }}
+            />
         </aside>
     );
 }

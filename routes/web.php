@@ -86,7 +86,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // A paired kitchen screen has no staff login: it opens this page and signs in with its token.
-Route::inertia('kitchen-screen', 'kitchen/device')->name('kitchen.device');
+// Route::inertia('kitchen-screen', 'kitchen/device')->name('kitchen.device');
 
 Route::get('kiosk', fn () => Inertia::render('kiosk/app'))->name('kiosk.app');
 

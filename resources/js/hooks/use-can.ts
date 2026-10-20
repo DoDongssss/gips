@@ -17,7 +17,7 @@ export function useCan() {
 
     const roles = auth?.roles ?? [];
     const permissions = auth?.permissions ?? [];
-    const isSuperAdmin = roles.includes('super-admin');
+    const isSuperAdmin = roles.includes('superadmin');
 
     const can = (permission: string): boolean =>
         isSuperAdmin || permissions.includes(permission);

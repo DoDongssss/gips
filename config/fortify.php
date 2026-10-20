@@ -143,8 +143,12 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Features::registration(),
         Features::resetPasswords(),
+        Features::twoFactorAuthentication([
+            // 'confirm' => true,         // Requires code confirmation to fully enable
+            'confirmPassword' => true, // Requires user to re-enter password before enabling/disabling
+        ]),
     ],
 
 ];

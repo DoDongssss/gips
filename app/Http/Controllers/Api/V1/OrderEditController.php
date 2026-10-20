@@ -45,6 +45,9 @@ class OrderEditController extends Controller
                 'modifier_names' => $item->modifiers->pluck('modifier_name')->all(),
                 'notes' => $item->notes ?? '',
                 'quantity' => $item->quantity,
+                'price_override' => $item->original_unit_price_cents !== null
+                    ? ['unit_price_cents' => $item->unit_price_cents, 'reason' => (string) $item->price_override_reason]
+                    : null,
             ])->values()->all(),
             'discounts' => $order->discounts->map(fn ($d) => [
                 'discount_id' => $d->discount_id,

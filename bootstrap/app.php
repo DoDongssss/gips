@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Middleware\BlockDeviceTokensOutsideKiosk;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\BlockDeviceTokensOutsideKiosk;
+use App\Http\Middleware\RequireTwoFactor;
+use App\Http\Middleware\ThrottleSensitiveRoutes;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -11,7 +13,6 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
-
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,6 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Behind a proxy or load balancer (set TRUSTED_PROXIES=* or a comma-separated list in .env) so HTTPS,
+        // the real client IP and rate limits work. Leave it unset when the app is served directly.
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
@@ -32,15 +39,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->statefulApi();
 
+        // The kiosk tablet authenticates with a Bearer token, not a session, so it has no CSRF token to send.
+        $middleware->validateCsrfTokens(except: ['api/v1/kiosk/*']);
+
         $middleware->api(append: [
             BlockDeviceTokensOutsideKiosk::class,
         ]);
-
 
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            RequireTwoFactor::class,
+            ThrottleSensitiveRoutes::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

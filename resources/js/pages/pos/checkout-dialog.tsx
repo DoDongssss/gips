@@ -160,7 +160,20 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const payable = result.payments.length > 0 && result.remaining === 0 && !result.blocked && !result.tooMuch;
     const anyAmount = effective.some((row) => toCents(row.amount) > 0);
 
-    const needsApproval = cartMode && cart.discounts.some((d) => d.requires_approval) && !can('discount.manage');
+    // A senior/PWD discount or a changed price needs a manager's PIN unless the cashier holds the permission.
+    const discountNeedsApproval = cart.discounts.some((d) => d.requires_approval) && !can('discount.manage');
+    const priceNeedsApproval = cart.lines.some((l) => l.price_override) && !can('order.price-override');
+    const needsApproval = cartMode && (discountNeedsApproval || priceNeedsApproval);
+
+    // Whose PIN can be used: when both are needed, only managers who can approve both.
+    const discountApprovers = config?.approvers ?? [];
+    const overrideApprovers = (config as { price_override_approvers?: typeof discountApprovers } | undefined)?.price_override_approvers ?? [];
+    const approvers =
+        discountNeedsApproval && priceNeedsApproval
+            ? discountApprovers.filter((a) => overrideApprovers.some((o) => o.id === a.id))
+            : priceNeedsApproval
+              ? overrideApprovers
+              : discountApprovers;
     const approvalReady = !needsApproval || isApprovalComplete(cart.approval);
     const cartReady = !cartMode || (!!summary && summary.lines.length === cart.lines.length && !calculating && !previewError);
     const canPay = can('payment.take');
@@ -485,7 +498,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
 
                                     {needsApproval && (
                                         <ApprovalFields
-                                            approvers={config?.approvers ?? []}
+                                            approvers={approvers}
                                             value={cart.approval}
                                             onChange={cart.setApproval}
                                             error={errorFor(submit.error, 'approval')}

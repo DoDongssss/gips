@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\V1\Kiosk\KioskController;
 use App\Http\Controllers\Api\V1\Kiosk\KioskOrderController;
 use App\Http\Controllers\Api\V1\Kiosk\KioskSessionController;
+use App\Http\Controllers\Api\V1\KioskAlertController;
 use App\Http\Controllers\Api\V1\OrderEditController;
+use App\Http\Controllers\Api\V1\OrderStockReturnController;
 use App\Http\Controllers\Api\V1\PosKioskOrdersController;
 use App\Http\Middleware\EnsureKioskDevice;
 use Illuminate\Support\Facades\Route;
@@ -34,11 +36,11 @@ Route::prefix('v1/kiosk')->name('kiosk.api.')->group(function () {
     });
 });
 
+// Staff (signed in) endpoints used by the register and the header. Each one needs a permission.
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::get('v1/pos/kiosk-orders', PosKioskOrdersController::class)->name('pos.kiosk-orders');
-    Route::get('v1/pos/orders/{order}/lines', [OrderEditController::class, 'show'])->name('pos.orders.lines.show');
-    Route::post('v1/pos/orders/{order}/lines', [OrderEditController::class, 'update'])->name('pos.orders.lines.update');
-    Route::get('v1/pos/orders/{order}/cart', [OrderEditController::class, 'cart'])->name('pos.orders.cart');
-    Route::post('v1/pos/orders/{order}/update', [OrderEditController::class, 'update'])->name('pos.orders.update');
+    Route::get('v1/pos/kiosk-orders', PosKioskOrdersController::class)->middleware('permission:order.create')->name('pos.kiosk-orders');
+    Route::get('v1/pos/kiosk-alerts', KioskAlertController::class)->middleware('permission:device.manage')->name('pos.kiosk-alerts');
+    Route::get('v1/pos/orders/{order}/cart', [OrderEditController::class, 'cart'])->middleware('permission:order.create')->name('pos.orders.cart');
+    Route::post('v1/pos/orders/{order}/update', [OrderEditController::class, 'update'])->middleware('permission:order.create')->name('pos.orders.update');
+    Route::post('v1/orders/{order}/return-stock', OrderStockReturnController::class)->middleware('permission:order.void|payment.refund')->name('orders.return-stock');
 });
-

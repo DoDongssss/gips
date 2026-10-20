@@ -132,7 +132,7 @@ class StockService
         }
 
         $recipients = User::query()->where('is_active', true)
-            ->where(fn ($q) => $q->permission('inventory.adjust')->orWhereHas('roles', fn ($r) => $r->where('name', 'super-admin')))
+            ->where(fn ($q) => $q->permission('inventory.adjust')->orWhereHas('roles', fn ($r) => $r->where('name', 'superadmin')))
             ->get();
 
         Notification::send($recipients, new LowStockNotification($ingredient, Qty::fmt($after)));

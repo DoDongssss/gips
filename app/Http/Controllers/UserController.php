@@ -39,10 +39,10 @@ class UserController extends Controller implements HasMiddleware
             'users' => Inertia::optional(fn () => User::query()
                 ->with('roles:id,name')
                 ->unless(
-                    $actor->hasRole('super-admin'),
+                    $actor->hasRole('superadmin'),
                     fn ($query) => $query->whereDoesntHave(
                         'roles',
-                        fn ($roles) => $roles->where('name', 'super-admin'),
+                        fn ($roles) => $roles->where('name', 'superadmin'),
                     ),
                 )
                 ->when($search !== '', fn ($query) => $query->where(
@@ -97,10 +97,10 @@ class UserController extends Controller implements HasMiddleware
 
     public function update(UserRequest $request, User $user): RedirectResponse
     {
-        // Super-admin accounts are protected in UserRequest::authorize().
+        // Superadmin accounts are protected in UserRequest::authorize().
         $data = $request->validated();
         $isSelf = $user->is($request->user());
-        $roleLocked = $isSelf || $user->hasRole('super-admin');
+        $roleLocked = $isSelf || $user->hasRole('superadmin');
 
         $attributes = [
             'name' => $data['name'],
@@ -134,7 +134,7 @@ class UserController extends Controller implements HasMiddleware
     public function resetCredentials(Request $request, User $user): RedirectResponse
     {
         abort_if(
-            $user->hasRole('super-admin') && ! $request->user()->hasRole('super-admin'),
+            $user->hasRole('superadmin') && ! $request->user()->hasRole('superadmin'),
             403,
         );
 
@@ -155,11 +155,11 @@ class UserController extends Controller implements HasMiddleware
         ]);
     }
 
-    /** Every role except super-admin, which can never be assigned from the UI. */
+    /** Every role except superadmin, which can never be assigned from the UI. */
     private function assignableRoles(): array
     {
         return Role::query()
-            ->where('name', '!=', 'super-admin')
+            ->where('name', '!=', 'superadmin')
             ->orderBy('name')
             ->pluck('name')
             ->all();
@@ -177,7 +177,7 @@ class UserController extends Controller implements HasMiddleware
             'is_active' => $user->is_active,
             'has_pin' => $user->pin !== null,
             'is_self' => $isSelf,
-            'role_locked' => $isSelf || $user->hasRole('super-admin'),
+            'role_locked' => $isSelf || $user->hasRole('superadmin'),
         ];
     }
 }

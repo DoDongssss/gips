@@ -19,6 +19,8 @@ export type CartLine = {
     modifier_names: string[];
     notes: string;
     quantity: number;
+    /** A manager-approved change to the unit price (before add-ons), in centavos. The server checks it. */
+    price_override?: { unit_price_cents: number; reason: string } | null;
 };
 
 export type CartDiscount = {
@@ -44,6 +46,7 @@ type CartState = {
     setNotes: (value: string) => void;
     addLine: (line: Omit<CartLine, 'uid'>) => void;
     updateLine: (uid: string, line: Omit<CartLine, 'uid'>) => void;
+    setPriceOverride: (uid: string, override: { unit_price_cents: number; reason: string } | null) => void;
     setQuantity: (uid: string, quantity: number) => void;
     removeLine: (uid: string) => void;
     addDiscount: (discount: Omit<CartDiscount, 'uid'>) => void;
@@ -78,7 +81,8 @@ export const useCartStore = create<CartState>()(
 
             addLine: (line) =>
                 set((state) => {
-                    const existing = state.lines.find((l) => sameChoice(l, line));
+                    // A line with a changed price never merges with another line.
+                    const existing = line.price_override ? undefined : state.lines.find((l) => !l.price_override && sameChoice(l, line));
 
                     if (existing) {
                         return {
@@ -99,6 +103,11 @@ export const useCartStore = create<CartState>()(
             updateLine: (lineUid, line) =>
                 set((state) => ({
                     lines: state.lines.map((l) => (l.uid === lineUid ? { ...line, uid: lineUid } : l)),
+                })),
+
+            setPriceOverride: (lineUid, override) =>
+                set((state) => ({
+                    lines: state.lines.map((l) => (l.uid === lineUid ? { ...l, price_override: override } : l)),
                 })),
 
             setQuantity: (lineUid, quantity) =>
@@ -180,6 +189,7 @@ export function buildCartPayload(
             quantity: l.quantity,
             modifiers: l.modifier_ids,
             notes: l.notes.trim() || null,
+            ...(l.price_override ? { price_override: l.price_override } : {}),
         })),
         discounts: state.discounts.map((d) => ({
             discount_id: d.discount_id,

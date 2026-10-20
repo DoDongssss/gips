@@ -11,7 +11,7 @@ use Illuminate\Auth\Access\Response;
  *
  * A cashier can only void or refund an order they took themselves, so the money comes back out of
  * the drawer that took it in. Someone holding the override permission (manager, owner) can do it for
- * any order. Super-admin passes through Gate::before. A manager's PIN approval does NOT make another
+ * any order. superadmin passes through Gate::before. A manager's PIN approval does NOT make another
  * cashier the owner of the order: approval answers "is it allowed?", this answers "is it theirs?".
  *
  * Orders with no creator (kiosk orders) can therefore only be voided or refunded by a manager.

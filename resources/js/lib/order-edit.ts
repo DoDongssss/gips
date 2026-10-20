@@ -20,6 +20,7 @@ type CartResponse = {
         modifier_names: string[];
         notes: string;
         quantity: number;
+        price_override: { unit_price_cents: number; reason: string } | null;
     }[];
     discounts: { discount_id: number; name: string; id_number: string; item_index: number | null }[];
 };

@@ -13,13 +13,13 @@ class UserRequest extends FormRequest
     public function authorize(): bool
     {
         // Route permissions are enforced by the permission: middleware on UserController.
-        // Here we only protect super-admin accounts from everyone else.
+        // Here we only protect superadmin accounts from everyone else.
         /** @var User|null $target */
         $target = $this->route('user');
 
         return ! ($target
-            && $target->hasRole('super-admin')
-            && ! $this->user()->hasRole('super-admin'));
+            && $target->hasRole('superadmin')
+            && ! $this->user()->hasRole('superadmin'));
     }
 
     protected function prepareForValidation(): void
@@ -33,7 +33,7 @@ class UserRequest extends FormRequest
         /** @var User|null $user */
         $user = $this->route('user');
         $creating = $user === null;
-        $roleLocked = $user && ($user->is($this->user()) || $user->hasRole('super-admin'));
+        $roleLocked = $user && ($user->is($this->user()) || $user->hasRole('superadmin'));
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -46,7 +46,7 @@ class UserRequest extends FormRequest
             'pin' => ['nullable', 'digits_between:4,6'],
             'role' => [
                 $roleLocked ? 'nullable' : 'required',
-                Rule::in(Role::where('name', '!=', 'super-admin')->pluck('name')->all()),
+                Rule::in(Role::where('name', '!=', 'superadmin')->pluck('name')->all()),
             ],
             'is_active' => ['boolean'],
         ];
