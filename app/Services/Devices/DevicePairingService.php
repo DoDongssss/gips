@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Kiosk;
+namespace App\Services\Devices;
 
 use App\Models\Device;
 use App\Models\KioskSetting;
@@ -48,7 +48,7 @@ class DevicePairingService
     }
 
     /** Exchange a code for a token. The code is single use; pairing again replaces the old token. */
-    public function pair(string $code, ?string $ip, ?string $appVersion): array
+    public function pair(string $code, ?string $ip, ?string $appVersion, ?string $type = null): array
     {
         $code = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code));
 
@@ -56,6 +56,7 @@ class DevicePairingService
             ->where('pairing_code_hash', $this->hash($code))
             ->where('pairing_expires_at', '>', now())
             ->where('is_active', true)
+            ->when($type !== null, fn ($q) => $q->where('type', $type)) // a kitchen screen only takes a kitchen code
             ->first();
 
         if (! $device) {
@@ -69,10 +70,20 @@ class DevicePairingService
                 'last_seen_at' => now(), 'ip_address' => $ip, 'app_version' => $appVersion,
             ])->save();
 
-            return $device->createToken('kiosk', self::ABILITIES)->plainTextToken;
+            return $device->createToken($device->type, $this->abilitiesFor($device))->plainTextToken;
         });
 
         return [$device, $token];
+    }
+
+    /** What a token may do, by device type. Kitchen screens are limited further by EnsureKitchenDevice. */
+    public function abilitiesFor(Device $device): array
+    {
+        return match ($device->type) {
+            Device::KIOSK => self::ABILITIES,
+            'kds' => ['kds'],
+            default => [], // the register signs in with a staff login
+        };
     }
 
     public function revoke(Device $device): void

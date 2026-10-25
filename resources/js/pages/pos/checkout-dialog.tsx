@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, Plus, Tag, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -13,14 +13,18 @@ import { useCan } from '@/hooks/use-can';
 import { usePricedCart } from '@/hooks/use-priced-cart';
 import { formatPeso } from '@/lib/money';
 import { updateOrder } from '@/lib/order-edit';
+import { printAfterPayment, printerSettingsQuery } from '@/lib/printer/print-sale';
 import { createOrder, newIdempotencyKey } from '@/lib/pos-api';
-import { errorFor, errorList } from '@/lib/pos-http';
+import { errorFor, errorList, posGet } from '@/lib/pos-http';
 import type { PayRow, PosOrderRow } from '@/lib/pos-session';
 import { payOrder } from '@/lib/pos-session';
 import { uuid } from '@/lib/uuid';
+import { ReprintButton } from '@/components/printer/reprint-button';
 import { ApprovalFields, isApprovalComplete } from '@/pages/orders/approval-fields';
 import type { OrderDetail, PosConfig } from '@/pages/orders/types';
 import { DiscountDialog } from '@/pages/pos/discount-dialog';
+import { OrderReview } from '@/pages/pos/order-review';
+import type { ReviewLine } from '@/pages/pos/order-review';
 import { buildCartPayload, useCartStore } from '@/stores/cart-store';
 import { useOrderEdit } from '@/stores/order-edit-store';
 
@@ -35,7 +39,7 @@ type Row = {
     auto: boolean;
 };
 type Attempt = { signature: string; key: string };
-type Outcome = { number: string; paid: boolean; change: number; total: number };
+type Outcome = { number: string; orderId: number; paid: boolean; change: number; total: number; printed?: 'printed' | 'queued' | 'skipped' };
 
 type Props = {
     config: PosConfig | undefined;
@@ -138,6 +142,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const cart = useCartStore();
     const { can } = useCan();
     const queryClient = useQueryClient();
+    const { data: printerSettings } = useQuery(printerSettingsQuery);
     const { summary, calculating, error: previewError } = usePricedCart({ exact: true });
 
     const methods = (config?.payment_methods ?? []) as PayMethod[];
@@ -146,6 +151,17 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
     const [extrasToggled, setExtrasToggled] = useState<boolean | null>(null);
     const [created, setCreated] = useState<OrderDetail | null>(null);
     const [done, setDone] = useState<Outcome | null>(null);
+    // Step 1 is the review; the cashier reads the order back, then goes on to payment.
+    const [step, setStep] = useState<'review' | 'pay'>('review');
+    const savedOrder = useQuery({
+        queryKey: ['pos', 'order-lines', order?.id ?? null],
+        // The same endpoint "Edit order" uses to put a saved order back in the cart: names, sizes, add-ons, notes, quantities.
+        queryFn: async () =>
+            (await posGet<{ data: { lines: { name: string; variant_name: string | null; modifier_names: string[]; notes: string; quantity: number }[] } }>(`/api/v1/pos/orders/${order!.id}/cart`)).data,
+        retry: false,
+        enabled: order !== null,
+        gcTime: 0,
+    });
 
     const createdRef = useRef<OrderDetail | null>(null);
     const createAttempt = useRef<Attempt | null>(null);
@@ -153,6 +169,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
 
     const savedMode = order !== null;
     const cartMode = !savedMode && created === null;
+    const editingOrder = useOrderEdit((state) => state.editing);
     const total = order ? order.balance_cents : created ? created.balance_cents : (summary?.total_cents ?? 0);
 
     const effective = rows.map((row) => ({ ...row, method: row.method || methods[0]?.code || '' }));
@@ -211,7 +228,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
             }
 
             if (action === 'save') {
-                return { number: target.number, paid: false, change: 0, total };
+                return { number: target.number, orderId: target.id, paid: false, change: 0, total };
             }
 
             const signature = JSON.stringify([target.id, result.payments]);
@@ -220,9 +237,13 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                 payAttempt.current = { signature, key: newIdempotencyKey() };
             }
 
-            await payOrder(target.id, result.payments, payAttempt.current.key);
+            const paidOrder = await payOrder(target.id, result.payments, payAttempt.current.key);
 
-            return { number: target.number, paid: true, change: result.change, total };
+            // The sale is already saved. Printing can fail without undoing it: the receipt waits in the queue.
+            const cash = result.payments.some((p) => methods.find((m) => m.code === p.method)?.type === 'cash');
+            const printed = await printAfterPayment(target.id, printerSettings, { cash, paid: paidOrder });
+
+            return { number: target.number, orderId: target.id, paid: true, change: result.change, total, printed };
         },
         onSuccess: (outcome) => {
             void queryClient.invalidateQueries({ queryKey: ['pos'] });
@@ -309,11 +330,86 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                             )}
                         </div>
                     </div>
-                    <DialogFooter>
+                    {done.printed === 'queued' && <p className="rounded-md bg-amber-50 p-2 text-center text-sm text-amber-900">The receipt did not print. It is waiting; connect the printer to print it.</p>}
+                    <DialogFooter className="sm:flex-col">
+                        {done.printed !== 'printed' && <ReprintButton orderId={done.orderId} className="h-11 w-full text-base" />}
                         <Button className="h-14 w-full" autoFocus onClick={onClose}>
                             New sale
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
+    /* ---------------- Review before payment ---------------- */
+    if (step === 'review') {
+        const reviewLines: ReviewLine[] = savedMode
+            ? (savedOrder.data?.lines ?? []).map((line, index) => ({
+                  key: String(index),
+                  name: line.name,
+                  variant: line.variant_name,
+                  modifiers: line.modifier_names,
+                  notes: line.notes,
+                  quantity: line.quantity,
+              }))
+            : cart.lines.map((line, index) => {
+                  const priced = summary?.lines[index];
+
+                  return {
+                      key: line.uid,
+                      name: line.name,
+                      variant: line.variant_name,
+                      modifiers: line.modifier_names,
+                      notes: line.notes,
+                      quantity: line.quantity,
+                      unitCents: priced ? priced.unit_price_cents + priced.modifiers_total_cents : null,
+                      totalCents: priced ? priced.gross_cents : null,
+                      changedFrom: (priced as { original_unit_price_cents?: number | null } | undefined)?.original_unit_price_cents ?? null,
+                  };
+              });
+
+        const rows: { label: string; value: string; tone?: 'discount' }[] = [];
+
+        if (cartMode && summary) {
+            rows.push({ label: 'Subtotal', value: formatPeso(summary.subtotal_cents) });
+            if (summary.discount_cents > 0) rows.push({ label: 'Discounts', value: `−${formatPeso(summary.discount_cents)}`, tone: 'discount' });
+            const vat = summary.taxes[0];
+            if (vat) rows.push({ label: `${vat.name}${vat.is_inclusive ? ' (included)' : ''}`, value: formatPeso(vat.tax_cents) });
+        } else if (savedMode && order) {
+            rows.push({ label: 'Order total', value: formatPeso(order.total_cents) });
+        }
+
+        if (savedMode && order && order.paid_cents > 0) {
+            rows.push({ label: 'Already paid', value: `−${formatPeso(order.paid_cents)}`, tone: 'discount' });
+        }
+
+        const loading = savedMode ? savedOrder.isPending : calculating && !summary;
+        const problem = savedMode ? (savedOrder.isError ? 'The item list could not be loaded for this order, but you can still take payment.' : null) : previewError ? errorList(previewError).join(' ') : null;
+        const customer = savedMode ? order?.customer_name : cart.customerName.trim() || null;
+        const typeValue = savedMode ? order?.type : cart.type;
+
+        return (
+            <Dialog open onOpenChange={(open) => !open && close()}>
+                <DialogContent showCloseButton={false} className="max-h-[94vh] gap-4 overflow-y-auto rounded-2xl border-0 bg-white p-5 shadow-2xl sm:max-w-lg">
+                    <OrderReview
+                        title={savedMode ? `Review order ${order?.order_number}` : editingOrder ? `Review changes to ${editingOrder.order_number}` : 'Review order'}
+                        typeLabel={typeValue === 'dine_in' ? 'Dine in' : typeValue === 'delivery' ? 'Delivery' : 'Takeout'}
+                        customer={customer}
+                        notes={cartMode ? cart.notes.trim() || null : null}
+                        lines={reviewLines}
+                        loading={loading}
+                        problem={problem}
+                        summary={rows}
+                        totalLabel={savedMode ? 'Balance due' : 'Total'}
+                        totalCents={total}
+                        canContinue={savedMode ? !savedOrder.isPending || savedOrder.isError : cartReady && !submit.isPending}
+                        canPay={canPay}
+                        saving={submit.isPending}
+                        onBack={close}
+                        onContinue={() => setStep('pay')}
+                        onSaveLater={cartMode && approvalReady ? () => submit.mutate('save') : undefined}
+                    />
                 </DialogContent>
             </Dialog>
         );

@@ -1,169 +1,153 @@
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-import { Can } from '@/components/can';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import DeviceFormDialog from '@/pages/devices/form-dialog';
-import type { DeviceRecord } from '@/pages/devices/form-dialog';
-import { index, resetPairing, update } from '@/routes/devices';
+import { Switch } from '@/components/ui/switch';
+import { deviceTypeLabels } from '@/lib/devices';
+import { ago } from '@/lib/kiosk';
+import DeviceDialog from '@/pages/devices/device-dialog';
+import PairingDialog from '@/pages/devices/pairing-dialog';
+import { index, pairingCode, unpair, update } from '@/routes/devices';
+import type { DeviceRow, PairingInfo, Station } from '@/types/devices';
 
-type Props = {
-    devices: DeviceRecord[];
-    stations: { id: number; name: string }[];
-    pairing?: { device: string; code: string } | null;
-};
+type Props = { devices: DeviceRow[]; pairing: PairingInfo | null; stations: Station[] };
 
-type DialogState = { open: boolean; device?: DeviceRecord };
+/** Refresh the status column while the page is open. */
+const REFRESH_MS = 20_000;
 
-const seen = (iso: string | null) =>
-    iso
-        ? new Date(iso).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-        : 'Never';
+function Status({ d }: { d: DeviceRow }) {
+    if (!d.is_active) return <Badge variant="secondary">Off</Badge>;
+    if (!d.paired) return <Badge variant="outline">{d.has_pending_code ? 'Waiting for pairing' : 'Not paired'}</Badge>;
+    if (d.settings?.is_out_of_service) return <Badge variant="secondary">Out of service</Badge>;
 
-export default function Index({ devices, stations, pairing }: Props) {
-    const [dialog, setDialog] = useState<DialogState>({ open: false });
-    const [code, setCode] = useState<{ device: string; code: string } | null>(null);
+    return d.online ? <Badge>Online</Badge> : <Badge variant="destructive">Offline</Badge>;
+}
 
-    // The code arrives once in the page props; keep it on screen until the owner closes it.
+export default function DevicesIndex({ devices, pairing, stations }: Props) {
+    const [dialog, setDialog] = useState<{ open: boolean; device?: DeviceRow }>({ open: false });
+    const [code, setCode] = useState<PairingInfo | null>(pairing);
+    const [now, setNow] = useState(() => Date.now());
+
+    // A new code arrives as a one-time flash on the response; show it, then forget it.
     useEffect(() => {
-        if (pairing) {
-            setCode(pairing);
-        }
+        if (pairing) setCode(pairing);
     }, [pairing]);
 
-    const screenUrl = `${window.location.origin}/kitchen-screen`;
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            if (document.visibilityState !== 'visible') return;
+            router.reload({ only: ['devices'], onSuccess: () => setNow(Date.now()) });
+        }, REFRESH_MS);
 
-    function toggle(device: DeviceRecord) {
-        router.put(
-            update.url(device.id),
-            { name: device.name, station_id: device.station_id, is_active: !device.is_active },
-            { preserveScroll: true },
-        );
+        return () => window.clearInterval(timer);
+    }, []);
+
+    function toggleService(d: DeviceRow, outOfService: boolean) {
+        router.put(update.url(d.id), { name: d.name, station_id: d.station_id, is_active: d.is_active, settings: { is_out_of_service: outOfService } }, { preserveScroll: true });
     }
 
-    function reset(device: DeviceRecord) {
-        if (window.confirm(`Sign "${device.name}" out and make a new pairing code?`)) {
-            router.post(resetPairing.url(device.id), {}, { preserveScroll: true });
+    function newCode(d: DeviceRow) {
+        const warn = d.paired ? ` "${d.name}" stays signed in until the new code is used.` : '';
+        if (confirm(`Issue a new pairing code for "${d.name}"?${warn}`)) {
+            router.post(pairingCode.url(d.id), {}, { preserveScroll: true });
+        }
+    }
+
+    function signOut(d: DeviceRow) {
+        if (confirm(`Sign "${d.name}" out? It will stop working until it is paired again.`)) {
+            router.post(unpair.url(d.id), {}, { preserveScroll: true });
         }
     }
 
     return (
         <>
-            <Head title="Devices" />
+            <Head title="Kiosk devices" />
 
             <div className="space-y-6 p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="space-y-1">
+                    <div>
                         <h1 className="text-xl font-semibold tracking-tight">Devices</h1>
-                        <p className="text-muted-foreground text-sm">
-                            Kitchen tablets sign in without a staff login. On the tablet open{' '}
-                            <span className="font-mono">{screenUrl}</span> and enter the code.
-                        </p>
+                        <p className="text-muted-foreground text-sm">Kiosk tablets and other registered screens. Status updates by itself.</p>
                     </div>
-
-                    <Can permission="setting.update">
-                        <Button onClick={() => setDialog({ open: true, device: undefined })}>Add kitchen screen</Button>
-                    </Can>
+                    <Button onClick={() => setDialog({ open: true })}>Add device</Button>
                 </div>
 
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Station</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Last seen</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {devices.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-muted-foreground h-24 text-center">
-                                        No kitchen screens yet. Staff can still open the kitchen display after signing
-                                        in.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                devices.map((device) => (
-                                    <TableRow key={device.id}>
-                                        <TableCell className="font-medium">{device.name}</TableCell>
-                                        <TableCell>{device.station_name ?? 'None'}</TableCell>
-                                        <TableCell>
-                                            {!device.is_active ? (
-                                                <Badge variant="secondary">Off</Badge>
-                                            ) : device.is_paired ? (
-                                                <Badge>Paired</Badge>
-                                            ) : (
-                                                <Badge variant="outline">Waiting for code</Badge>
+                <div className="overflow-x-auto rounded-lg border">
+                    <table className="w-full text-sm">
+                        <thead className="text-muted-foreground border-b text-left">
+                            <tr>
+                                <th className="p-3 font-medium">Device</th>
+                                <th className="p-3 font-medium">Status</th>
+                                <th className="p-3 font-medium">Last seen</th>
+                                <th className="p-3 text-right font-medium">Customers today</th>
+                                <th className="p-3 font-medium">Out of service</th>
+                                <th className="w-64 p-3" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {devices.map((d) => (
+                                <tr key={d.id} className="border-b last:border-0">
+                                    <td className="p-3">
+                                        <p className="font-medium">{d.name}</p>
+                                        <p className="text-muted-foreground text-xs">
+                                            {deviceTypeLabels[d.type]}
+                                            {d.app_version ? ` · v${d.app_version}` : ''}
+                                            {d.ip_address ? ` · ${d.ip_address}` : ''}
+                                        </p>
+                                    </td>
+                                    <td className="p-3">
+                                        <Status d={d} />
+                                    </td>
+                                    <td className="text-muted-foreground p-3">{d.paired ? ago(d.last_seen_at, now) : '—'}</td>
+                                    <td className="p-3 text-right tabular-nums">{d.type === 'kiosk' ? d.sessions_today : '—'}</td>
+                                    <td className="p-3">
+                                        {d.type === 'kiosk' && d.is_active ? (
+                                            <Switch checked={d.settings?.is_out_of_service ?? false} onCheckedChange={(v) => toggleService(d, v)} aria-label={`Out of service: ${d.name}`} />
+                                        ) : (
+                                            <span className="text-muted-foreground">—</span>
+                                        )}
+                                    </td>
+                                    <td className="p-3">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => setDialog({ open: true, device: d })}>
+                                                Edit
+                                            </Button>
+                                            {d.is_active && (
+                                                <Button variant="outline" size="sm" onClick={() => newCode(d)}>
+                                                    {d.paired ? 'New code' : 'Get code'}
+                                                </Button>
                                             )}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {seen(device.last_seen_at)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Can permission="setting.update">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => setDialog({ open: true, device })}
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" onClick={() => reset(device)}>
-                                                        New code
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" onClick={() => toggle(device)}>
-                                                        {device.is_active ? 'Switch off' : 'Switch on'}
-                                                    </Button>
-                                                </div>
-                                            </Can>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
+                                            {d.paired && (
+                                                <Button variant="ghost" size="sm" onClick={() => signOut(d)}>
+                                                    Sign out
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {devices.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="text-muted-foreground p-8 text-center">
+                                        No devices yet. Add your first kiosk to get a pairing code.
+                                    </td>
+                                </tr>
                             )}
-                        </TableBody>
-                    </Table>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <DeviceFormDialog
-                open={dialog.open}
-                onOpenChange={(open) => setDialog((current) => ({ ...current, open }))}
-                device={dialog.device}
-                stations={stations}
-            />
-
-            <Dialog open={code !== null} onOpenChange={(open) => !open && setCode(null)}>
-                <DialogContent className="sm:max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle>Pairing code for {code?.device}</DialogTitle>
-                        <DialogDescription>
-                            Enter this on the tablet within 24 hours. It is shown only once.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <p className="py-4 text-center font-mono text-5xl font-semibold tracking-[0.3em]">{code?.code}</p>
-                    <DialogFooter>
-                        <Button onClick={() => setCode(null)}>Done</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <DeviceDialog open={dialog.open} device={dialog.device} stations={stations} onOpenChange={(open) => setDialog((current) => ({ ...current, open }))} />
+            <PairingDialog pairing={code} onClose={() => setCode(null)} />
         </>
     );
 }
 
-Index.layout = {
-    breadcrumbs: [{ title: 'Devices', href: index() }],
+DevicesIndex.layout = {
+    breadcrumbs: [
+        { title: 'Settings', href: '/settings/devices' },
+        { title: 'Devices', href: index() },
+    ],
 };

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\KioskHeartbeat;
 use App\Models\KioskScreen;
-use App\Services\Kiosk\DevicePairingService;
+use App\Services\Devices\DevicePairingService;
 use App\Services\Kiosk\UpsellService;
 use App\Services\Menu\MenuService;
 use Illuminate\Http\JsonResponse;

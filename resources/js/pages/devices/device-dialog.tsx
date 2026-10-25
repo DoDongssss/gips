@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { deviceTypeLabels, orNull } from '@/lib/kiosk';
-import { destroy, store, update } from '@/routes/kiosk/devices';
-import type { DeviceRow, Station } from '@/types/kiosk';
+import { deviceTypeLabels } from '@/lib/devices';
+import { orNull } from '@/lib/kiosk';
+import { destroy, store, update } from '@/routes/devices';
+import type { DeviceRow, Station } from '@/types/devices';
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; device?: DeviceRow; stations: Station[] };
 

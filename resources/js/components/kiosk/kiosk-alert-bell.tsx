@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useCan } from '@/hooks/use-can';
 import { posGet } from '@/lib/pos-http';
-import { index } from '@/routes/kiosk/devices';
+import { index } from '@/routes/devices';
 
 type Alerts = { count: number; items: { id: number; name: string; last_seen_at: string | null; minutes: number }[] };
 

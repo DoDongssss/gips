@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { PrinterBanner } from '@/components/printer/printer-banner';
 import { Button } from '@/components/ui/button';
 import { configQuery, menuQuery } from '@/lib/pos-api';
 import { CartPanel } from '@/pages/pos/cart-panel';
@@ -78,7 +79,10 @@ export default function Index() {
         <>
             <Head title="Register" />
 
-            <div className="grid h-full overflow-y-auto lg:grid-cols-[minmax(0,2.75fr)_minmax(0,1fr)] lg:overflow-hidden">
+            <div className="flex h-full min-h-0 flex-col">
+            <PrinterBanner />
+
+            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,2.75fr)_minmax(0,1fr)] lg:overflow-hidden">
                 <section className="flex min-h-0 flex-col border-r border-gray-200 bg-white">
                     {menu.isPending && <p className="p-4 text-base text-gray-500">Loading menu…</p>}
 
@@ -95,6 +99,7 @@ export default function Index() {
                 </section>
 
                 <CartPanel onEditLine={editLine} onCheckout={() => setCheckoutOpen(true)} />
+            </div>
             </div>
 
             <ItemDialog

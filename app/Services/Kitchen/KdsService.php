@@ -152,12 +152,12 @@ class KdsService
         return $ticket;
     }
 
-    /** Undo the most recent bump at a station. */
-    public function recall(Station $station, User|Device $actor): KdsTicket
+    /** Undo the most recent bump at a station (null = any station, for an all-stations screen). */
+    public function recall(?Station $station, User|Device $actor): KdsTicket
     {
         $ticket = DB::transaction(function () use ($station) {
             $ticket = KdsTicket::query()
-                ->where('station_id', $station->id)
+                ->when($station, fn ($q) => $q->where('station_id', $station->id))
                 ->where('status', KdsTicketStatus::Bumped->value)
                 ->whereHas('order', fn ($q) => $q->whereIn('status', [OrderStatus::Ready->value, OrderStatus::Preparing->value, OrderStatus::Confirmed->value]))
                 ->orderByDesc('bumped_at')
@@ -303,15 +303,16 @@ class KdsService
     }
 
     /**
-     * Everything a kitchen screen shows for one station.
+     * Everything a kitchen screen shows: one station, or every station when $station is null.
      *
      * @return array<string, mixed>
      */
-    public function board(Station $station): array
+    public function board(?Station $station): array
     {
         $open = $this->openStatuses();
+        $scope = fn () => $station ? $station->tickets() : KdsTicket::query();
 
-        $tickets = $station->tickets()
+        $tickets = $scope()
             ->whereIn('status', $open)
             ->with(['items', 'order:id,order_number,type,customer_name,notes'])
             ->orderBy('priority', 'desc')
@@ -319,13 +320,15 @@ class KdsService
             ->orderBy('id')
             ->get();
 
-        $canRecall = $station->tickets()
+        $canRecall = $scope()
             ->where('status', KdsTicketStatus::Bumped->value)
             ->whereHas('order', fn ($q) => $q->whereIn('status', ['confirmed', 'preparing', 'ready']))
             ->exists();
 
         return [
-            'station' => ['id' => $station->id, 'name' => $station->name, 'type' => $station->type->value],
+            'station' => $station
+                ? ['id' => $station->id, 'name' => $station->name, 'type' => $station->type->value]
+                : ['id' => 0, 'name' => 'All stations', 'type' => 'all'],
             'thresholds' => [
                 'warning_minutes' => (int) PosSettings::get('kitchen', 'warning_minutes', 5),
                 'late_minutes' => (int) PosSettings::get('kitchen', 'late_minutes', 10),
@@ -348,6 +351,7 @@ class KdsService
             'status' => $ticket->status->value,
             'priority' => $ticket->priority,
             'fired_at' => $ticket->fired_at?->toIso8601String(),
+            'station' => ['id' => $ticket->station_id, 'name' => $this->stationName($ticket->station_id)],
             'order' => [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
@@ -364,6 +368,16 @@ class KdsService
                 'status' => $i->status,
             ])->values()->all(),
         ];
+    }
+
+    /** @var array<int, string>|null */
+    private ?array $stationNames = null;
+
+    private function stationName(int $stationId): ?string
+    {
+        $this->stationNames ??= Station::query()->pluck('name', 'id')->all();
+
+        return $this->stationNames[$stationId] ?? null;
     }
 
     /** @return array<int, string> */

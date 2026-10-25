@@ -61,6 +61,7 @@ class RoutesAudit extends Command
                 $signedIn && $abilityGuarded => ['ok', 'device token ability'],
                 $device && $has('App\Http\Middleware\EnsureKioskDevice') => ['ok', 'kiosk device route'],
                 $device => ['UNGUARDED', 'kiosk route without EnsureKioskDevice'],
+                $signedIn && $has('App\\Http\\Middleware\\EnsureKitchenDevice') => ['ok', 'kitchen device route'],
                 $signedIn && $guarded => ['ok', 'permission'],
                 $signedIn && self::matches($uri, $authOnly) => ['ok', 'signed-in only on purpose'],
                 $signedIn => ['NO PERMISSION', 'signed in, but any user can open it'],

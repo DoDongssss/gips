@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { unitsFor, useIngredientOptions } from '@/hooks/use-ingredient-options';
 import { formatPeso, centsToPesos, pesosToCents } from '@/lib/money';
+import { uuid } from '@/lib/uuid';
 import { index, show, store, update } from '@/routes/inventory/purchase-orders';
 
-type Line = { ingredient_id: string; unit_id: string; quantity: string; cost: string };
+type Line = { uid: string; ingredient_id: string; unit_id: string; quantity: string; cost: string };
 
 type Props = {
     /** The draft being edited; null when creating. */
@@ -43,6 +44,7 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
         notes: order?.notes ?? '',
         items: order
             ? order.items.map((item) => ({
+                  uid: uuid(),
                   ingredient_id: String(item.ingredient_id),
                   unit_id: String(item.unit_id),
                   quantity: String(Number(item.quantity_ordered)),
@@ -53,7 +55,11 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
     const errors = form.errors as Record<string, string>;
     const supplierId = Number(form.data.supplier_id) || null;
 
-    const patch = (i: number, change: Partial<Line>) => form.setData('items', form.data.items.map((line, n) => (n === i ? { ...line, ...change } : line)));
+    // Always change the CURRENT list (setData with a function), never a copy captured earlier in the render:
+    // two quick changes (pick an ingredient, then its unit) must not overwrite each other or drop a row.
+    const patch = (i: number, change: Partial<Line>) => form.setData((d) => ({ ...d, items: d.items.map((line, n) => (n === i ? { ...line, ...change } : line)) }));
+    const addLine = () => form.setData((d) => ({ ...d, items: [...d.items, { uid: uuid(), ingredient_id: '', unit_id: '', quantity: '', cost: '' }] }));
+    const removeLine = (i: number) => form.setData((d) => ({ ...d, items: d.items.filter((_, n) => n !== i) }));
 
     function priceFor(ingredientId: number) {
         return prices.find((p) => p.supplier_id === supplierId && p.ingredient_id === ingredientId);
@@ -76,18 +82,37 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
     function submit(event: FormEvent) {
         event.preventDefault();
 
+        // Never drop a half-filled row silently (that is how items "disappeared"): say which row is unfinished.
+        const problems: Record<string, string> = {};
+
+        form.data.items.forEach((line, i) => {
+            if (!line.ingredient_id) {
+                problems[`items.${i}.ingredient_id`] = `Item ${i + 1}: choose an ingredient, or remove the row.`;
+            } else if (!line.unit_id) {
+                problems[`items.${i}.unit_id`] = `Item ${i + 1}: choose a unit.`;
+            } else if (line.quantity.trim() === '' || !(Number(line.quantity) > 0)) {
+                problems[`items.${i}.quantity`] = `Item ${i + 1}: enter a quantity.`;
+            }
+        });
+
+        if (Object.keys(problems).length > 0) {
+            (form.setError as (errors: Record<string, string>) => void)(problems);
+
+            return;
+        }
+
+        form.clearErrors();
+
         form.transform((data) => ({
             supplier_id: Number(data.supplier_id),
             expected_at: data.expected_at || null,
             notes: data.notes.trim() || null,
-            items: data.items
-                .filter((line) => line.ingredient_id && line.unit_id && line.quantity.trim() !== '')
-                .map((line) => ({
-                    ingredient_id: Number(line.ingredient_id),
-                    unit_id: Number(line.unit_id),
-                    quantity: line.quantity,
-                    unit_cost_cents: pesosToCents(line.cost || '0'),
-                })),
+            items: data.items.map((line) => ({
+                ingredient_id: Number(line.ingredient_id),
+                unit_id: Number(line.unit_id),
+                quantity: line.quantity,
+                unit_cost_cents: pesosToCents(line.cost || '0'),
+            })),
         }));
 
         if (order) {
@@ -140,14 +165,14 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
                             const error = errors[`items.${i}.ingredient_id`] ?? errors[`items.${i}.unit_id`] ?? errors[`items.${i}.quantity`] ?? errors[`items.${i}.unit_cost_cents`];
 
                             return (
-                                <div key={i} className="space-y-1">
+                                <div key={line.uid} className="space-y-1">
                                     <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
                                         <IngredientSelect value={line.ingredient_id} onChange={(value) => pickIngredient(i, value)} ingredients={options?.ingredients ?? []} label="Ingredient" />
                                         <Input className="w-24" inputMode="decimal" placeholder="Qty" aria-label="Quantity" value={line.quantity} onChange={(e) => patch(i, { quantity: e.target.value })} />
                                         <UnitSelect value={line.unit_id} onChange={(value) => patch(i, { unit_id: value })} units={unitsFor(options, line.ingredient_id)} />
                                         <Input className="w-28" inputMode="decimal" placeholder="₱ per unit" aria-label="Cost per unit" value={line.cost} onChange={(e) => patch(i, { cost: e.target.value })} />
                                         <span className="text-muted-foreground ml-auto w-28 text-right text-sm tabular-nums">{formatPeso(lineTotal)}</span>
-                                        <Button type="button" size="icon" variant="ghost" aria-label="Remove item" onClick={() => form.setData('items', form.data.items.filter((_, n) => n !== i))}>
+                                        <Button type="button" size="icon" variant="ghost" aria-label="Remove item" onClick={() => removeLine(i)}>
                                             <Trash2 className="text-destructive size-4" />
                                         </Button>
                                     </div>
@@ -158,7 +183,7 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <Button type="button" variant="outline" onClick={() => form.setData('items', [...form.data.items, { ingredient_id: '', unit_id: '', quantity: '', cost: '' }])}>
+                        <Button type="button" variant="outline" onClick={addLine}>
                             <Plus className="size-4" /> Add item
                         </Button>
                         <p className="font-semibold tabular-nums">Total {formatPeso(total)}</p>

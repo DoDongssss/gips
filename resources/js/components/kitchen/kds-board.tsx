@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { QueryKey } from '@tanstack/react-query';
 import { Check, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -20,6 +21,16 @@ type Props = {
     /** The server refused the token (screen switched off or unpaired). */
     onUnauthorized?: () => void;
 };
+
+/** On an all-stations screen (station.id === 0) each ticket also says which station it is for. */
+type StationTicket = KdsTicket & { station?: { id: number; name: string } };
+
+/** Live updates for one station. An all-stations screen has no single channel, so it polls instead. */
+function Realtime({ stationId, queryKey }: { stationId: number; queryKey: QueryKey }) {
+    useRealtimeRefetch(`kds.station.${stationId}`, 'ticket.updated', queryKey);
+
+    return null;
+}
 
 type Tone = 'ok' | 'warning' | 'late';
 
@@ -73,7 +84,11 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
     const queryClient = useQueryClient();
     const client = kdsClient(station.id, token);
     const boardQuery = client.boardQuery;
-    const { data, isPending, isError, error, dataUpdatedAt } = useQuery(boardQuery);
+    const isAll = station.id === 0;
+    const { data, isPending, isError, error, dataUpdatedAt } = useQuery({
+        ...boardQuery,
+        refetchInterval: isAll ? 5000 : boardQuery.refetchInterval,
+    });
 
     useEffect(() => {
         if (error instanceof PosHttpError && (error.status === 401 || error.status === 403)) {
@@ -81,8 +96,6 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
         }
     }, [error, onUnauthorized]);
     const now = useNow(1000);
-
-    useRealtimeRefetch(`kds.station.${station.id}`, 'ticket.updated', boardQuery.queryKey);
 
     // The kitchen tablet's clock may be off: measure the gap against the server when data arrives.
     const clockOffset = useMemo(
@@ -144,6 +157,7 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
     return (
         <>
             <Head title={`${station.name} display`} />
+            {!isAll && <Realtime stationId={station.id} queryKey={boardQuery.queryKey} />}
 
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -202,6 +216,11 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
                             >
                                 <div className="flex items-start justify-between gap-2 border-b border-gray-100 p-3">
                                     <div>
+                                        {isAll && (ticket as StationTicket).station?.name && (
+                                            <p className="mb-1 inline-block rounded bg-slate-900 px-2 py-0.5 text-sm font-semibold text-white">
+                                                {(ticket as StationTicket).station?.name}
+                                            </p>
+                                        )}
                                         <p className="text-3xl leading-none font-bold">{ticket.order.order_number}</p>
                                         <p className="mt-1 text-base text-gray-500">
                                             {ticket.order.type === 'dine_in' ? 'Dine in' : 'Takeout'}

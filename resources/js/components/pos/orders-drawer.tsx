@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ReprintButton } from '@/components/printer/reprint-button';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -275,6 +276,7 @@ export function OrdersDrawer() {
                                                 </p>
                                             )}
                                         </div>
+                                        {order.paid_cents > 0 && !isDead(order) && <ReprintButton orderId={order.id} />}
                                         {canEdit(order) && (
                                             <Button size="sm" variant="outline" className="h-11 px-3 text-base" disabled={edit.isPending} onClick={() => edit.mutate(order.id)}>
                                                 Edit

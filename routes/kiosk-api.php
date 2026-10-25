@@ -10,37 +10,36 @@ use App\Http\Controllers\Api\V1\PosKioskOrdersController;
 use App\Http\Middleware\EnsureKioskDevice;
 use Illuminate\Support\Facades\Route;
 
-// What the kiosk tablet calls: /api/v1/kiosk/*
-// Include at the bottom of routes/api.php:  require __DIR__.'/kiosk-api.php';
-// Route names must start with kiosk.api. (BlockDeviceTokensOutsideKiosk relies on that).
+// Route names must start with "kiosk.api." (BlockDeviceTokensOutsideKiosk relies on it).
 Route::prefix('v1/kiosk')->name('kiosk.api.')->group(function () {
-    // Public, throttled: trade the one-time pairing code for a token.
     Route::post('pair', [KioskController::class, 'pair'])->middleware('throttle:10,1')->name('pair');
 
     Route::middleware('auth:sanctum')->group(function () {
-        // Read-only: menu:read
-        Route::middleware(EnsureKioskDevice::class.':menu:read')->group(function () {
-            Route::get('status', [KioskController::class, 'status'])->name('status');
-            Route::post('heartbeat', [KioskController::class, 'heartbeat'])->name('heartbeat');
-            Route::get('menu', [KioskController::class, 'menu'])->name('menu');
-            Route::get('screens', [KioskController::class, 'screens'])->name('screens');
-            Route::post('upsell', [KioskController::class, 'upsell'])->name('upsell');
-        });
+        Route::middleware(EnsureKioskDevice::class.':menu:read')
+            ->controller(KioskController::class)
+            ->group(function () {
+                Route::get('status', 'status')->name('status');
+                Route::post('heartbeat', 'heartbeat')->name('heartbeat');
+                Route::get('menu', 'menu')->name('menu');
+                Route::get('screens', 'screens')->name('screens');
+                Route::post('upsell', 'upsell')->name('upsell');
+            });
 
-        // Placing an order: orders:create
         Route::middleware(EnsureKioskDevice::class.':orders:create')->group(function () {
             Route::post('sessions', [KioskSessionController::class, 'start'])->name('sessions.start');
-            Route::post('sessions/{uuid}/end', [KioskSessionController::class, 'end'])->name('sessions.end');
+            Route::post('sessions/{uuid}/end', [KioskSessionController::class, 'end'])->whereUuid('uuid')->name('sessions.end');
             Route::post('orders', [KioskOrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
         });
     });
 });
 
-// Staff (signed in) endpoints used by the register and the header. Each one needs a permission.
-Route::middleware(['web', 'auth'])->group(function () {
-    Route::get('v1/pos/kiosk-orders', PosKioskOrdersController::class)->middleware('permission:order.create')->name('pos.kiosk-orders');
-    Route::get('v1/pos/kiosk-alerts', KioskAlertController::class)->middleware('permission:device.manage')->name('pos.kiosk-alerts');
-    Route::get('v1/pos/orders/{order}/cart', [OrderEditController::class, 'cart'])->middleware('permission:order.create')->name('pos.orders.cart');
-    Route::post('v1/pos/orders/{order}/update', [OrderEditController::class, 'update'])->middleware('permission:order.create')->name('pos.orders.update');
-    Route::post('v1/orders/{order}/return-stock', OrderStockReturnController::class)->middleware('permission:order.void|payment.refund')->name('orders.return-stock');
+Route::middleware(['web', 'auth'])->prefix('v1')->group(function () {
+    Route::middleware('permission:order.create')->group(function () {
+        Route::get('pos/kiosk-orders', PosKioskOrdersController::class)->name('pos.kiosk-orders');
+        Route::get('pos/orders/{order}/cart', [OrderEditController::class, 'cart'])->name('pos.orders.cart');
+        Route::post('pos/orders/{order}/update', [OrderEditController::class, 'update'])->name('pos.orders.update');
+    });
+
+    Route::get('pos/kiosk-alerts', KioskAlertController::class)->middleware('permission:device.manage')->name('pos.kiosk-alerts');
+    Route::post('orders/{order}/return-stock', OrderStockReturnController::class)->middleware('permission:order.void|payment.refund')->name('orders.return-stock');
 });

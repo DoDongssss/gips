@@ -3,14 +3,15 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { PairingInfo } from '@/types/kiosk';
+import type { PairingInfo } from '@/types/devices';
 
 type Props = { pairing: PairingInfo | null; onClose: () => void };
 
 /** Shows the one-time code. Closing it is final: the server keeps only a hash. */
 export default function PairingDialog({ pairing, onClose }: Props) {
     const [copied, setCopied] = useState(false);
-    const url = typeof window === 'undefined' ? '/kiosk' : `${window.location.origin}/kiosk`;
+    const path = pairing?.type === 'kds' ? '/kitchen-screen' : '/kiosk';
+    const url = typeof window === 'undefined' ? path : `${window.location.origin}${path}`;
 
     async function copy() {
         try {

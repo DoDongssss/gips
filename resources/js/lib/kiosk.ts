@@ -11,7 +11,6 @@ export function ago(iso: string | null | undefined, now = Date.now()): string {
     return `${Math.floor(minutes / 1440)} d ago`;
 }
 
-export const deviceTypeLabels: Record<string, string> = { kiosk: 'Kiosk', pos: 'Register', kds: 'Kitchen screen' };
 export const screenTypeLabels: Record<string, string> = { welcome: 'Welcome', promo: 'Promo', banner: 'Banner' };
 export const channelLabels: Record<string, string> = { all: 'Register and kiosk', pos: 'Register only', kiosk: 'Kiosk only' };
 

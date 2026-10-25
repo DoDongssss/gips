@@ -6,14 +6,12 @@ use App\Http\Controllers\ZReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
-    Route::post('shifts', [ShiftController::class, 'store'])->name('shifts.store');
+    Route::resource('shifts', ShiftController::class)->only(['index', 'store']);
     Route::post('shifts/{shift}/movements', [ShiftController::class, 'movement'])->name('shifts.movements.store');
     Route::post('shifts/{shift}/close', [ShiftController::class, 'close'])->name('shifts.close');
 
-    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 
-    Route::get('z-reports', [ZReportController::class, 'index'])->name('z-reports.index');
-    Route::post('z-reports', [ZReportController::class, 'store'])->name('z-reports.store');
+    Route::resource('z-reports', ZReportController::class)->only(['index', 'store']);
 });

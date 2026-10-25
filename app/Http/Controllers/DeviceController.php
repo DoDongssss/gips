@@ -2,88 +2,106 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ReportsDomainErrors;
 use App\Http\Requests\DeviceRequest;
 use App\Models\Device;
-use App\Models\Station;
-use App\Support\Audit;
+use App\Services\Devices\DevicePairingService;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Kitchen screens: register one, pair it with a code, switch it off. */
+/** Settings > Devices: every registered terminal (kiosk, register, kitchen screen): add, switch off, pair, unpair, delete. */
 class DeviceController extends Controller implements HasMiddleware
 {
+    use ReportsDomainErrors;
+
     public static function middleware(): array
     {
-        return [
-            new Middleware('permission:setting.view', only: ['index']),
-            new Middleware('permission:setting.update', only: ['store', 'update', 'resetPairing']),
-        ];
+        return [new Middleware('permission:device.manage')];
     }
 
     public function index(): Response
     {
+        $devices = Device::query()->with('settings')->withCount(['sessions as sessions_today' => fn ($q) => $q->whereDate('started_at', now()->toDateString())])
+            ->orderBy('type')->orderBy('name')->get()
+            ->map(fn (Device $d) => [
+                'id' => $d->id, 'name' => $d->name, 'type' => $d->type, 'station_id' => $d->station_id,
+                'is_active' => $d->is_active, 'paired' => $d->paired_at !== null, 'online' => $d->isOnline(),
+                'last_seen_at' => $d->last_seen_at?->toIso8601String(), 'app_version' => $d->app_version, 'ip_address' => $d->ip_address,
+                'has_pending_code' => $d->pairing_code_hash !== null && $d->pairing_expires_at?->isFuture(),
+                'sessions_today' => $d->sessions_today,
+                'settings' => $d->settings?->toKiosk(),
+            ]);
+
         return Inertia::render('devices/index', [
-            'devices' => Device::query()->with('station:id,name')->orderBy('name')->get()->map(fn (Device $d) => [
-                'id' => $d->id,
-                'name' => $d->name,
-                'station_id' => $d->station_id,
-                'station_name' => $d->station?->name,
-                'is_active' => $d->is_active,
-                'is_paired' => $d->isPaired(),
-                'paired_at' => $d->paired_at?->toIso8601String(),
-                'last_seen_at' => $d->last_seen_at?->toIso8601String(),
-                'ip_address' => $d->ip_address,
-            ]),
-            'stations' => Station::active()->ordered()->get(['id', 'name']),
-            // Shown once, right after a code is made. The server keeps only a hash.
+            'devices' => $devices,
+            // Flashed by store() and pairingCode(): the only time the plain code is ever visible.
             'pairing' => session('pairing'),
+            'stations' => \DB::table('stations')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
-    public function store(DeviceRequest $request): RedirectResponse
+    public function store(DeviceRequest $request, DevicePairingService $pairing): RedirectResponse
     {
-        $device = Device::create([
-            'name' => $request->validated('name'),
-            'type' => 'kds',
-            'station_id' => $request->validated('station_id'),
-            'is_active' => true,
-            'registered_by' => $request->user()->id,
-        ]);
+        $data = $request->validated();
+        [$device, $code] = $pairing->register($data['name'], $data['type'], $data['station_id'] ?? null, $request->user());
 
-        $code = $device->issuePairingCode();
-        Audit::record('devices', 'device.registered', "Kitchen screen {$device->name} registered", $device, ['station_id' => $device->station_id]);
-
-        return back()->with('pairing', ['device' => $device->name, 'code' => $code]);
+        return back()->with('success', "{$device->name} added.")->with('pairing', $this->pairingFlash($device, $code));
     }
 
-    public function update(DeviceRequest $request, Device $device): RedirectResponse
+    public function update(DeviceRequest $request, Device $device, DevicePairingService $pairing): RedirectResponse
     {
-        $device->fill($request->safe()->only(['name', 'station_id']));
+        $data = $request->validated();
 
-        if ($request->has('is_active')) {
-            $device->is_active = $request->boolean('is_active');
-        }
-
-        $device->save();
+        $device->update(['name' => $data['name'], 'station_id' => $data['station_id'] ?? null, 'is_active' => $data['is_active']]);
 
         if (! $device->is_active) {
-            $device->tokens()->delete(); // switching a screen off signs it out
+            $pairing->revoke($device); // a switched-off tablet stops working at once
         }
 
-        Audit::record('devices', 'device.updated', "Kitchen screen {$device->name} updated", $device, $device->only(['station_id', 'is_active']));
+        if (isset($data['settings']) && $device->type === Device::KIOSK) {
+            $device->settings()->updateOrCreate([], $data['settings']);
+        }
 
-        return back()->with('success', "\"{$device->name}\" saved.");
+        return back()->with('success', 'Device saved.');
     }
 
-    /** Signs the screen out and makes a new code, for a replaced or lost tablet. */
-    public function resetPairing(Device $device): RedirectResponse
+    /** A fresh one-time code, for pairing a new tablet or re-pairing a lost one. */
+    public function pairingCode(Device $device, DevicePairingService $pairing): RedirectResponse
     {
-        $code = $device->issuePairingCode();
-        Audit::record('devices', 'device.pairing_reset', "Kitchen screen {$device->name} unpaired", $device);
+        if (! $device->is_active) {
+            return $this->attempt(fn () => throw new DomainException('Switch the device on before pairing it.'), '');
+        }
 
-        return back()->with('pairing', ['device' => $device->name, 'code' => $code]);
+        return back()->with('pairing', $this->pairingFlash($device, $pairing->issueCode($device)));
+    }
+
+    /** Sign the tablet out: its token stops working and it needs a new code. */
+    public function unpair(Device $device, DevicePairingService $pairing): RedirectResponse
+    {
+        $pairing->revoke($device);
+
+        return back()->with('success', "{$device->name} was unpaired.");
+    }
+
+    public function destroy(Device $device, DevicePairingService $pairing): RedirectResponse
+    {
+        return $this->attempt(function () use ($device, $pairing) {
+            if (\DB::table('orders')->where('device_id', $device->id)->exists()) {
+                throw new DomainException('This device has orders on record. Switch it off instead of deleting it.');
+            }
+
+            $pairing->revoke($device);
+            $device->delete();
+        }, 'Device deleted.');
+    }
+
+    /** @return array<string, string> */
+    private function pairingFlash(Device $device, string $code): array
+    {
+        return ['device' => $device->name, 'type' => $device->type, 'code' => $code, 'expires_at' => $device->pairing_expires_at->toIso8601String()];
     }
 }

@@ -1,14 +1,14 @@
 import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
-import { ChefHat, ShoppingCart, Tablet, Timer } from 'lucide-react';
+import { ShoppingCart, Tablet, Timer } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { LowStockBell } from '@/components/inventory/low-stock-bell';
 import { KioskAlertBell } from '@/components/kiosk/kiosk-alert-bell';
+import { PrinterAlertBell } from '@/components/printer/printer-alert-bell';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import { index as kitchenIndex } from '@/routes/kitchen';
 import { index as posIndex } from '@/routes/pos';
 import { index as shiftsIndex } from '@/routes/shifts';
 import { app as kioskApp } from '@/routes/kiosk';
@@ -30,14 +30,6 @@ const quickLinks: QuickLink[] = [
         icon: ShoppingCart,
         permission: 'order.create',
         className: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-    },
-    {
-        title: 'Kitchen',
-        href: kitchenIndex(),
-        icon: ChefHat,
-        permission: 'kds.view',
-        className:
-            'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900',
     },
     {
         title: 'Kiosk',
@@ -107,6 +99,7 @@ export function AppSidebarHeader({
                 <QuickLinks />
                 <div className="bg-border h-6 w-px" />
                 <KioskAlertBell />
+                <PrinterAlertBell />
                 <LowStockBell />
             </div>
         </header>

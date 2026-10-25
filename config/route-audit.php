@@ -20,7 +20,7 @@ return [
         'storage/*',
         'sanctum/csrf-cookie',
         'kiosk',                    // the kiosk tablet page; the API behind it needs a device token
-        'kitchen-screen',           // the kitchen screen page; its data needs a device token
+        'kitchen',           // the kitchen screen page; its data needs a device token
         'api/v1/kiosk/pair',        // throttled; trades a one-time code for a device token
         'api/v1/devices/pair',      // pairing for the kitchen screen; must be throttled too
         'email/verify*',

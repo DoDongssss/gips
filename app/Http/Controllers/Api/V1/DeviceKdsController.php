@@ -7,13 +7,17 @@ use App\Http\Middleware\EnsureKitchenDevice;
 use App\Models\Device;
 use App\Models\KdsTicket;
 use App\Models\KdsTicketItem;
+use App\Models\Station;
 use App\Services\Kitchen\KdsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
-/** The same board as the staff screen, but a device only ever sees and changes its own station. */
+/**
+ * The same board as the staff screen. A device tied to a station only sees and changes that station;
+ * a device with no station is an "all stations" screen and sees and changes every station.
+ */
 class DeviceKdsController extends Controller implements HasMiddleware
 {
     public function __construct(private KdsService $kds) {}
@@ -25,7 +29,7 @@ class DeviceKdsController extends Controller implements HasMiddleware
 
     public function tickets(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->kds->board($this->device($request)->station)]);
+        return response()->json(['data' => $this->kds->board($this->station($this->device($request)))]);
     }
 
     public function start(KdsTicket $ticket, Request $request): JsonResponse
@@ -56,7 +60,7 @@ class DeviceKdsController extends Controller implements HasMiddleware
     {
         $device = $this->device($request);
 
-        return $this->respond($this->kds->recall($device->station, $device));
+        return $this->respond($this->kds->recall($this->station($device), $device));
     }
 
     private function device(Request $request): Device
@@ -65,9 +69,15 @@ class DeviceKdsController extends Controller implements HasMiddleware
         return $request->user();
     }
 
+    /** The device's station, or null for an all-stations screen. */
+    private function station(Device $device): ?Station
+    {
+        return $device->station_id ? Station::query()->find($device->station_id) : null;
+    }
+
     private function ownTicket(Device $device, KdsTicket $ticket): void
     {
-        abort_unless($ticket->station_id === $device->station_id, 403, 'That ticket belongs to another station.');
+        abort_unless($device->station_id === null || $ticket->station_id === $device->station_id, 403, 'That ticket belongs to another station.');
     }
 
     private function respond(KdsTicket $ticket): JsonResponse

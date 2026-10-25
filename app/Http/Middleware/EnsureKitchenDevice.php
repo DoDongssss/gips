@@ -7,14 +7,14 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Only a paired, active kitchen screen may pass. Records when it was last seen. */
+/** Only a paired, active kitchen screen may pass (tied to one station, or with none = all stations). Records when it was last seen. */
 class EnsureKitchenDevice
 {
     public function handle(Request $request, Closure $next): Response
     {
         $device = $request->user();
 
-        if (! $device instanceof Device || $device->type !== 'kds' || ! $device->is_active || ! $device->station_id) {
+        if (! $device instanceof Device || $device->type !== 'kds' || ! $device->is_active) {
             abort(403, 'This screen is not allowed to use the kitchen display.');
         }
 

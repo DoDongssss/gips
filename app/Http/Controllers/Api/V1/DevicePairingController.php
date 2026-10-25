@@ -3,41 +3,33 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Device;
+use App\Services\Devices\DevicePairingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
-/** A kitchen screen trades its pairing code for a token. Public, but rate limited. */
+/**
+ * A kitchen screen trades its pairing code (made in Settings > Devices) for a token.
+ * Public on purpose and rate limited: give the route ->middleware('throttle:10,1').
+ */
 class DevicePairingController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request, DevicePairingService $pairing): JsonResponse
     {
         $data = $request->validate([
-            'code' => ['required', 'digits:6'],
+            'code' => ['required', 'string', 'max:20'],
             'app_version' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $device = Device::findByPairingCode($data['code']);
+        [$device, $token] = $pairing->pair($data['code'], $request->ip(), $data['app_version'] ?? null, 'kds');
 
-        if (! $device) {
-            throw ValidationException::withMessages(['code' => 'That code is not valid or has expired. Ask the owner for a new one.']);
-        }
-
-        $device->forceFill([
-            'pairing_code_hash' => null,
-            'paired_at' => now(),
-            'last_seen_at' => now(),
-            'ip_address' => $request->ip(),
-            'app_version' => $data['app_version'] ?? null,
-        ])->save();
-
-        $device->tokens()->delete();
+        $station = DB::table('stations')->where('id', $device->station_id)->first(['id', 'name', 'type']);
 
         return response()->json(['data' => [
-            'token' => $device->createToken('kds', ['kds'])->plainTextToken,
+            'token' => $token,
             'device' => ['id' => $device->id, 'name' => $device->name],
-            'station' => ['id' => $device->station->id, 'name' => $device->station->name],
+            // No station on the device = an all-stations screen (id 0).
+            'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'type' => $station->type] : ['id' => 0, 'name' => 'All stations', 'type' => 'all'],
         ]]);
     }
 }

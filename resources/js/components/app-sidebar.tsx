@@ -18,6 +18,7 @@ import { dashboard } from '@/routes';
 import { index as AuditLogsIndex } from '@/routes/audit-logs';
 import { index as ConfigurationIndex } from '@/routes/configurations';
 import { index as DevicesIndex } from '@/routes/devices';
+import { show as PrinterShow } from '@/routes/printer';
 import { index as DiscountsIndex } from '@/routes/discounts';
 import { index as CountsIndex } from '@/routes/inventory/counts';
 import { index as IngredientsIndex } from '@/routes/inventory/ingredients';
@@ -33,10 +34,10 @@ import { index as GroupsIndex } from '@/routes/menu/groups';
 import { index as ProductsIndex } from '@/routes/menu/products';
 import { index as OrdersIndex } from '@/routes/orders';
 import { index as ReportsIndex } from '@/routes/reports';
+import { index as RolesIndex } from '@/routes/roles';
 import { index as StationsIndex } from '@/routes/stations';
 import { index as TaxesIndex } from '@/routes/taxes';
 import { index as userIndex } from '@/routes/users';
-import { index as KioskDevicesIndex } from '@/routes/kiosk/devices'
 import { index as KioskScreensIndex } from '@/routes/kiosk/screens'
 import { index as KioskUpsellIndex } from '@/routes/kiosk/upsell'
 import { index as ZReportsIndex } from '@/routes/z-reports';
@@ -117,7 +118,6 @@ const sections: Section[] = [
                 icon: Tablet,
                 permission: 'device.manage',
                 children: [
-                    { title: 'Devices', href: KioskDevicesIndex(), permission: 'device.manage' },
                     { title: 'Welcome screens', href: KioskScreensIndex(), permission: 'device.manage' },
                     { title: 'Upsell rules', href: KioskUpsellIndex(), permission: 'device.manage' },
                 ],
@@ -131,7 +131,9 @@ const sections: Section[] = [
                     { title: 'Configuration', href: ConfigurationIndex(), permission: 'setting.view' },
                     { title: 'Tax', href: TaxesIndex(), permission: 'setting.view' },
                     { title: 'Stations', href: StationsIndex(), permission: 'setting.view' },
-                    { title: 'Devices', href: DevicesIndex(), permission: 'setting.view' },
+                    { title: 'Devices', href: DevicesIndex(), permission: 'device.manage' },
+                    { title: 'Printer', href: PrinterShow(), permission: 'setting.view' },
+                    { title: 'Roles & permissions', href: RolesIndex(), permission: 'role.manage' },
                     { title: 'Audit Logs', href: AuditLogsIndex(), permission: 'setting.view' },
                 ],
             },

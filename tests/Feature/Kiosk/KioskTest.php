@@ -4,7 +4,7 @@ use App\Models\Device;
 use App\Models\KioskScreen;
 use App\Models\Order;
 use App\Models\User;
-use App\Services\Kiosk\DevicePairingService;
+use App\Services\Devices\DevicePairingService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
