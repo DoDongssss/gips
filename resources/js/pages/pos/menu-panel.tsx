@@ -1,10 +1,13 @@
-import { ImageIcon, Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { formatPeso } from '@/lib/money';
 import type { MenuCategory, MenuProduct } from '@/pages/pos/types';
 import { useCartStore } from '@/stores/cart-store';
+
+// File location on disk: storage/app/public/menu/products/default_product.jpg (served through `php artisan storage:link`).
+const DEFAULT_PRODUCT_IMAGE = '/storage/menu/products/default_product.jpg';
 
 type Props = {
     categories: MenuCategory[];
@@ -106,15 +109,20 @@ export function MenuPanel({ categories, onPick }: Props) {
                                 }`}
                             >
                                 <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-                                    {product.image_url ? (
-                                        <img src={product.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center">
-                                            <span className="flex size-14 items-center justify-center rounded-full bg-gray-100">
-                                                <ImageIcon className="size-7 text-gray-400" strokeWidth={1.5} />
-                                            </span>
-                                        </div>
-                                    )}
+                                    <img
+                                        src={product.image_url || DEFAULT_PRODUCT_IMAGE}
+                                        alt=""
+                                        loading="lazy"
+                                        className="h-full w-full object-cover"
+                                        onError={(event) => {
+                                            const img = event.currentTarget;
+
+                                            // Broken or deleted image: swap to the default once, never loop.
+                                            if (!img.src.endsWith(DEFAULT_PRODUCT_IMAGE)) {
+                                                img.src = DEFAULT_PRODUCT_IMAGE;
+                                            }
+                                        }}
+                                    />
 
                                     {categoryId === null && (
                                         <span className="absolute top-1.5 left-1.5 max-w-[70%] truncate rounded-md bg-white/95 px-1.5 py-1 text-sm font-medium text-blue-700 shadow-sm">

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Can } from '@/components/can';
+import { ReopenDialog } from '@/components/reopen-dialog';
 import { printZReport, ZReportPaper } from '@/components/reports/report-paper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export default function ZReports({ today, reports }: Props) {
     const [confirming, setConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [viewing, setViewing] = useState<ZReportRecord | null>(null);
+    const [reopening, setReopening] = useState<ZReportRecord | null>(null);
 
     const { preview, blockers } = today;
     const alreadyClosed = reports.some((r) => r.business_date === today.business_date);
@@ -153,9 +155,16 @@ export default function ZReports({ today, reports }: Props) {
                                             </td>
                                             <td className="px-3 py-2">{z.generated_by ?? '—'}</td>
                                             <td className="px-3 py-2 text-right">
-                                                <Button size="sm" variant="outline" onClick={() => setViewing(z)}>
-                                                    View
-                                                </Button>
+                                                <div className="flex justify-end gap-2">
+                                                    <Button size="sm" variant="outline" onClick={() => setViewing(z)}>
+                                                        View
+                                                    </Button>
+                                                    <Can permission="report.reopen">
+                                                        <Button size="sm" variant="outline" onClick={() => setReopening(z)}>
+                                                            Reopen day
+                                                        </Button>
+                                                    </Can>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -171,7 +180,7 @@ export default function ZReports({ today, reports }: Props) {
                     <DialogHeader>
                         <DialogTitle>Close {today.business_date}?</DialogTitle>
                         <DialogDescription>
-                            This issues the Z report and locks the day. It cannot be undone, and new sales will go to the next business day.
+                            This issues the Z report and locks the day. If you close it by mistake, someone with permission can reopen the day.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -184,6 +193,15 @@ export default function ZReports({ today, reports }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ReopenDialog
+                open={reopening !== null}
+                onOpenChange={(open) => !open && setReopening(null)}
+                title={`Reopen ${reopening?.business_date ?? 'this day'}?`}
+                description={`This removes Z report ${reopening?.report_number ?? ''}. The day accepts orders and shifts again, and closing it later issues a new Z report with a new number. The removed report is kept in the audit log.`}
+                url={reopening ? `/z-reports/${reopening.id}/reopen` : ''}
+                confirmLabel="Reopen day"
+            />
 
             <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}>
                 <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">

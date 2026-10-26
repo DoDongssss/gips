@@ -21,6 +21,7 @@ class ZReportController extends Controller implements HasMiddleware
         return [
             new Middleware('permission:report.view', only: ['index']),
             new Middleware('permission:shift.view-all', only: ['store']),
+            new Middleware('permission:report.reopen', only: ['reopen']),
         ];
     }
 
@@ -63,5 +64,15 @@ class ZReportController extends Controller implements HasMiddleware
         $report = $zReports->generate($data['business_date'], $request->user());
 
         return back()->with('success', "Z report {$report->report_number} issued. {$report->business_date->toDateString()} is now closed.");
+    }
+
+    public function reopen(Request $request, ZReport $zReport, ZReportService $zReports): RedirectResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:255']]);
+
+        $date = $zReport->business_date->toDateString();
+        $zReports->reopen($zReport, $request->user(), $data['reason']);
+
+        return back()->with('success', "{$date} is open again. Fix what you need, then close the day to issue a new Z report.");
     }
 }

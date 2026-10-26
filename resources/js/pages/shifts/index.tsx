@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { Can } from '@/components/can';
 import { CloseShiftDialog } from '@/pages/shifts/close-dialog';
 import { MovementDialog } from '@/pages/shifts/movement-dialog';
+import { ReopenDialog } from '@/components/reopen-dialog';
 import { XReportButton } from '@/components/reports/x-report-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useCan } from '@/hooks/use-can';
 import { formatPeso } from '@/lib/money';
 import OpenShiftDialog from '@/pages/shifts/open-shift-dialog';
 import { index } from '@/routes/shifts';
@@ -84,9 +86,12 @@ function VarianceBadge({ cents }: { cents: number | null }) {
 }
 
 export default function Index({ current, require_shift, can_view_all, history }: Props) {
+    const { can } = useCan();
+    const canReopen = can('shift.reopen');
     const [opening, setOpening] = useState(false);
     const [moving, setMoving] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [reopening, setReopening] = useState<ShiftRecord | null>(null);
 
     return (
         <>
@@ -203,6 +208,7 @@ export default function Index({ current, require_shift, can_view_all, history }:
                                         <th className="px-3 py-2 text-right font-medium">Expected</th>
                                         <th className="px-3 py-2 text-right font-medium">Counted</th>
                                         <th className="px-3 py-2 font-medium">Result</th>
+                                        {canReopen && <th className="px-3 py-2" />}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -219,6 +225,13 @@ export default function Index({ current, require_shift, can_view_all, history }:
                                             <td className="px-3 py-2">
                                                 <VarianceBadge cents={s.variance_cents} />
                                             </td>
+                                            {canReopen && (
+                                                <td className="px-3 py-2 text-right">
+                                                    <Button size="sm" variant="outline" onClick={() => setReopening(s)}>
+                                                        Reopen
+                                                    </Button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -228,6 +241,14 @@ export default function Index({ current, require_shift, can_view_all, history }:
                 </section>
             </div>
 
+            <ReopenDialog
+                open={reopening !== null}
+                onOpenChange={(open) => !open && setReopening(null)}
+                title={`Reopen ${reopening?.cashier ?? 'this'}'s shift?`}
+                description="The shift goes back to open and the count is cleared. The cashier counts the drawer again when closing it. This is not possible once the day has a Z report."
+                url={reopening ? `/shifts/${reopening.id}/reopen` : ''}
+                confirmLabel="Reopen shift"
+            />
             <OpenShiftDialog open={opening} onOpenChange={setOpening} />
             {current && (
                 <>

@@ -24,6 +24,7 @@ class ShiftController extends Controller implements HasMiddleware
             new Middleware('permission:shift.open|shift.close|shift.view-all', only: ['index']),
             new Middleware('permission:shift.open', only: ['store', 'movement']),
             new Middleware('permission:shift.close', only: ['close']),
+            new Middleware('permission:shift.reopen', only: ['reopen'])
         ];
     }
 
@@ -74,6 +75,15 @@ class ShiftController extends Controller implements HasMiddleware
             : 'Shift closed. The drawer is '.($variance > 0 ? 'over' : 'short').' by ₱'.number_format(abs($variance) / 100, 2).'.';
 
         return back()->with('success', $message);
+    }
+
+    public function reopen(Request $request, Shift $shift, ShiftService $shifts): RedirectResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:255']]);
+
+        $shifts->reopen($shift, $request->user(), $data['reason']);
+
+        return back()->with('success', 'Shift reopened. The cashier can continue and close it again.');
     }
 
     /** Only the person who opened a shift (or someone who may view all shifts) can work on it. */

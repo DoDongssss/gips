@@ -9,4 +9,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 
     Route::resource('z-reports', ZReportController::class)->only(['index', 'store']);
+
+    Route::post('z-reports/{zReport}/reopen', [ZReportController::class, 'reopen'])->name('z-reports.reopen');
 });

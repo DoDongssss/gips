@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
-import { ShoppingCart, Tablet, Timer } from 'lucide-react';
+import { ChefHat, ShoppingCart, Tablet, Timer } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { LowStockBell } from '@/components/inventory/low-stock-bell';
 import { KioskAlertBell } from '@/components/kiosk/kiosk-alert-bell';
@@ -16,7 +16,7 @@ import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 type QuickLink = {
     title: string;
-    href: ReturnType<typeof posIndex>;
+    href: ReturnType<typeof posIndex> | string;
     icon: LucideIcon;
     permission: string;
     /** Colors for the button; the Register is the main one, so it is filled. */
@@ -30,6 +30,15 @@ const quickLinks: QuickLink[] = [
         icon: ShoppingCart,
         permission: 'order.create',
         className: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
+    },
+    {
+        title: 'Kitchen',
+        // The kitchen screen page (pairs with a code from Settings > Devices).
+        href: '/kitchen',
+        icon: ChefHat,
+        permission: 'kds.view',
+        className:
+            'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900',
     },
     {
         title: 'Kiosk',

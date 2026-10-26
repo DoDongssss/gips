@@ -76,7 +76,7 @@ class StockCountService
 
         return DB::transaction(function () use ($count, $user) {
             /** @var StockCountItem $item */
-            foreach ($count->items()->whereNotNull('counted_quantity')->get() as $item) {
+            foreach ($count->items()->with('ingredient')->whereNotNull('counted_quantity')->get() as $item) {
                 $variance = Qty::round($item->variance);
 
                 if ($variance == 0.0) {

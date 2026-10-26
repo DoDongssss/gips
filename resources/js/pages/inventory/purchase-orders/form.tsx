@@ -12,7 +12,8 @@ import { formatPeso, centsToPesos, pesosToCents } from '@/lib/money';
 import { uuid } from '@/lib/uuid';
 import { index, show, store, update } from '@/routes/inventory/purchase-orders';
 
-type Line = { uid: string; ingredient_id: string; unit_id: string; quantity: string; cost: string };
+/** `auto` rows were filled in from the supplier's price list; they are skipped on save while their quantity is blank. */
+type Line = { uid: string; ingredient_id: string; unit_id: string; quantity: string; cost: string; auto?: boolean };
 
 type Props = {
     /** The draft being edited; null when creating. */
@@ -30,6 +31,24 @@ type Props = {
 
 const textareaClass =
     'border-input bg-background min-h-16 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50';
+
+/** One blank-quantity row per ingredient the supplier sells, at the supplier's own unit and price. */
+function linesFromPrices(prices: Props['prices'], supplierId: number | null, skip: Set<string> = new Set()): Line[] {
+    if (!supplierId) {
+        return [];
+    }
+
+    return prices
+        .filter((p) => p.supplier_id === supplierId && !skip.has(String(p.ingredient_id)))
+        .map((p) => ({
+            uid: uuid(),
+            ingredient_id: String(p.ingredient_id),
+            unit_id: String(p.unit_id),
+            quantity: '',
+            cost: centsToPesos(p.unit_cost_cents),
+            auto: true,
+        }));
+}
 
 export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
     const { url } = usePage();
@@ -50,7 +69,7 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
                   quantity: String(Number(item.quantity_ordered)),
                   cost: centsToPesos(item.unit_cost_cents),
               }))
-            : [],
+            : linesFromPrices(prices, Number(presetSupplier) || null),
     });
     const errors = form.errors as Record<string, string>;
     const supplierId = Number(form.data.supplier_id) || null;
@@ -60,6 +79,18 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
     const patch = (i: number, change: Partial<Line>) => form.setData((d) => ({ ...d, items: d.items.map((line, n) => (n === i ? { ...line, ...change } : line)) }));
     const addLine = () => form.setData((d) => ({ ...d, items: [...d.items, { uid: uuid(), ingredient_id: '', unit_id: '', quantity: '', cost: '' }] }));
     const removeLine = (i: number) => form.setData((d) => ({ ...d, items: d.items.filter((_, n) => n !== i) }));
+
+    // Choosing a supplier lists everything they sell, with their unit and price. Rows the person already filled in
+    // stay; untouched auto rows from a previously chosen supplier are replaced.
+    function chooseSupplier(value: string) {
+        const id = Number(value) || null;
+
+        form.setData((d) => {
+            const kept = d.items.filter((line) => !(line.auto && line.quantity.trim() === ''));
+
+            return { ...d, supplier_id: value, items: [...kept, ...linesFromPrices(prices, id, new Set(kept.map((line) => line.ingredient_id)))] };
+        });
+    }
 
     function priceFor(ingredientId: number) {
         return prices.find((p) => p.supplier_id === supplierId && p.ingredient_id === ingredientId);
@@ -84,8 +115,20 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
 
         // Never drop a half-filled row silently (that is how items "disappeared"): say which row is unfinished.
         const problems: Record<string, string> = {};
+        const isSkipped = (line: Line) => line.auto === true && line.quantity.trim() === '';
+        const toSave = form.data.items.filter((line) => !isSkipped(line));
+
+        if (toSave.length === 0) {
+            (form.setError as (errors: Record<string, string>) => void)({ items: 'Enter a quantity for at least one item.' });
+
+            return;
+        }
 
         form.data.items.forEach((line, i) => {
+            if (isSkipped(line)) {
+                return;
+            }
+
             if (!line.ingredient_id) {
                 problems[`items.${i}.ingredient_id`] = `Item ${i + 1}: choose an ingredient, or remove the row.`;
             } else if (!line.unit_id) {
@@ -107,7 +150,7 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
             supplier_id: Number(data.supplier_id),
             expected_at: data.expected_at || null,
             notes: data.notes.trim() || null,
-            items: data.items.map((line) => ({
+            items: data.items.filter((line) => !isSkipped(line)).map((line) => ({
                 ingredient_id: Number(line.ingredient_id),
                 unit_id: Number(line.unit_id),
                 quantity: line.quantity,
@@ -136,7 +179,7 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="po-supplier" label="Supplier" error={errors.supplier_id}>
-                        <Select value={form.data.supplier_id} onValueChange={(value) => form.setData('supplier_id', value)}>
+                        <Select value={form.data.supplier_id} onValueChange={chooseSupplier}>
                             <SelectTrigger id="po-supplier">
                                 <SelectValue placeholder="Choose a supplier" />
                             </SelectTrigger>
@@ -157,7 +200,12 @@ export default function PurchaseOrderForm({ order, suppliers, prices }: Props) {
                 <section className="space-y-3">
                     <h2 className="font-semibold">Items</h2>
 
-                    {form.data.items.length === 0 && <p className="text-muted-foreground text-sm">No items yet.</p>}
+                    {form.data.items.length === 0 && (
+                        <p className="text-muted-foreground text-sm">{supplierId ? 'This supplier has no prices set yet. Add items below.' : 'Choose a supplier to list what they sell.'}</p>
+                    )}
+                    {form.data.items.some((line) => line.auto) && (
+                        <p className="text-muted-foreground text-sm">Enter a quantity for what you want to order. Rows left empty are not included.</p>
+                    )}
 
                     <div className="space-y-2">
                         {form.data.items.map((line, i) => {

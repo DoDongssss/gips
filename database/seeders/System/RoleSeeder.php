@@ -1,12 +1,13 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\System;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/** Roles and the permissions each one holds. Runs after PermissionSeeder. Re-running re-syncs every role to the lists below. */
 class RoleSeeder extends Seeder
 {
     public function run(): void

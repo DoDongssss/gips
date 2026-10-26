@@ -1,11 +1,12 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Reference;
 
 use App\Enums\PaymentMethodType;
 use App\Models\PaymentMethod;
 use Illuminate\Database\Seeder;
 
+/** Payment methods the POS accepts. Owned by code: re-running resets them to the values below. */
 class PaymentMethodSeeder extends Seeder
 {
     public function run(): void

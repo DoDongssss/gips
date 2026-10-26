@@ -106,12 +106,49 @@ class ZReportService
                 'generated_at' => now(),
             ]);
 
+            // Closing the day again ends the reopened state.
+            DB::table('reopened_days')->where('business_date', $businessDate)->delete();
+
             Audit::record('reports', 'report.z-generated', "Z report {$report->report_number} for {$businessDate}", $report, [
                 'net_sales_cents' => $report->net_sales_cents,
                 'variance_cents' => $report->variance_cents,
             ]);
 
             return $report;
+        });
+    }
+
+    /**
+     * Reopen a closed day (the Z report was issued by mistake). The Z report is removed, so the business date
+     * accepts orders and shifts again; closing the day later issues a new Z report from the corrected figures.
+     * The removed report number is not reused, and the audit log keeps what it said.
+     */
+    public function reopen(ZReport $report, User $actor, string $reason): void
+    {
+        DB::transaction(function () use ($report, $actor, $reason) {
+            $report = ZReport::query()->lockForUpdate()->findOrFail($report->id);
+            $date = $report->business_date->toDateString();
+
+            Audit::record('reports', 'report.z-reopened', "Z report {$report->report_number} for {$date} reopened: {$reason}", $report, [
+                'reopened_by' => $actor->id,
+                'reason' => $reason,
+                'report_number' => $report->report_number,
+                'business_date' => $date,
+                'generated_by' => $report->generated_by,
+                'generated_at' => $report->generated_at?->toIso8601String(),
+                'orders_count' => $report->orders_count,
+                'gross_sales_cents' => $report->gross_sales_cents,
+                'net_sales_cents' => $report->net_sales_cents,
+                'variance_cents' => $report->variance_cents,
+            ]);
+
+            $report->delete();
+
+            // Remember that this day is reopened: only now may its shifts be reopened.
+            DB::table('reopened_days')->updateOrInsert(
+                ['business_date' => $date],
+                ['reopened_by' => $actor->id, 'reason' => $reason, 'created_at' => now(), 'updated_at' => now()],
+            );
         });
     }
 }

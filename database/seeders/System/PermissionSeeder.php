@@ -1,11 +1,12 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\System;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
+/** Every permission as resource.action. Add new permissions here, then grant them in RoleSeeder. */
 class PermissionSeeder extends Seeder
 {
     public function run(): void
@@ -31,8 +32,8 @@ class PermissionSeeder extends Seeder
             'kds'       => ['view', 'bump'],
 
             // Phase 5: shifts and reports
-            'shift'     => ['open', 'close', 'view-all'],
-            'report'    => ['view', 'export'],
+            'shift'     => ['open', 'reopen' , 'close', 'view-all'],
+            'report'    => ['reopen', 'view', 'export'],
 
             // Phase 6: inventory, recipes, purchasing
             'inventory' => ['view', 'adjust', 'count', 'receive'],

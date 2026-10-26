@@ -1,11 +1,12 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Reference;
 
 use App\Enums\StationType;
 use App\Models\Station;
 use Illuminate\Database\Seeder;
 
+/** Preparation stations (bar, kitchen, pastry) that categories are routed to on the KDS. */
 class StationSeeder extends Seeder
 {
     public function run(): void

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class MenuService
 {
-    public const CACHE_KEY = 'menu.v1';
+    public const CACHE_KEY = 'menu.v2';
 
     /** @return array<int, array<string, mixed>> */
     public function menu(bool $includeUnavailable = false): array

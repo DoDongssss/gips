@@ -1,11 +1,12 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Reference;
 
 use App\Models\Unit;
 use App\Models\UnitConversion;
 use Illuminate\Database\Seeder;
 
+/** Units of measure and the conversions between them. Owned by code: re-running resets factors. */
 class UnitSeeder extends Seeder
 {
     public function run(): void

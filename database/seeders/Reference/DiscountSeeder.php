@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Reference;
 
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;

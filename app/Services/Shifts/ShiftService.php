@@ -141,6 +141,62 @@ class ShiftService
     }
 
     /**
+     * Put a closed shift back to open (a misclick on "close shift"). The cashier counts again when they close it.
+     * Refused when that day already has a Z report, or when the cashier has opened another shift since.
+     */
+    public function reopen(Shift $shift, User $actor, string $reason): Shift
+    {
+        return DB::transaction(function () use ($shift, $actor, $reason) {
+            $shift = Shift::query()->lockForUpdate()->findOrFail($shift->id);
+
+            if ($shift->isOpen()) {
+                throw ValidationException::withMessages(['shift' => 'This shift is already open.']);
+            }
+
+            $date = \Illuminate\Support\Carbon::parse($shift->business_date)->toDateString();
+
+            // A shift can only be reopened while its own day is reopened (Z reports page > Reopen day).
+            if (! DB::table('reopened_days')->where('business_date', $date)->exists()) {
+                throw ValidationException::withMessages(['shift' => "Reopen {$date} on the Z reports page first. A shift can only be reopened while its day is reopened."]);
+            }
+
+            // Safety net: a day that has a Z report again is locked.
+            ClosedDay::assertOpen($date, 'shift');
+
+            // Serialize with "open shift" for the same cashier, then make sure they have no other open shift.
+            User::query()->lockForUpdate()->findOrFail($shift->user_id);
+
+            if (Shift::where('user_id', $shift->user_id)->where('status', ShiftStatus::Open->value)->exists()) {
+                throw ValidationException::withMessages(['shift' => 'This cashier already has an open shift. Close it first.']);
+            }
+
+            $before = [
+                'closed_at' => $shift->closed_at?->toIso8601String(),
+                'expected_cash_cents' => $shift->expected_cash_cents,
+                'counted_cash_cents' => $shift->counted_cash_cents,
+                'variance_cents' => $shift->variance_cents,
+            ];
+
+            $shift->update([
+                'status' => ShiftStatus::Open,
+                'closed_at' => null,
+                'expected_cash_cents' => null,
+                'counted_cash_cents' => null,
+                'variance_cents' => null,
+            ]);
+
+            Audit::record('shifts', 'shift.reopened', "Shift reopened: {$reason}", $shift, [
+                'reopened_by' => $actor->id,
+                'cashier_id' => $shift->user_id,
+                'reason' => $reason,
+                'previous' => $before,
+            ]);
+
+            return $shift;
+        });
+    }
+
+    /**
      * What the drawer should hold:
      *   opening cash + cash payments (tips left in the drawer included) + cash in
      *   - cash out, drops and payouts - cash refunds.
