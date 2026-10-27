@@ -23,8 +23,8 @@ class DemoUserSeeder extends Seeder
         foreach ([
             ['Demo Manager', 'manager@example.com', 'manager'],
             ['Demo Cashier', 'cashier@example.com', 'cashier'],
-            ['Demo Barista', 'barista@example.com', 'barista'],
-            ['Demo Kitchen', 'kitchen@example.com', 'kitchen'],
+            // ['Demo Barista', 'barista@example.com', 'barista'],
+            // ['Demo Kitchen', 'kitchen@example.com', 'kitchen'],
         ] as [$name, $email, $role]) {
             $user = User::firstOrCreate(
                 ['email' => $email],

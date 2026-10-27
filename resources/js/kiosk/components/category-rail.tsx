@@ -11,6 +11,8 @@ type Props = {
 
 /** Vertical list on a landscape tablet, a scrolling row on a portrait one. */
 export default function CategoryRail({ categories, selectedId, onSelect }: Props) {
+    const DEFAULT_PRODUCT_IMAGE = '/storage/menu/products/default_product.jpg';
+
     return (
         <nav
             aria-label="Categories"
@@ -18,7 +20,7 @@ export default function CategoryRail({ categories, selectedId, onSelect }: Props
         >
             {categories.map((category, i) => {
                 const selected = category.id === selectedId;
-                const cover = category.products.find((p) => p.is_available && p.image_url)?.image_url ?? null;
+                const cover = category.products.find((p) => p.is_available && p.image_url)?.image_url ?? DEFAULT_PRODUCT_IMAGE;
                 const available = category.products.filter((p) => p.is_available).length;
 
                 return (

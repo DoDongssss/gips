@@ -15,6 +15,7 @@ type Props = {
 /** Photo first: the picture fills the top of the card, the price and the add button sit at the bottom. */
 export default function ProductCard({ product, quantity, onPick }: Props) {
     const from = product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price_cents)) : product.base_price_cents;
+    const DEFAULT_PRODUCT_IMAGE = '/storage/menu/products/default_product.jpg';
 
     return (
         <button
@@ -26,7 +27,7 @@ export default function ProductCard({ product, quantity, onPick }: Props) {
             )}
         >
             <div className="relative aspect-[4/3] w-full overflow-hidden">
-                <Thumb src={product.image_url} name={product.name} className="size-full" />
+                <Thumb src={product.image_url ?? DEFAULT_PRODUCT_IMAGE} name={product.name} className="size-full" />
                 {quantity > 0 && (
                     <span className="bg-primary text-primary-foreground absolute top-3 right-3 flex min-w-10 items-center justify-center rounded-full px-3 py-1.5 text-lg font-bold shadow-md tabular-nums">
                         {quantity}

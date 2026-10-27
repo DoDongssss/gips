@@ -15,6 +15,5 @@ Route::middleware(['web', 'auth'])->prefix('v1')->group(function () {
         Route::post('pos/orders/{order}/update', [OrderEditController::class, 'update'])->name('pos.orders.update');
     });
 
-    Route::get('pos/kiosk-alerts', KioskAlertController::class)->middleware('permission:device.manage')->name('pos.kiosk-alerts');
     Route::post('orders/{order}/return-stock', OrderStockReturnController::class)->middleware('permission:order.void|payment.refund')->name('orders.return-stock');
 });

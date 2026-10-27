@@ -32,16 +32,16 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // System: access and settings. Permissions -> roles -> users.
             PermissionSeeder::class,
-            // RoleSeeder::class,
-            // UserSeeder::class,
-            // ConfigurationSeeder::class,
+            RoleSeeder::class,
+            UserSeeder::class,
+            ConfigurationSeeder::class,
 
-            // // Reference: lookup data the app cannot run without.
-            // UnitSeeder::class,
-            // PaymentMethodSeeder::class,
-            // TaxSeeder::class,
-            // DiscountSeeder::class,
-            // StationSeeder::class,
+            // Reference: lookup data the app cannot run without.
+            UnitSeeder::class,
+            PaymentMethodSeeder::class,
+            TaxSeeder::class,
+            DiscountSeeder::class,
+            StationSeeder::class,
         ]);
 
         if (app()->environment('local')) {

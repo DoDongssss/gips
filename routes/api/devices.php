@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\DeviceAlertController;
 use App\Http\Controllers\Api\V1\DeviceKdsController;
 use App\Http\Controllers\Api\V1\DevicePairingController;
 use Illuminate\Support\Facades\Route;
@@ -20,3 +21,7 @@ Route::middleware('auth:sanctum')
         Route::post('tickets/{ticket}/bump', 'bumpTicket')->name('bump-ticket');
         Route::post('items/{item}/bump', 'bumpItem')->name('bump-item');
     });
+
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('device/alerts', DeviceAlertController::class)->middleware('permission:device.manage')->name('device.alerts');
+});

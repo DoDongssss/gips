@@ -20,6 +20,8 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
     const [picked, setPicked] = useState<Record<number, number[]>>({});
     const [quantity, setQuantity] = useState(1);
 
+    const DEFAULT_PRODUCT_IMAGE = '/storage/menu/products/default_product.jpg';
+
     useEffect(() => {
         if (!product) return;
 
@@ -70,7 +72,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
 
                 {/* Picture, name and price */}
                 <div className="relative h-60 shrink-0 landscape:h-auto landscape:w-[40%]">
-                    <Thumb src={product.image_url} name={product.name} className="absolute inset-0 size-full text-8xl" />
+                    <Thumb src={product.image_url ?? DEFAULT_PRODUCT_IMAGE} name={product.name} className="absolute inset-0 size-full text-8xl" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 space-y-2 p-6 text-white">
                         <h2 className="text-4xl leading-tight font-semibold tracking-tight">{product.name}</h2>
