@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Can } from '@/components/can';
 import type { DataTableFeatures } from '@/components/data-table';
 import { StockFlag } from '@/components/inventory/status-badges';
+import { SortableHeader } from '@/components/sortable-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatQty, formatUnitCost } from '@/lib/inventory';
@@ -23,7 +24,7 @@ export const columnClassNames: Record<string, string> = {
     quantity: 'w-40 text-right',
     reorder_level: 'w-32 text-right',
     average_cost_cents: 'w-40 text-right',
-    is_active: 'w-24',
+    is_active: 'w-28',
     actions: 'w-72 text-right',
 };
 
@@ -31,8 +32,7 @@ export function getColumns({ onEdit, onAdjust, onWaste }: ColumnOptions): Column
     return [
         {
             accessorKey: 'name',
-            header: 'Ingredient',
-            enableSorting: false,
+            header: ({ column }) => <SortableHeader title="Ingredient" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />,
             cell: ({ row }) => (
                 <div>
                     <span className="font-medium">{row.original.name}</span>
@@ -42,14 +42,14 @@ export function getColumns({ onEdit, onAdjust, onWaste }: ColumnOptions): Column
         },
         {
             id: 'category',
-            header: 'Category',
-            enableSorting: false,
+            accessorFn: (row) => row.category?.name ?? '',
+            header: ({ column }) => <SortableHeader title="Category" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />,
             cell: ({ row }) => <span className="text-muted-foreground">{row.original.category?.name ?? '—'}</span>,
         },
         {
             id: 'quantity',
-            header: 'On hand',
-            enableSorting: false,
+            accessorFn: (row) => Number(row.quantity),
+            header: ({ column }) => <SortableHeader title="On hand" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />,
             cell: ({ row }) => (
                 <div className="flex items-center justify-end gap-2">
                     <StockFlag negative={row.original.is_negative} low={row.original.is_low} />
@@ -60,9 +60,8 @@ export function getColumns({ onEdit, onAdjust, onWaste }: ColumnOptions): Column
             ),
         },
         {
-            id: 'reorder_level',
-            header: 'Reorder at',
-            enableSorting: false,
+            accessorKey: 'reorder_level',
+            header: ({ column }) => <SortableHeader title="Reorder at" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />,
             cell: ({ row }) => (
                 <span className="text-muted-foreground tabular-nums">
                     {Number(row.original.reorder_level) > 0 ? `${formatQty(row.original.reorder_level)} ${row.original.base_unit.abbreviation}` : '—'}
@@ -70,17 +69,15 @@ export function getColumns({ onEdit, onAdjust, onWaste }: ColumnOptions): Column
             ),
         },
         {
-            id: 'average_cost_cents',
-            header: 'Avg cost',
-            enableSorting: false,
+            accessorKey: 'average_cost_cents',
+            header: ({ column }) => <SortableHeader title="Avg cost" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />,
             cell: ({ row }) => (
                 <span className="text-muted-foreground tabular-nums">{formatUnitCost(row.original.average_cost_cents, row.original.base_unit.abbreviation)}</span>
             ),
         },
         {
             accessorKey: 'is_active',
-            header: 'Status',
-            enableSorting: false,
+            header: ({ column }) => <SortableHeader title="Status" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />,
             cell: ({ row }) => <Badge variant={row.original.is_active ? 'default' : 'secondary'}>{row.original.is_active ? 'Active' : 'Inactive'}</Badge>,
         },
         {

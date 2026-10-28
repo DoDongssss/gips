@@ -16,7 +16,10 @@ return [
     'default' => env('BROADCAST_CONNECTION', 'null'),
 
     'connections' => [
-
+        'options' => [
+            'cluster' => 'ap1',
+            'useTLS' => true
+        ],
         'log' => [
             'driver' => 'log',
         ],

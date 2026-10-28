@@ -1,10 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import type { SortingState } from '@tanstack/react-table';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { Can } from '@/components/can';
 import { DataTable } from '@/components/data-table';
-import { Pager } from '@/components/inventory/pager';
+import { Pager } from '@/components/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,19 +16,30 @@ import { columnClassNames, getColumns } from '@/pages/inventory/ingredients/colu
 import IngredientFormDialog from '@/pages/inventory/ingredients/form-dialog';
 import WasteDialog from '@/pages/inventory/waste/waste-dialog';
 import { index } from '@/routes/inventory/ingredients';
-import type { Paginated } from '@/types/menu';
 import type { IngredientCategory, IngredientRow, Unit } from '@/types/inventory';
+import type { Paginated } from '@/types/menu';
 
-type Filters = { search: string; filter: string; category: number | null };
+type Filters = {
+    search: string;
+    filter: string;
+    category: number | null;
+    sort?: string | null;
+    direction?: 'asc' | 'desc' | null;
+};
 
 type Props = {
-    ingredients: Paginated<IngredientRow>;
+    // Optional on the server: undefined until the person asks for it.
+    ingredients?: Paginated<IngredientRow>;
     categories: IngredientCategory[];
     units: Unit[];
     filters: Filters;
 };
 
 const ALL = 'all';
+
+// Partial reloads: only these props are requested, which is also what makes
+// the optional `ingredients` prop come back.
+const ONLY = ['ingredients', 'filters'];
 
 export default function IngredientsIndex({ ingredients, categories, units, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -37,22 +49,10 @@ export default function IngredientsIndex({ ingredients, categories, units, filte
     const [wasting, setWasting] = useState<IngredientRow | undefined>();
     const [categoriesOpen, setCategoriesOpen] = useState(false);
 
-    function visit(next: Partial<Filters> = {}) {
-        const merged = { ...filters, ...next };
-
-        router.get(index.url(), cleanQuery({ search: merged.search, filter: merged.filter, category: merged.category }), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            onStart: () => setLoading(true),
-            onFinish: () => setLoading(false),
-        });
-    }
-
-    function submitSearch(event: FormEvent) {
-        event.preventDefault();
-        visit({ search });
-    }
+    // The last page of ingredients that was loaded. Shown while a refresh is on its way,
+    // so the table doesn't flash back to the "Load ingredients" state after a save.
+    const [loaded, setLoaded] = useState<Paginated<IngredientRow> | undefined>(ingredients);
+    const data = ingredients ?? loaded;
 
     // Memoized so TanStack Table doesn't rebuild columns on every render.
     const columns = useMemo(
@@ -65,6 +65,70 @@ export default function IngredientsIndex({ ingredients, categories, units, filte
         [],
     );
 
+    // Sorting state comes from the server (query string), so it survives reloads and pagination.
+    const sorting = useMemo<SortingState>(
+        () => (filters.sort ? [{ id: filters.sort, desc: filters.direction === 'desc' }] : []),
+        [filters.sort, filters.direction],
+    );
+
+    // A new search, filter or sort. The page number resets to 1.
+    function visit(next: Partial<Filters> = {}) {
+        const merged = { ...filters, ...next };
+
+        router.get(
+            index.url(),
+            cleanQuery({
+                search: merged.search,
+                filter: merged.filter,
+                category: merged.category,
+                sort: merged.sort,
+                direction: merged.direction,
+            }),
+            {
+                only: ONLY,
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onStart: () => setLoading(true),
+                onFinish: () => setLoading(false),
+            },
+        );
+    }
+
+    // Asks the server for the data of the page we are already on (same search, sort and page number).
+    function loadIngredients() {
+        router.reload({
+            only: ONLY,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }
+
+    // Once data has been loaded, keep it loaded. A save in a dialog redirects back here with a
+    // full visit that drops the optional prop, so fetch it again.
+    useEffect(() => {
+        if (ingredients) {
+            setLoaded(ingredients);
+        } else if (loaded) {
+            loadIngredients();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ingredients]);
+
+    function submitSearch(event: FormEvent) {
+        event.preventDefault();
+        visit({ search });
+    }
+
+    function handleSortingChange(next: SortingState) {
+        const [first] = next;
+
+        visit({
+            sort: first?.id ?? null,
+            direction: first ? (first.desc ? 'desc' : 'asc') : null,
+        });
+    }
+
     return (
         <>
             <Head title="Ingredients" />
@@ -73,7 +137,7 @@ export default function IngredientsIndex({ ingredients, categories, units, filte
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="space-y-1">
                         <h1 className="text-xl font-semibold tracking-tight">Ingredients</h1>
-                        <p className="text-muted-foreground text-sm">{ingredients.total} total</p>
+                        {data && <p className="text-muted-foreground text-sm">{data.total} total</p>}
                     </div>
 
                     <Can permission="inventory.adjust">
@@ -123,14 +187,25 @@ export default function IngredientsIndex({ ingredients, categories, units, filte
 
                 <DataTable
                     columns={columns}
-                    data={ingredients.data}
-                    sorting={[]}
-                    onSortingChange={() => {}}
+                    data={data?.data ?? []}
+                    sorting={sorting}
+                    onSortingChange={handleSortingChange}
                     columnClassNames={columnClassNames}
-                    emptyContent="No ingredients found."
+                    emptyContent={
+                        data ? (
+                            'No ingredients found.'
+                        ) : (
+                            <div className="flex flex-col items-center gap-3">
+                                <p className="text-sm">Ingredients aren&apos;t loaded yet.</p>
+                                <Button onClick={loadIngredients} disabled={loading}>
+                                    {loading ? 'Loading…' : 'Load ingredients'}
+                                </Button>
+                            </div>
+                        )
+                    }
                 />
 
-                <Pager currentPage={ingredients.current_page} lastPage={ingredients.last_page} prevUrl={ingredients.prev_page_url} nextUrl={ingredients.next_page_url} />
+                {data && <Pager currentPage={data.current_page} lastPage={data.last_page} prevUrl={data.prev_page_url} nextUrl={data.next_page_url} only={ONLY} />}
             </div>
 
             <IngredientFormDialog

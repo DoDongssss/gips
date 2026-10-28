@@ -19,20 +19,20 @@ return [
         'pin-login/*',
         'storage/*',
         'sanctum/csrf-cookie',
-        'kiosk',                    // the kiosk tablet page; the API behind it needs a device token
-        'kitchen',           // the kitchen screen page; its data needs a device token
-        'api/v1/kiosk/pair',        // throttled; trades a one-time code for a device token
-        'api/v1/devices/pair',      // pairing for the kitchen screen; must be throttled too
+        'kiosk',                    
+        'kitchen',           
+        'api/v1/kiosk/pair',        
+        'api/v1/devices/pair',      
         'email/verify*',
     ],
 
     // Public POST routes that limit attempts in code instead of with the throttle middleware.
     'throttle_exempt' => [
-        'pin-login',                // PinLoginController locks out by user and IP
-        'login',                    // Fortify's own login limiter
-        'two-factor-challenge',     // Fortify's own limiter
-        'forgot-password',          // ThrottleSensitiveRoutes (config/security.php throttled_posts)
-        'reset-password',           // ThrottleSensitiveRoutes
+        'pin-login',                
+        'login',                    
+        'two-factor-challenge',    
+        'forgot-password',         
+        'reset-password',           
     ],
 
     // Signed in is enough on purpose (no permission): each person's own pages and shared plumbing.

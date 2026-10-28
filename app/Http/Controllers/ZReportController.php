@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ZReport;
+use Illuminate\Support\Facades\DB;
 use App\Services\Reports\ReportService;
 use App\Services\Reports\ZReportService;
 use App\Support\BusinessDate;
@@ -27,9 +28,25 @@ class ZReportController extends Controller implements HasMiddleware
 
     public function index(ZReportService $zReports, ReportService $reports): Response
     {
-        $today = BusinessDate::current();
+        $current = BusinessDate::current();
+
+        // Any past day (up to today) can be picked, so a day whose Z report was forgotten can still be closed.
+        $requested = request()->query('date');
+        $today = is_string($requested) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $requested) && $requested <= $current ? $requested : $current;
+
+        // Days in the last 60 that have orders or shifts but no Z report yet.
+        $since = now()->parse($current)->subDays(60)->toDateString();
+        $active = DB::table('orders')->whereBetween('business_date', [$since, $current])->select('business_date')
+            ->union(DB::table('shifts')->whereBetween('business_date', [$since, $current])->select('business_date'))
+            ->pluck('business_date')
+            ->map(fn ($d) => substr((string) $d, 0, 10))
+            ->unique();
+        $closed = ZReport::whereBetween('business_date', [$since, $current])->pluck('business_date')->map(fn ($d) => substr((string) $d, 0, 10));
+        $pending = $active->diff($closed)->sort()->values();
 
         return Inertia::render('reports/z-reports', [
+            'pending_days' => $pending,
+            'current_date' => $current,
             'today' => [
                 'business_date' => $today,
                 'blockers' => $zReports->blockers($today),
@@ -76,3 +93,4 @@ class ZReportController extends Controller implements HasMiddleware
         return back()->with('success', "{$date} is open again. Fix what you need, then close the day to issue a new Z report.");
     }
 }
+

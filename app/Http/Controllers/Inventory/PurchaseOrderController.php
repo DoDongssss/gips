@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,15 +33,39 @@ class PurchaseOrderController extends Controller implements HasMiddleware
     {
         $status = PurchaseOrderStatus::tryFrom($request->string('status')->toString());
 
+        $sortable = ['po_number', 'supplier', 'status', 'ordered_at', 'expected_at', 'items_count', 'total_cents'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+
         return Inertia::render('inventory/purchase-orders/index', [
-            'orders' => PurchaseOrder::query()->with('supplier:id,name')->withCount('items')
+            // Optional: not sent on the first visit. The page asks for it with the "Load purchase orders" button.
+            'orders' => Inertia::optional(fn () => PurchaseOrder::query()->with('supplier:id,name')->withCount('items')
                 ->when($status, fn ($q, $s) => $q->where('status', $s->value))
                 ->when($request->integer('supplier'), fn ($q, $id) => $q->where('supplier_id', $id))
-                ->latest('id')->paginate(20)->withQueryString()
-                ->through(fn (PurchaseOrder $p) => $this->summary($p)),
+                ->when($sort === 'supplier', fn ($q) => $q->orderBy(
+                    DB::table('suppliers')
+                        ->select('name')
+                        ->whereColumn('suppliers.id', 'purchase_orders.supplier_id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when(
+                    in_array($sort, ['po_number', 'status', 'ordered_at', 'expected_at', 'items_count', 'total_cents'], true),
+                    fn ($q) => $q->orderBy($sort, $direction),
+                )
+                // Newest first unless a column is chosen; also the tie-breaker for every sort.
+                ->orderByDesc('id')
+                ->paginate(20)->withQueryString()
+                ->through(fn (PurchaseOrder $p) => $this->summary($p))
+            ),
             'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
             'statuses' => array_column(PurchaseOrderStatus::cases(), 'value'),
-            'filters' => ['status' => $status?->value, 'supplier' => $request->integer('supplier') ?: null],
+            'filters' => [
+                'status' => $status?->value,
+                'supplier' => $request->integer('supplier') ?: null,
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 

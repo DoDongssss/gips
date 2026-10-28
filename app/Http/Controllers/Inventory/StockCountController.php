@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,17 +29,42 @@ class StockCountController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $sortable = ['id', 'status', 'started_at', 'completed_at', 'started_by', 'items_count'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+
         return Inertia::render('inventory/counts/index', [
-            'counts' => StockCount::query()->with('startedBy:id,name')->withCount('items')->latest('id')->paginate(15)
+            // Optional: not sent on the first visit. The page asks for it with the "Load counts" button.
+            'counts' => Inertia::optional(fn () => StockCount::query()->with('startedBy:id,name')->withCount('items')
+                ->when($sort === 'started_by', fn ($q) => $q->orderBy(
+                    DB::table('users')
+                        ->select('name')
+                        ->whereColumn('users.id', 'stock_counts.started_by')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when(
+                    in_array($sort, ['id', 'status', 'started_at', 'completed_at', 'items_count'], true),
+                    fn ($q) => $q->orderBy($sort, $direction),
+                )
+                // Newest first unless a column is chosen; also the tie-breaker for every sort.
+                ->orderByDesc('id')
+                ->paginate(15)
+                ->withQueryString()
                 ->through(fn (StockCount $c) => [
                     'id' => $c->id, 'status' => $c->status->value, 'items_count' => $c->items_count,
                     'started_by' => $c->startedBy?->name,
                     'started_at' => $c->started_at?->toIso8601String(), 'completed_at' => $c->completed_at?->toIso8601String(),
                     'notes' => $c->notes,
-                ]),
+                ])
+            ),
             'open_count_id' => StockCount::query()->where('status', StockCountStatus::InProgress)->value('id'),
+            'filters' => [
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 
@@ -49,12 +75,17 @@ class StockCountController extends Controller implements HasMiddleware
         $count = null;
 
         // attempt() turns a business-rule refusal (a count is already open) into a form error.
-        $this->attempt(
+        $response = $this->attempt(
             function () use ($counts, $request, $data, &$count) {
                 $count = $counts->start($request->user(), $data['ingredient_ids'] ?? null, $data['notes'] ?? null);
             },
             'Stock count started.',
         );
+
+        // Refused: send back the response that carries the form error, instead of redirecting to a count that does not exist.
+        if ($count === null) {
+            return $response;
+        }
 
         return redirect()->route('inventory.counts.show', $count)->with('success', 'Stock count started.');
     }
@@ -77,7 +108,7 @@ class StockCountController extends Controller implements HasMiddleware
         ]);
     }
 
-        public function update(StockCountSaveRequest $request, StockCount $count, StockCountService $counts): RedirectResponse
+    public function update(StockCountSaveRequest $request, StockCount $count, StockCountService $counts): RedirectResponse
     {
         return $this->attempt(fn () => $counts->saveCounts($count, $request->validated('counted')), 'Counts saved.');
     }

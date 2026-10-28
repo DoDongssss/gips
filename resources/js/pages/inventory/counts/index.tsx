@@ -1,27 +1,94 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import type { SortingState } from '@tanstack/react-table';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { Can } from '@/components/can';
+import { DataTable } from '@/components/data-table';
 import { Field, FormError } from '@/components/inventory/field';
-import { Pager } from '@/components/inventory/pager';
-import { Badge } from '@/components/ui/badge';
+import { Pager } from '@/components/pager';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { cleanQuery } from '@/lib/inventory';
+import { columnClassNames, getColumns } from '@/pages/inventory/counts/columns';
 import { index, show, store } from '@/routes/inventory/counts';
-import type { Paginated } from '@/types/menu';
 import type { CountRow } from '@/types/inventory';
+import type { Paginated } from '@/types/menu';
 
-type Props = { counts: Paginated<CountRow>; open_count_id: number | null };
+type Filters = {
+    sort?: string | null;
+    direction?: 'asc' | 'desc' | null;
+};
 
-const formatWhen = (value: string | null) =>
-    value ? new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+type Props = {
+    // Optional on the server: undefined until the person asks for it.
+    counts?: Paginated<CountRow>;
+    open_count_id: number | null;
+    filters: Filters;
+};
 
-export default function CountsIndex({ counts, open_count_id }: Props) {
+// Partial reloads: only these props are requested, which is also what makes the optional
+// `counts` prop come back.
+const ONLY = ['counts', 'filters'];
+
+export default function CountsIndex({ counts, open_count_id, filters }: Props) {
     const [starting, setStarting] = useState(false);
+    const [loading, setLoading] = useState(false);
     const form = useForm({ notes: '' });
     const errors = form.errors as Record<string, string>;
+
+    // The last page of counts that was loaded. Shown while a refresh is on its way.
+    const [loaded, setLoaded] = useState<Paginated<CountRow> | undefined>(counts);
+    const data = counts ?? loaded;
+
+    // Memoized so TanStack Table doesn't rebuild columns on every render.
+    const columns = useMemo(() => getColumns(), []);
+
+    // Sorting state comes from the server (query string), so it survives reloads and pagination.
+    const sorting = useMemo<SortingState>(
+        () => (filters.sort ? [{ id: filters.sort, desc: filters.direction === 'desc' }] : []),
+        [filters.sort, filters.direction],
+    );
+
+    // A new sort. The page number resets to 1.
+    function visit(next: Partial<Filters>) {
+        router.get(index.url(), cleanQuery({ ...filters, ...next }), {
+            only: ONLY,
+            preserveState: true,
+            replace: true,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }
+
+    // Asks the server for the data of the page we are already on (same sort and page number).
+    function loadCounts() {
+        router.reload({
+            only: ONLY,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }
+
+    // Once data has been loaded, keep it loaded: a full visit drops the optional prop, so fetch it again.
+    useEffect(() => {
+        if (counts) {
+            setLoaded(counts);
+        } else if (loaded) {
+            loadCounts();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [counts]);
+
+    function handleSortingChange(next: SortingState) {
+        const [first] = next;
+
+        visit({
+            sort: first?.id ?? null,
+            direction: first ? (first.desc ? 'desc' : 'asc') : null,
+        });
+    }
 
     function start(event: FormEvent) {
         event.preventDefault();
@@ -38,6 +105,7 @@ export default function CountsIndex({ counts, open_count_id }: Props) {
                     <div>
                         <h1 className="text-xl font-semibold tracking-tight">Stock counts</h1>
                         <p className="text-muted-foreground text-sm">Count the shelves; differences are posted to the stock history.</p>
+                        {data && <p className="text-muted-foreground text-sm">{data.total} total</p>}
                     </div>
                     <Can permission="inventory.count">
                         {open_count_id ? (
@@ -50,53 +118,27 @@ export default function CountsIndex({ counts, open_count_id }: Props) {
                     </Can>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="text-muted-foreground border-b text-left">
-                            <tr>
-                                <th className="p-3 font-medium">Count</th>
-                                <th className="p-3 font-medium">Status</th>
-                                <th className="p-3 font-medium">Started</th>
-                                <th className="p-3 font-medium">Finished</th>
-                                <th className="p-3 font-medium">By</th>
-                                <th className="p-3 text-right font-medium">Ingredients</th>
-                                <th className="w-24 p-3" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {counts.data.map((count) => (
-                                <tr key={count.id} className="border-b last:border-0">
-                                    <td className="p-3 font-medium">#{count.id}</td>
-                                    <td className="p-3">
-                                        <Badge variant={count.status === 'completed' ? 'default' : 'secondary'}>{count.status === 'completed' ? 'Completed' : 'In progress'}</Badge>
-                                    </td>
-                                    <td className="text-muted-foreground p-3" suppressHydrationWarning>
-                                        {formatWhen(count.started_at)}
-                                    </td>
-                                    <td className="text-muted-foreground p-3" suppressHydrationWarning>
-                                        {formatWhen(count.completed_at)}
-                                    </td>
-                                    <td className="p-3">{count.started_by ?? '—'}</td>
-                                    <td className="p-3 text-right tabular-nums">{count.items_count}</td>
-                                    <td className="p-3 text-right">
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={show.url(count.id)}>{count.status === 'completed' ? 'View' : 'Open'}</Link>
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {counts.data.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="text-muted-foreground p-8 text-center">
-                                        No counts yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    columns={columns}
+                    data={data?.data ?? []}
+                    sorting={sorting}
+                    onSortingChange={handleSortingChange}
+                    columnClassNames={columnClassNames}
+                    emptyContent={
+                        data ? (
+                            'No counts yet.'
+                        ) : (
+                            <div className="flex flex-col items-center gap-3">
+                                <p className="text-sm">Counts aren&apos;t loaded yet.</p>
+                                <Button onClick={loadCounts} disabled={loading}>
+                                    {loading ? 'Loading…' : 'Load counts'}
+                                </Button>
+                            </div>
+                        )
+                    }
+                />
 
-                <Pager currentPage={counts.current_page} lastPage={counts.last_page} prevUrl={counts.prev_page_url} nextUrl={counts.next_page_url} />
+                {data && <Pager currentPage={data.current_page} lastPage={data.last_page} prevUrl={data.prev_page_url} nextUrl={data.next_page_url} only={ONLY} />}
             </div>
 
             <Dialog open={starting} onOpenChange={setStarting}>

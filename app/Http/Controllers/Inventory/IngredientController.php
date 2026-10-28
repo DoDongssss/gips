@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,24 +32,53 @@ class IngredientController extends Controller implements HasMiddleware
         $search = $request->string('search')->toString();
         $filter = $request->string('filter')->toString(); // low | negative | inactive
 
-        $ingredients = Ingredient::query()
-            ->with(['category:id,name', 'baseUnit:id,name,abbreviation', 'purchaseUnit:id,name,abbreviation', 'stockLevel:ingredient_id,quantity'])
-            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%")))
-            ->when($request->integer('category'), fn ($q, $id) => $q->where('ingredient_category_id', $id))
-            ->when($filter === 'inactive', fn ($q) => $q->where('is_active', false), fn ($q) => $q->where('is_active', true))
-            ->when($filter === 'low', fn ($q) => $q->where('reorder_level', '>', 0)
-                ->whereHas('stockLevel', fn ($s) => $s->whereColumn('stock_levels.quantity', '<=', 'ingredients.reorder_level')))
-            ->when($filter === 'negative', fn ($q) => $q->whereHas('stockLevel', fn ($s) => $s->where('quantity', '<', 0)))
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString()
-            ->through(fn (Ingredient $i) => $this->present($i));
+        $sortable = ['name', 'category', 'quantity', 'reorder_level', 'average_cost_cents', 'is_active'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
 
         return Inertia::render('inventory/ingredients/index', [
-            'ingredients' => $ingredients,
+            // Optional: not sent on the first visit. The page asks for it with the "Load ingredients" button.
+            'ingredients' => Inertia::optional(fn () => Ingredient::query()
+                ->with(['category:id,name', 'baseUnit:id,name,abbreviation', 'purchaseUnit:id,name,abbreviation', 'stockLevel:ingredient_id,quantity'])
+                ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%")))
+                ->when($request->integer('category'), fn ($q, $id) => $q->where('ingredient_category_id', $id))
+                ->when($filter === 'inactive', fn ($q) => $q->where('is_active', false), fn ($q) => $q->where('is_active', true))
+                ->when($filter === 'low', fn ($q) => $q->where('reorder_level', '>', 0)
+                    ->whereHas('stockLevel', fn ($s) => $s->whereColumn('stock_levels.quantity', '<=', 'ingredients.reorder_level')))
+                ->when($filter === 'negative', fn ($q) => $q->whereHas('stockLevel', fn ($s) => $s->where('quantity', '<', 0)))
+                ->when($sort === 'category', fn ($q) => $q->orderBy(
+                    DB::table('ingredient_categories')
+                        ->select('name')
+                        ->whereColumn('ingredient_categories.id', 'ingredients.ingredient_category_id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when($sort === 'quantity', fn ($q) => $q->orderBy(
+                    DB::table('stock_levels')
+                        ->select('quantity')
+                        ->whereColumn('stock_levels.ingredient_id', 'ingredients.id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when(
+                    in_array($sort, ['name', 'reorder_level', 'average_cost_cents', 'is_active'], true),
+                    fn ($q) => $q->orderBy($sort, $direction),
+                )
+                ->when($sort !== 'name', fn ($q) => $q->orderBy('name'))
+                ->orderBy('id')
+                ->paginate(20)
+                ->withQueryString()
+                ->through(fn (Ingredient $i) => $this->present($i))
+            ),
             'categories' => IngredientCategory::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'sort_order']),
             'units' => Unit::query()->orderBy('name')->get(['id', 'name', 'abbreviation', 'type']),
-            'filters' => ['search' => $search, 'filter' => $filter, 'category' => $request->integer('category') ?: null],
+            'filters' => [
+                'search' => $search,
+                'filter' => $filter,
+                'category' => $request->integer('category') ?: null,
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 

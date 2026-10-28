@@ -38,7 +38,7 @@ class ZReportService
             $blockers[] = 'A day that has not started cannot be closed.';
         }
 
-        $open = Shift::where('business_date', $businessDate)->where('status', ShiftStatus::Open->value)->with('user:id,name')->get();
+        $open = Shift::whereDate('business_date', '<=', $businessDate)->where('status', ShiftStatus::Open->value)->with('user:id,name')->lockForUpdate()->get();
         if ($open->isNotEmpty()) {
             $names = $open->pluck('user.name')->implode(', ');
             $blockers[] = "Close every shift first. Still open: {$names}.";

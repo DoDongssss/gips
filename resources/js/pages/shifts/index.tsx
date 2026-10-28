@@ -5,9 +5,11 @@ import { Can } from '@/components/can';
 import { CloseShiftDialog } from '@/pages/shifts/close-dialog';
 import { MovementDialog } from '@/pages/shifts/movement-dialog';
 import { ReopenDialog } from '@/components/reopen-dialog';
+import { printShift, ShiftPaper } from '@/components/reports/shift-paper';
 import { XReportButton } from '@/components/reports/x-report-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCan } from '@/hooks/use-can';
 import { formatPeso } from '@/lib/money';
 import OpenShiftDialog from '@/pages/shifts/open-shift-dialog';
@@ -92,6 +94,7 @@ export default function Index({ current, require_shift, can_view_all, history }:
     const [moving, setMoving] = useState(false);
     const [closing, setClosing] = useState(false);
     const [reopening, setReopening] = useState<ShiftRecord | null>(null);
+    const [viewing, setViewing] = useState<ShiftRecord | null>(null);
 
     return (
         <>
@@ -208,7 +211,7 @@ export default function Index({ current, require_shift, can_view_all, history }:
                                         <th className="px-3 py-2 text-right font-medium">Expected</th>
                                         <th className="px-3 py-2 text-right font-medium">Counted</th>
                                         <th className="px-3 py-2 font-medium">Result</th>
-                                        {canReopen && <th className="px-3 py-2" />}
+                                        <th className="px-3 py-2" />
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -225,13 +228,16 @@ export default function Index({ current, require_shift, can_view_all, history }:
                                             <td className="px-3 py-2">
                                                 <VarianceBadge cents={s.variance_cents} />
                                             </td>
-                                            {canReopen && (
-                                                <td className="px-3 py-2 text-right">
-                                                    <Button size="sm" variant="outline" onClick={() => setReopening(s)}>
+                                            <td className="px-3 py-2 text-right whitespace-nowrap">
+                                                <Button size="sm" variant="ghost" onClick={() => setViewing(s)}>
+                                                    View
+                                                </Button>
+                                                {canReopen && (
+                                                    <Button size="sm" variant="outline" className="ml-1" onClick={() => setReopening(s)}>
                                                         Reopen
                                                     </Button>
-                                                </td>
-                                            )}
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -241,11 +247,26 @@ export default function Index({ current, require_shift, can_view_all, history }:
                 </section>
             </div>
 
+            <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Shift report</DialogTitle>
+                    </DialogHeader>
+                    {viewing && <ShiftPaper shift={viewing} />}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setViewing(null)}>
+                            Close
+                        </Button>
+                        <Button onClick={() => viewing && printShift(viewing)}>Print</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <ReopenDialog
                 open={reopening !== null}
                 onOpenChange={(open) => !open && setReopening(null)}
                 title={`Reopen ${reopening?.cashier ?? 'this'}'s shift?`}
-                description="The shift goes back to open and the count is cleared. The cashier counts the drawer again when closing it. This is not possible once the day has a Z report."
+                description="The shift goes back to open and the count is cleared. The cashier counts the drawer again when closing it. It only works while the day is reopened on the Z reports page."
                 url={reopening ? `/shifts/${reopening.id}/reopen` : ''}
                 confirmLabel="Reopen shift"
             />

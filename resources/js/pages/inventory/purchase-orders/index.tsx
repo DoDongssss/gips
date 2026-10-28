@@ -1,27 +1,87 @@
 import { Head, Link, router } from '@inertiajs/react';
+import type { SortingState } from '@tanstack/react-table';
+import { useEffect, useMemo, useState } from 'react';
 
-import { Can } from '@/components/can';
-import { Pager } from '@/components/inventory/pager';
-import { PoStatusBadge } from '@/components/inventory/status-badges';
+import { DataTable } from '@/components/data-table';
+import { Pager } from '@/components/pager';
 import { Button } from '@/components/ui/button';
 import { cleanQuery, poStatusLabels } from '@/lib/inventory';
-import { formatPeso } from '@/lib/money';
-import { create, index, show } from '@/routes/inventory/purchase-orders';
-import { create as receive } from '@/routes/inventory/receipts';
-import type { Paginated } from '@/types/menu';
+import { columnClassNames, getColumns } from '@/pages/inventory/purchase-orders/columns';
+import { create, index } from '@/routes/inventory/purchase-orders';
 import type { PoStatus, PurchaseOrderRow } from '@/types/inventory';
+import type { Paginated } from '@/types/menu';
 
-type Props = {
-    orders: Paginated<PurchaseOrderRow>;
-    statuses: PoStatus[];
-    filters: { status: PoStatus | null; supplier: number | null };
+type Filters = {
+    status: PoStatus | null;
+    supplier: number | null;
+    sort?: string | null;
+    direction?: 'asc' | 'desc' | null;
 };
 
-const formatDate = (value: string | null) => (value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
+type Props = {
+    // Optional on the server: undefined until the person asks for it.
+    orders?: Paginated<PurchaseOrderRow>;
+    statuses: PoStatus[];
+    filters: Filters;
+};
+
+// Partial reloads: only these props are requested, which is also what makes the optional
+// `orders` prop come back.
+const ONLY = ['orders', 'filters'];
 
 export default function PurchaseOrdersIndex({ orders, statuses, filters }: Props) {
-    function setStatus(status: PoStatus | null) {
-        router.get(index.url(), cleanQuery({ status, supplier: filters.supplier }), { preserveState: true, replace: true });
+    const [loading, setLoading] = useState(false);
+
+    // The last page of orders that was loaded. Shown while a refresh is on its way.
+    const [loaded, setLoaded] = useState<Paginated<PurchaseOrderRow> | undefined>(orders);
+    const data = orders ?? loaded;
+
+    // Memoized so TanStack Table doesn't rebuild columns on every render.
+    const columns = useMemo(() => getColumns(), []);
+
+    // Sorting state comes from the server (query string), so it survives reloads and pagination.
+    const sorting = useMemo<SortingState>(
+        () => (filters.sort ? [{ id: filters.sort, desc: filters.direction === 'desc' }] : []),
+        [filters.sort, filters.direction],
+    );
+
+    // A new filter or sort. The page number resets to 1.
+    function visit(next: Partial<Filters>) {
+        router.get(index.url(), cleanQuery({ ...filters, ...next }), {
+            only: ONLY,
+            preserveState: true,
+            replace: true,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }
+
+    // Asks the server for the data of the page we are already on (same filters, sort and page number).
+    function loadOrders() {
+        router.reload({
+            only: ONLY,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }
+
+    // Once data has been loaded, keep it loaded: a full visit drops the optional prop, so fetch it again.
+    useEffect(() => {
+        if (orders) {
+            setLoaded(orders);
+        } else if (loaded) {
+            loadOrders();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [orders]);
+
+    function handleSortingChange(next: SortingState) {
+        const [first] = next;
+
+        visit({
+            sort: first?.id ?? null,
+            direction: first ? (first.desc ? 'desc' : 'asc') : null,
+        });
     }
 
     return (
@@ -32,7 +92,7 @@ export default function PurchaseOrdersIndex({ orders, statuses, filters }: Props
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-xl font-semibold tracking-tight">Purchase orders</h1>
-                        <p className="text-muted-foreground text-sm">{orders.total} total</p>
+                        {data && <p className="text-muted-foreground text-sm">{data.total} total</p>}
                     </div>
                     <Button asChild>
                         <Link href={create.url()}>New purchase order</Link>
@@ -40,74 +100,37 @@ export default function PurchaseOrdersIndex({ orders, statuses, filters }: Props
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant={filters.status === null ? 'default' : 'outline'} onClick={() => setStatus(null)}>
+                    <Button size="sm" variant={filters.status === null ? 'default' : 'outline'} disabled={loading} onClick={() => visit({ status: null })}>
                         All
                     </Button>
                     {statuses.map((status) => (
-                        <Button key={status} size="sm" variant={filters.status === status ? 'default' : 'outline'} onClick={() => setStatus(status)}>
+                        <Button key={status} size="sm" variant={filters.status === status ? 'default' : 'outline'} disabled={loading} onClick={() => visit({ status })}>
                             {poStatusLabels[status]}
                         </Button>
                     ))}
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="text-muted-foreground border-b text-left">
-                            <tr>
-                                <th className="p-3 font-medium">PO</th>
-                                <th className="p-3 font-medium">Supplier</th>
-                                <th className="p-3 font-medium">Status</th>
-                                <th className="p-3 font-medium">Ordered</th>
-                                <th className="p-3 font-medium">Expected</th>
-                                <th className="p-3 text-right font-medium">Items</th>
-                                <th className="p-3 text-right font-medium">Total</th>
-                                <th className="w-44 p-3" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.data.map((order) => (
-                                <tr key={order.id} className="border-b last:border-0">
-                                    <td className="p-3 font-medium">{order.po_number}</td>
-                                    <td className="p-3">{order.supplier.name}</td>
-                                    <td className="p-3">
-                                        <PoStatusBadge status={order.status} />
-                                    </td>
-                                    <td className="text-muted-foreground p-3" suppressHydrationWarning>
-                                        {formatDate(order.ordered_at)}
-                                    </td>
-                                    <td className="text-muted-foreground p-3" suppressHydrationWarning>
-                                        {formatDate(order.expected_at)}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">{order.items_count ?? 0}</td>
-                                    <td className="p-3 text-right tabular-nums">{formatPeso(order.total_cents)}</td>
-                                    <td className="p-3">
-                                        <div className="flex justify-end gap-2">
-                                            {order.can_receive && (
-                                                <Can permission="inventory.receive">
-                                                    <Button size="sm" variant="outline" asChild>
-                                                        <Link href={receive.url({ query: { purchase_order: order.id } })}>Receive</Link>
-                                                    </Button>
-                                                </Can>
-                                            )}
-                                            <Button size="sm" variant="outline" asChild>
-                                                <Link href={show.url(order.id)}>Open</Link>
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {orders.data.length === 0 && (
-                                <tr>
-                                    <td colSpan={8} className="text-muted-foreground p-8 text-center">
-                                        No purchase orders.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    columns={columns}
+                    data={data?.data ?? []}
+                    sorting={sorting}
+                    onSortingChange={handleSortingChange}
+                    columnClassNames={columnClassNames}
+                    emptyContent={
+                        data ? (
+                            'No purchase orders.'
+                        ) : (
+                            <div className="flex flex-col items-center gap-3">
+                                <p className="text-sm">Purchase orders aren&apos;t loaded yet.</p>
+                                <Button onClick={loadOrders} disabled={loading}>
+                                    {loading ? 'Loading…' : 'Load purchase orders'}
+                                </Button>
+                            </div>
+                        )
+                    }
+                />
 
-                <Pager currentPage={orders.current_page} lastPage={orders.last_page} prevUrl={orders.prev_page_url} nextUrl={orders.next_page_url} />
+                {data && <Pager currentPage={data.current_page} lastPage={data.last_page} prevUrl={data.prev_page_url} nextUrl={data.next_page_url} only={ONLY} />}
             </div>
         </>
     );

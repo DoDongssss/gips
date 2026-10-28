@@ -20,6 +20,9 @@ type Props = {
         preview: ReportSummary;
     };
     reports: ZReportRecord[];
+    /** Past days with orders or shifts and no Z report. */
+    pending_days: string[];
+    current_date: string;
 };
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -31,7 +34,7 @@ function Stat({ label, value }: { label: string; value: string }) {
     );
 }
 
-export default function ZReports({ today, reports }: Props) {
+export default function ZReports({ today, reports, pending_days, current_date }: Props) {
     const [confirming, setConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [viewing, setViewing] = useState<ZReportRecord | null>(null);
@@ -68,10 +71,30 @@ export default function ZReports({ today, reports }: Props) {
                     <p className="text-muted-foreground text-sm">The end-of-day close. Once issued, that day&apos;s sales are locked.</p>
                 </div>
 
+                {pending_days.filter((d) => d !== today.business_date).length > 0 || today.business_date !== current_date ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                        <p className="font-medium">Days without a Z report</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {[...new Set([...pending_days, current_date])].sort().map((d) => (
+                                <Button
+                                    key={d}
+                                    size="sm"
+                                    variant={d === today.business_date ? 'default' : 'outline'}
+                                    onClick={() => router.get(index.url(), { date: d }, { preserveScroll: true, preserveState: true })}
+                                >
+                                    {d === current_date ? `Today (${d})` : d}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                ) : null}
+
                 <section className="space-y-4 rounded-lg border p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <h2 className="font-semibold">Today · {today.business_date}</h2>
+                            <h2 className="font-semibold">
+                                {today.business_date === current_date ? 'Today' : 'Business day'} · {today.business_date}
+                            </h2>
                             <p className="text-muted-foreground text-sm">A live preview of what the Z report will contain.</p>
                         </div>
 
