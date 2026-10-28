@@ -1,23 +1,24 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Services\Devices;
 
-use App\Http\Controllers\Controller;
 use App\Models\Device;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
 
-/** Paired devices (kiosks, kitchen screens) that have gone quiet right now. Powers the bell in the header. */
-class DeviceAlertController extends Controller
+/** Which paired devices (kiosks, kitchen screens) have gone quiet. One rule for the bell, the push and the dashboard. */
+class DeviceAlerts
 {
-    public function __invoke(): JsonResponse
+    /** @return Collection<int, array{id:int,name:string,type:string,last_seen_at:?string,minutes:int}> */
+    public function offline(): Collection
     {
         $cutoff = now()->subMinutes(config('kiosk.offline_after_minutes'));
 
-        $offline = Device::query()
+        return Device::query()
             ->where('is_active', true)
             ->whereNotNull('paired_at')
             ->with('settings')
             ->get()
+            // Only kiosks have an "out of service" switch; other device types always count.
             ->filter(fn (Device $d) => ! ($d->type === Device::KIOSK && $d->settings?->is_out_of_service)
                 && ($d->last_seen_at ?? $d->paired_at)->lessThan($cutoff))
             ->map(fn (Device $d) => [
@@ -28,7 +29,5 @@ class DeviceAlertController extends Controller
                 'minutes' => (int) ($d->last_seen_at ?? $d->paired_at)->diffInMinutes(now()),
             ])
             ->values();
-
-        return response()->json(['data' => ['count' => $offline->count(), 'items' => $offline]]);
     }
 }

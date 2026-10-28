@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AlertsController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\Settings\PrinterController;
 use App\Http\Controllers\Settings\ProfileController;

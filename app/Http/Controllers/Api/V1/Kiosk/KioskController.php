@@ -27,10 +27,10 @@ class KioskController extends Controller
     }
 
     /** Settings and the out-of-service flag. The kiosk polls this about every 15 seconds. */
-    public function status(Request $request): JsonResponse
-    {
-        return response()->json(['data' => $this->state($request->user())]);
-    }
+    // public function status(Request $request): JsonResponse
+    // {
+    //     return response()->json(['data' => $this->state($request->user())]);
+    // }
 
     /** Every 30 seconds. Records the ping, keeps "last seen" fresh and returns the same state as status. */
     public function heartbeat(Request $request): JsonResponse

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\Alerts\AlertWatcher;
 use App\Services\PrinterStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ class PrinterStatusController extends Controller
     public function __construct(private PrinterStatusService $status) {}
 
     /** A register tells the server whether its printer works. Called on every change and once a minute. */
-    public function report(Request $request): JsonResponse
+    public function report(Request $request, AlertWatcher $watcher): JsonResponse
     {
         $data = $request->validate([
             'online' => ['required', 'boolean'],
@@ -22,14 +23,23 @@ class PrinterStatusController extends Controller
 
         $this->status->report($request->user(), (bool) $data['online'], $data['message'] ?? null, $data['connection'] ?? null);
 
+        // Tell the managers' headers right away when the set of broken printers changed. A Pusher failure must not fail the register.
+        defer(function () use ($watcher) {
+            try {
+                $watcher->checkPrinters();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
         return response()->json(['data' => ['ok' => true]]);
     }
 
     /** Registers whose printer is not working right now. Powers the bell in the header. */
-    public function alerts(): JsonResponse
-    {
-        $items = $this->status->problems();
+    // public function alerts(): JsonResponse
+    // {
+    //     $items = $this->status->problems();
 
-        return response()->json(['data' => ['count' => count($items), 'items' => $items]]);
-    }
+    //     return response()->json(['data' => ['count' => count($items), 'items' => $items]]);
+    // }
 }

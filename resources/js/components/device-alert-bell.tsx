@@ -1,14 +1,11 @@
 import { Link } from '@inertiajs/react';
-import { useQuery } from '@tanstack/react-query';
 import { Tablet } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAlerts } from '@/hooks/use-alerts';
 import { useCan } from '@/hooks/use-can';
-import { posGet } from '@/lib/pos-http';
 import { index } from '@/routes/devices';
-
-type Alerts = { count: number; items: { id: number; name: string; type: string; last_seen_at: string | null; minutes: number }[] };
 
 const TYPE_LABEL: Record<string, string> = { kiosk: 'Kiosk', kds: 'Kitchen screen' };
 
@@ -16,13 +13,7 @@ const TYPE_LABEL: Record<string, string> = { kiosk: 'Kiosk', kds: 'Kitchen scree
 export function DeviceAlertBell() {
     const { can } = useCan();
     const allowed = can('device.manage');
-
-    const { data } = useQuery({
-        queryKey: ['device', 'alerts'],
-        queryFn: async () => (await posGet<{ data: Alerts }>('/api/v1/device/alerts')).data,
-        enabled: allowed,
-        refetchInterval: 30_000,
-    });
+    const { data } = useAlerts((alerts) => alerts.devices);
 
     if (!allowed) {
         return null;

@@ -23,5 +23,5 @@ Route::middleware('auth:sanctum')
     });
 
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::get('device/alerts', DeviceAlertController::class)->middleware('permission:device.manage')->name('device.alerts');
+    // Route::get('device/alerts', DeviceAlertController::class)->middleware('permission:device.manage')->name('device.alerts');
 });

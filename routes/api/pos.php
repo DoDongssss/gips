@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AlertsController;
 use App\Http\Controllers\Api\V1\PosConfigController;
 use App\Http\Controllers\Api\V1\PosSessionController;
 use App\Http\Controllers\Api\V1\PrinterStatusController;
@@ -15,5 +16,8 @@ Route::prefix('pos')->name('pos.')->group(function () {
 
     // Printer health
     Route::post('printer-status', [PrinterStatusController::class, 'report'])->middleware(['permission:order.create', 'throttle:30,1'])->name('printer-status');
-    Route::get('printer-alerts', [PrinterStatusController::class, 'alerts'])->middleware('permission:device.manage')->name('printer-alerts');
+
+    Route::get('alerts', AlertsController::class)
+            ->middleware('permission:device.manage|inventory.view')
+            ->name('pos.alerts');
 });

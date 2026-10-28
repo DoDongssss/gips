@@ -1,25 +1,16 @@
 import { Link } from '@inertiajs/react';
-import { useQuery } from '@tanstack/react-query';
 import { Printer } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAlerts } from '@/hooks/use-alerts';
 import { useCan } from '@/hooks/use-can';
-import { posGet } from '@/lib/pos-http';
-
-type Alerts = { count: number; items: { id: number; name: string; message: string | null; connection: string | null; minutes: number }[] };
 
 /** Header icon: red count when a register's printer stopped working. Renders nothing without device.manage. */
 export function PrinterAlertBell() {
     const { can } = useCan();
     const allowed = can('device.manage');
-
-    const { data } = useQuery({
-        queryKey: ['printer', 'alerts'],
-        queryFn: async () => (await posGet<{ data: Alerts }>('/api/v1/pos/printer-alerts')).data,
-        enabled: allowed,
-        refetchInterval: 30_000,
-    });
+    const { data } = useAlerts((alerts) => alerts.printers);
 
     if (!allowed) return null;
 

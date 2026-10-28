@@ -35,7 +35,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('ingredients', IngredientController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::post('ingredients/{ingredient}/adjust', [StockAdjustmentController::class, 'store'])->name('ingredients.adjust');
         Route::get('movements', [StockMovementController::class, 'index'])->name('movements.index');
-        Route::get('low-stock', LowStockController::class)->name('low-stock');
+        // Route::get('low-stock', LowStockController::class)->name('low-stock');
 
         // ── Waste & stock counts
         Route::resource('waste', WasteController::class)->only(['index', 'store']);

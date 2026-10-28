@@ -6,5 +6,8 @@ use Illuminate\Support\Facades\Broadcast;
 
 $guards = ['guards' => ['web', 'sanctum']];
 
-Broadcast::channel('kds.station.{station}', fn ($actor, Station $station) => ChannelAccess::station($actor, $station), $guards);
-Broadcast::channel('pos.orders', fn ($actor) => ChannelAccess::orders($actor), $guards);
+// Broadcast::channel('kds.station.{station}', fn ($actor, Station $station) => ChannelAccess::station($actor, $station), $guards);
+// Broadcast::channel('pos.orders', fn ($actor) => ChannelAccess::orders($actor), $guards);
+
+Broadcast::channel('device-alerts', fn ($user) => $user->can('device.manage'));
+Broadcast::channel('stock-alerts', fn ($user) => $user->can('inventory.view'));

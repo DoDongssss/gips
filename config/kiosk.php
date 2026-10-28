@@ -5,7 +5,7 @@ return [
     'unpaid_expiry_minutes' => (int) env('KIOSK_UNPAID_EXPIRY_MINUTES', 30),
 
     // A kiosk that has not pinged for this long raises a notification.
-    'offline_after_minutes' => (int) env('KIOSK_OFFLINE_AFTER_MINUTES', 2),
+    'offline_after_minutes' => (int) env('KIOSK_OFFLINE_AFTER_MINUTES', 1),
 
     // An "active" customer session this old is closed as timed out.
     'stale_session_minutes' => (int) env('KIOSK_STALE_SESSION_MINUTES', 15),
