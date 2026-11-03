@@ -39,7 +39,7 @@ import { ShiftChip } from '@/pages/pos/shift-chip';
 import { dashboard } from '@/routes';
 import { usePosUi } from '@/stores/pos-ui-store';
 
-const appName = import.meta.env.VITE_APP_NAME || 'GIPS';
+const appName = import.meta.env.VITE_APP_NAME || 'KJIPS';
 
 function useNow(intervalMs = 15_000): Date {
     const [now, setNow] = useState(() => new Date());

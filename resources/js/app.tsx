@@ -9,7 +9,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 import KitchenLayout from './layouts/kitchen-layout';
 import PosLayout from './layouts/pos-layout';
 
-const appName = import.meta.env.VITE_APP_NAME || 'GIPS';
+const appName = import.meta.env.VITE_APP_NAME || 'KJIPS';
 
 // Created once at module level so the cache survives page navigation.
 const queryClient = new QueryClient({
