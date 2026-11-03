@@ -1,32 +1,53 @@
+# Laravel / PHPUnit
 /.phpunit.cache
+/.phpunit.result.cache
 /bootstrap/ssr
-/node_modules
-/public/build
-/public/fonts-manifest.dev.json
-/public/hot
-/public/storage
 /storage/*.key
 /storage/pail
+
+# Dependencies
+/node_modules
+/vendor
+
+# Laravel public runtime files
+/public/hot
+/public/storage
+/public/fonts-manifest.dev.json
+
+# Keep public/build tracked because the server cannot run npm
+# Do not ignore /public/build
+
+# Generated Laravel / Inertia files
 /resources/js/actions
 /resources/js/routes
 /resources/js/wayfinder
-/vendor
-.DS_Store
+
+# Environment and secrets
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
+/auth.json
+
+# Logs
 npm-debug.log
 yarn-error.log
-/auth.json
+
+# Operating system files
+.DS_Store
+
+# Laravel development tools
+.phpactor.json
+Homestead.json
+Homestead.yaml
+
+# IDE settings
 /.fleet
 /.idea
 /.nova
 /.vscode
 /.zed
+
+# AI/editor tools
 /.agents
 /.amp
 /.claude
