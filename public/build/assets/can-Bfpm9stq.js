@@ -1,0 +1,1 @@
+import{n as e}from"./compiler-runtime-D_vZfn79.js";import{t}from"./use-can-rFEJfyF9.js";var n=e();function r({permission:e,any:r,fallback:i=null,children:a}){let{can:o,canAny:s}=t(),c=e?o(e):r?s(r):!1;return(0,n.jsx)(n.Fragment,{children:c?a:i})}export{r as t};
