@@ -34,11 +34,16 @@ const recall = <T>(key: string): T | null => {
 export function isSupported(kind: PrinterConnection): boolean {
     if (typeof navigator === 'undefined') return false;
 
-    return kind === 'browser' ? true : kind === 'usb' ? 'usb' in navigator : kind === 'bluetooth' ? 'bluetooth' in navigator : 'serial' in navigator;
+    if (kind === 'browser') return true;
+    if (kind === 'rawbt') return /android/i.test(navigator.userAgent);
+
+    return kind === 'usb' ? 'usb' in navigator : kind === 'bluetooth' ? 'bluetooth' in navigator : 'serial' in navigator;
 }
 
 export const unsupportedMessage = (kind: PrinterConnection): string =>
-    `This browser cannot use a ${kind === 'usb' ? 'USB' : kind === 'bluetooth' ? 'Bluetooth' : 'serial'} printer directly. Use Chrome or Edge, or choose Browser print.`;
+    kind === 'rawbt'
+        ? 'RawBT only works on an Android tablet or phone. Choose another connection on this device.'
+        : `This browser cannot use a ${kind === 'usb' ? 'USB' : kind === 'bluetooth' ? 'Bluetooth' : 'serial'} printer directly. Use Chrome or Edge, or choose Browser print.`;
 
 // ---------------------------------------------------------------- USB
 class UsbTransport implements Transport {
@@ -278,6 +283,39 @@ class SerialTransport implements Transport {
 
 // ---------------------------------------------------------------- Browser print
 /** Prints through the browser's print dialog to whatever printer the computer or tablet has installed. It cannot see the printer's state. */
+// ---------------------------------------------------------------- RawBT (Android helper app)
+/** Hands the ESC/POS bytes to the RawBT app, which prints them in the background. RawBT must be installed and its printer set up. */
+class RawbtTransport implements Transport {
+    readonly kind = 'rawbt' as const;
+
+    async connect() {
+        return 'RawBT';
+    }
+
+    async restore() {
+        return 'RawBT';
+    }
+
+    async print(job: PrintJob) {
+        let binary = '';
+        for (let i = 0; i < job.bytes.length; i += 8192) {
+            binary += String.fromCharCode(...job.bytes.subarray(i, i + 8192));
+        }
+
+        window.location.href = `rawbt:base64,${btoa(binary)}`;
+        // Jobs sent right after each other (copies, the cash drawer) would replace one another.
+        await sleep(900);
+    }
+
+    async disconnect() {
+        // nothing to release
+    }
+
+    onLost() {
+        // RawBT cannot tell us if the printer is on
+    }
+}
+
 class BrowserTransport implements Transport {
     readonly kind = 'browser' as const;
 
@@ -327,6 +365,8 @@ export function createTransport(kind: PrinterConnection, options: { baudRate: nu
             return new BluetoothTransport();
         case 'serial':
             return new SerialTransport(options.baudRate);
+        case 'rawbt':
+            return new RawbtTransport();
         default:
             return new BrowserTransport(options.widthMm);
     }

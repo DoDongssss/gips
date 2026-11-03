@@ -1,4 +1,4 @@
-export type PrinterConnection = 'browser' | 'usb' | 'bluetooth' | 'serial';
+export type PrinterConnection = 'browser' | 'usb' | 'bluetooth' | 'serial' | 'rawbt';
 
 export type PrinterSettings = {
     printer_connection: PrinterConnection;

@@ -35,8 +35,16 @@ export function configure(settings: PrinterSettings): void {
     signature = next;
     transport = createTransport(settings.printer_connection, { baudRate: settings.printer_serial_baud, widthMm: settings.printer_paper_width });
     transport.onLost(() => set({ status: 'lost', error: 'The printer was disconnected.' }));
-    // Browser print has nothing to connect: it is always ready.
-    set(settings.printer_connection === 'browser' ? { status: 'ready', label: 'Browser print', error: null } : { status: 'idle', label: null, error: null });
+    // Browser print and RawBT have nothing to connect: always ready.
+    set(
+        settings.printer_connection === 'browser'
+            ? { status: 'ready', label: 'Browser print', error: null }
+            : settings.printer_connection === 'rawbt'
+              ? isSupported('rawbt')
+                  ? { status: 'ready', label: 'RawBT', error: null }
+                  : { status: 'error', label: null, error: unsupportedMessage('rawbt') }
+              : { status: 'idle', label: null, error: null },
+    );
 }
 
 export async function connect(): Promise<void> {

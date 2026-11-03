@@ -12,10 +12,11 @@ return [
         'usb' => 'USB cable (direct)',
         'bluetooth' => 'Bluetooth (printers with Bluetooth LE)',
         'serial' => 'Serial port (USB-serial, or Bluetooth paired as a COM port)',
+        'rawbt' => 'RawBT app (Android tablet, silent printing)',
     ],
 
     'fields' => [
-        'printer_connection' => ['type' => 'string', 'default' => 'browser', 'rules' => ['required', 'in:browser,usb,bluetooth,serial']],
+        'printer_connection' => ['type' => 'string', 'default' => 'browser', 'rules' => ['required', 'in:browser,usb,bluetooth,serial,rawbt']],
         'printer_name' => ['type' => 'string', 'default' => 'Receipt printer', 'rules' => ['nullable', 'string', 'max:60']],
         'printer_paper_width' => ['type' => 'int', 'default' => 80, 'rules' => ['required', 'integer', 'in:58,80']],
         'printer_copies' => ['type' => 'int', 'default' => 1, 'rules' => ['required', 'integer', 'between:1,3']],
