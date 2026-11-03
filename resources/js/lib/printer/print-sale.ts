@@ -21,7 +21,7 @@ export const printerSettingsQuery = {
 
 type Queued = { id: string; orderNumber: string; content: ReceiptContent; openDrawer: boolean };
 
-const QUEUE_KEY = 'gips.print-queue';
+const QUEUE_KEY = 'kjips.print-queue';
 const queueListeners = new Set<() => void>();
 let queue: Queued[] = readQueue();
 
