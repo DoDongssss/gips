@@ -5,6 +5,7 @@ import { peso } from '@/kiosk/format';
 import { neededFrom, unitCents } from '@/kiosk/pricing';
 import { BigButton, SectionHeading, Stepper, Thumb, successText } from '@/kiosk/screens/ui';
 import type { Modifier, ModifierGroup, Product, Variant } from '@/kiosk/types';
+import { useDragScroll } from '@/kiosk/use-drag-scroll';
 import { cn } from '@/lib/utils';
 
 type Props = { product: Product | null; onClose: () => void; onAdd: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number) => void };
@@ -19,6 +20,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
     const [variantId, setVariantId] = useState<number | null>(null);
     const [picked, setPicked] = useState<Record<number, number[]>>({});
     const [quantity, setQuantity] = useState(1);
+    const dragScroll = useDragScroll<HTMLDivElement>();
 
     useEffect(() => {
         if (!product) return;
@@ -87,7 +89,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
                         </button>
                     </div>
 
-                    <div className="flex-1 space-y-5 overflow-y-auto p-4 landscape:p-5">
+                    <div ref={dragScroll} className="flex-1 touch-pan-y space-y-5 overflow-y-auto overscroll-contain p-4 landscape:p-5">
                         {product.variants.length > 0 && (
                             <section>
                                 <SectionHeading title="Size" />
