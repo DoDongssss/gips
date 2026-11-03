@@ -1,47 +1,59 @@
+import { LayoutGrid } from 'lucide-react';
+
 import { Thumb, tintAt } from '@/kiosk/screens/ui';
+import { useDragScroll } from '@/kiosk/use-drag-scroll';
 import type { Category } from '@/kiosk/types';
 import { cn } from '@/lib/utils';
 
 type Props = {
     categories: Category[];
-    /** null while a search is showing results from every category. */
+    /** null means "All". */
     selectedId: number | null;
-    onSelect: (id: number) => void;
+    onSelect: (id: number | null) => void;
 };
 
-/** Vertical list on a landscape tablet, a scrolling row on a portrait one. */
+const availableIn = (category: Category): number => category.products.filter((p) => p.is_available).length;
+
+/** Categories down the left side, each with a small picture and how many items it holds. */
 export default function CategoryRail({ categories, selectedId, onSelect }: Props) {
-    const DEFAULT_PRODUCT_IMAGE = '/storage/menu/products/default_product.jpg';
+    const dragScroll = useDragScroll<HTMLElement>();
+    const total = categories.reduce((sum, c) => sum + availableIn(c), 0);
 
     return (
-        <nav
-            aria-label="Categories"
-            className="no-scrollbar flex shrink-0 gap-3 overflow-x-auto px-6 py-3 portrait:px-8 landscape:w-72 landscape:flex-col landscape:overflow-x-visible landscape:overflow-y-auto landscape:px-0 landscape:py-0 landscape:pr-3 landscape:pb-6 landscape:pl-8"
-        >
+        <nav ref={dragScroll} aria-label="Categories" className="no-scrollbar bg-card w-48 shrink-0 touch-pan-y space-y-1.5 overflow-y-auto overscroll-contain border-r p-2 landscape:w-60">
+            <RailItem selected={selectedId === null} onClick={() => onSelect(null)} name="All" count={total} thumb={<span className={cn('flex size-14 shrink-0 items-center justify-center rounded-md', selectedId === null ? 'bg-primary-foreground/20' : 'bg-muted')}><LayoutGrid className="size-6" /></span>} />
+
             {categories.map((category, i) => {
-                const selected = category.id === selectedId;
-                const cover = category.products.find((p) => p.is_available && p.image_url)?.image_url ?? DEFAULT_PRODUCT_IMAGE;
-                const available = category.products.filter((p) => p.is_available).length;
+                const cover = category.products.find((p) => p.is_available && p.image_url)?.image_url ?? null;
 
                 return (
-                    <button
+                    <RailItem
                         key={category.id}
-                        type="button"
+                        selected={selectedId === category.id}
                         onClick={() => onSelect(category.id)}
-                        aria-pressed={selected}
-                        className={cn(
-                            'flex shrink-0 items-center gap-3 rounded-2xl p-2.5 pr-6 text-left shadow-sm transition-all duration-150 active:scale-95 portrait:pr-8 landscape:pr-4',
-                            selected ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card',
-                        )}
-                    >
-                        <Thumb src={cover} name={category.name} tint={tintAt(i)} className="size-14 shrink-0 rounded-xl text-2xl portrait:size-16" />
-                        <span className="min-w-0 flex-1">
-                            <span className="block text-xl leading-tight font-semibold whitespace-nowrap landscape:whitespace-normal">{category.name}</span>
-                            <span className={cn('block text-sm', selected ? 'text-primary-foreground/70' : 'text-muted-foreground')}>{available} items</span>
-                        </span>
-                    </button>
+                        name={category.name}
+                        count={availableIn(category)}
+                        thumb={<Thumb src={cover} name={category.name} tint={tintAt(i)} fallback="letter" className="size-14 shrink-0 rounded-md text-2xl" />}
+                    />
                 );
             })}
         </nav>
+    );
+}
+
+function RailItem({ selected, onClick, name, count, thumb }: { selected: boolean; onClick: () => void; name: string; count: number; thumb: React.ReactNode }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={selected}
+            className={cn('flex w-full items-center gap-3 rounded-lg p-2 pr-2.5 text-left transition-all duration-150 active:scale-[0.98]', selected ? 'bg-primary text-primary-foreground shadow-sm' : 'active:bg-muted')}
+        >
+            {thumb}
+            <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 block text-lg leading-tight font-semibold">{name}</span>
+                <span className={cn('block text-sm tabular-nums', selected ? 'text-primary-foreground/70' : 'text-muted-foreground')}>{count} items</span>
+            </span>
+        </button>
     );
 }

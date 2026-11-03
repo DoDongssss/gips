@@ -4,6 +4,7 @@ import { peso, typeLabel } from '@/kiosk/format';
 import { cartCents, cartCount, lineCents, unitCents } from '@/kiosk/pricing';
 import { BigButton, CompactStepper, Thumb, warningText } from '@/kiosk/screens/ui';
 import { useKiosk } from '@/kiosk/store';
+import { useDragScroll } from '@/kiosk/use-drag-scroll';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,6 +18,7 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
     const placing = useKiosk((s) => s.placing);
     const { setQuantity, setSeniorPwd, checkout } = useKiosk.getState();
 
+    const dragScroll = useDragScroll<HTMLDivElement>();
     const count = cartCount(lines);
 
     return (
@@ -39,7 +41,7 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
                 )}
             </div>
 
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+            <div ref={dragScroll} className="min-h-0 flex-1 touch-pan-y space-y-2 overflow-y-auto overscroll-contain p-3">
                 {lines.length === 0 && (
                     <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 py-8 text-center">
                         <span className="bg-secondary text-foreground flex size-20 items-center justify-center rounded-xl">

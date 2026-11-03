@@ -94,11 +94,11 @@ export function Pill({ children, icon }: { children: ReactNode; icon?: ReactNode
 export function SectionHeading({ title, badge }: { title: string; badge?: ReactNode }) {
     return (
         <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
-                <span aria-hidden className="bg-primary h-5 w-1 rounded-sm" />
-                {title}
+            <h3 className="flex min-w-0 items-center gap-2.5 text-xl font-semibold tracking-tight">
+                <span aria-hidden className="bg-primary h-5 w-1 shrink-0 rounded-sm" />
+                <span className="min-w-0 leading-tight">{title}</span>
             </h3>
-            {badge}
+            {badge && <span className="shrink-0">{badge}</span>}
         </div>
     );
 }
@@ -106,13 +106,15 @@ export function SectionHeading({ title, badge }: { title: string; badge?: ReactN
 /**
  * A product picture. Falls back to the default product image, and to a soft tile with the first letter
  * if that is missing too, so a broken image never shows.
+ * Pass fallback="letter" where the default photo would just repeat (category thumbnails).
  */
-export function Thumb({ src, name, className, tint }: { src: string | null; name: string; className?: string; tint?: string }) {
-    const [stage, setStage] = useState<'src' | 'default' | 'letter'>(src ? 'src' : 'default');
+export function Thumb({ src, name, className, tint, fallback = 'image' }: { src: string | null; name: string; className?: string; tint?: string; fallback?: 'image' | 'letter' }) {
+    const start = src ? 'src' : fallback === 'letter' ? 'letter' : 'default';
+    const [stage, setStage] = useState<'src' | 'default' | 'letter'>(start);
 
     useEffect(() => {
-        setStage(src ? 'src' : 'default');
-    }, [src]);
+        setStage(start);
+    }, [start, src]);
 
     if (stage === 'letter') {
         return (
@@ -127,7 +129,7 @@ export function Thumb({ src, name, className, tint }: { src: string | null; name
             src={stage === 'src' && src ? src : DEFAULT_PRODUCT_IMAGE}
             alt=""
             draggable={false}
-            onError={() => setStage((current) => (current === 'src' ? 'default' : 'letter'))}
+            onError={() => setStage((current) => (current === 'src' && fallback === 'image' ? 'default' : 'letter'))}
             className={cn('object-cover', className)}
         />
     );
