@@ -1,5 +1,8 @@
 packages:
     - '.'
 
+minimumReleaseAgeExclude:
+    - laravel-echo@2.6.3
+
 publicHoistPattern:
     - '@inertiajs/core'
