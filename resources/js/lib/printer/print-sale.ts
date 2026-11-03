@@ -1,7 +1,10 @@
 import { toast } from 'sonner';
 import { useSyncExternalStore } from 'react';
 
-import { print, usePrinter } from '@/lib/printer/printer';
+import { useEffect } from 'react';
+
+import { effectiveSettings } from '@/lib/printer/device-choice';
+import { configure, print, restore, usePrinter } from '@/lib/printer/printer';
 import { drawerPulse } from '@/lib/printer/receipt';
 import { saleReceipt } from '@/lib/printer/sale-receipt';
 import { posGet, posPost } from '@/lib/pos-http';
@@ -21,7 +24,7 @@ export const printerSettingsQuery = {
 
 type Queued = { id: string; orderNumber: string; content: ReceiptContent; openDrawer: boolean };
 
-const QUEUE_KEY = 'kjips.print-queue';
+const QUEUE_KEY = 'gips.print-queue';
 const queueListeners = new Set<() => void>();
 let queue: Queued[] = readQueue();
 
@@ -71,7 +74,12 @@ async function loadOrder(orderId: number, known?: unknown): Promise<OrderDetail>
 
 const saleContent = (order: OrderDetail): ReceiptContent | null => order.receipts?.find((r) => r.type === 'sale')?.content ?? null;
 
-async function printContent(content: ReceiptContent, settings: PrinterSettings, options: { reprint?: boolean; drawer?: boolean }) {
+async function printContent(content: ReceiptContent, storeSettings: PrinterSettings, options: { reprint?: boolean; drawer?: boolean }) {
+    // This device may print differently from the store setting (the tablet through RawBT, a PC through USB).
+    const settings = effectiveSettings(storeSettings);
+    configure(settings);
+    await restore();
+
     await print(saleReceipt(content, settings, { reprint: options.reprint }), settings.printer_copies);
 
     // The drawer opens after the receipt so a paper jam does not leave it open with nothing printed.
@@ -147,11 +155,19 @@ export const dropQueued = () => writeQueue([]);
 
 /* ---------------- telling the server ---------------- */
 
-/** Is this register's printer usable? Browser print is always "yes": it cannot tell otherwise. */
-export function useRegisterPrinterHealth(settings: PrinterSettings | undefined): { online: boolean; message: string | null } {
+/** Is this register's printer usable? Browser print and RawBT are always "yes": they cannot tell otherwise. */
+export function useRegisterPrinterHealth(storeSettings: PrinterSettings | undefined): { online: boolean; message: string | null } {
     const printer = usePrinter();
+    const settings = storeSettings ? effectiveSettings(storeSettings) : undefined;
 
-    if (!settings || settings.printer_connection === 'browser') {
+    useEffect(() => {
+        if (!settings) return;
+        configure(settings);
+        void restore();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings?.printer_connection, settings?.printer_serial_baud, settings?.printer_paper_width]);
+
+    if (!settings || settings.printer_connection === 'browser' || (settings.printer_connection === 'rawbt' && printer.status !== 'error')) {
         return { online: true, message: null };
     }
 

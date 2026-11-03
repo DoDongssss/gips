@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { effectiveSettings, getDeviceConnection, setDeviceConnection } from '@/lib/printer/device-choice';
 import { configure, connect, disconnect, print, restore, usePrinter } from '@/lib/printer/printer';
 import { drawerPulse, testReceipt } from '@/lib/printer/receipt';
 import { update } from '@/routes/printer';
@@ -19,6 +20,7 @@ const HELP: Record<PrinterConnection, string> = {
     browser: 'Prints through the normal print window to any printer installed on this computer or tablet. The app cannot tell if the paper came out, and it cannot open the cash drawer.',
     usb: 'Chrome or Edge talk to the printer directly over the cable. On Windows this only works when the printer uses a generic (WinUSB) driver; if it does not, choose Bluetooth or Browser print.',
     bluetooth: 'Only printers with Bluetooth LE work (many cheap 58 mm printers do). Pair the printer in the device\'s Bluetooth settings first if it asks. You tap Connect once per session.',
+    rawbt: 'For an Android tablet. The free RawBT app prints in the background, with no print window. Install RawBT and set up the printer inside it first (print its test page). The cash drawer works. The app cannot tell if the paper came out.',
     serial: 'For a USB-to-serial printer, or a Bluetooth printer that Windows pairs as a COM port. Pick the port when you press Connect.',
 };
 
@@ -26,16 +28,27 @@ export default function PrinterPage({ settings, connections, business }: Props) 
     const form = useForm<PrinterSettings>(settings);
     const printer = usePrinter();
     const [message, setMessage] = useState<string | null>(null);
+    // What this device uses instead of the store setting (null = follow the store).
+    const [deviceChoice, setDeviceChoice] = useState<PrinterConnection | null>(null);
+    useEffect(() => setDeviceChoice(getDeviceConnection()), []);
 
-    // The browser connection follows the SAVED settings.
+    // This browser follows the SAVED settings, unless this device has its own choice.
+    const mine = effectiveSettings(settings);
     useEffect(() => {
         form.setData(settings);
-        configure(settings);
+        configure(mine);
         void restore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settings]);
+    }, [settings, deviceChoice]);
 
-    const direct = settings.printer_connection !== 'browser';
+    const direct = mine.printer_connection !== 'browser' && mine.printer_connection !== 'rawbt';
+
+    function chooseDevice(value: string) {
+        const next = value === 'store' ? null : (value as PrinterConnection);
+        setDeviceConnection(next);
+        setDeviceChoice(next);
+        setMessage(null);
+    }
     const dirty = JSON.stringify(form.data) !== JSON.stringify(settings);
 
     function save(event: FormEvent) {
@@ -56,7 +69,7 @@ export default function PrinterPage({ settings, connections, business }: Props) 
 
     const badge =
         printer.status === 'ready' ? (
-            <Badge className="bg-emerald-600 text-white">{direct ? `Connected: ${printer.label}` : 'Ready'}</Badge>
+            <Badge className="bg-emerald-600 text-white">{direct ? `Connected: ${printer.label}` : mine.printer_connection === 'rawbt' ? 'RawBT ready' : 'Ready'}</Badge>
         ) : printer.status === 'connecting' ? (
             <Badge variant="secondary">Connecting…</Badge>
         ) : printer.status === 'lost' ? (
@@ -190,8 +203,30 @@ export default function PrinterPage({ settings, connections, business }: Props) 
                         <p className="text-muted-foreground text-sm">
                             {direct
                                 ? 'The permission to use the printer belongs to this browser, so every register connects once. Connect and test it here.'
-                                : 'Browser print needs no connection. Press Test print to check the printer and paper size.'}
+                                : mine.printer_connection === 'rawbt'
+                                  ? 'RawBT needs no connection here. Press Test print: the receipt is handed to the RawBT app, which prints it.'
+                                  : 'Browser print needs no connection. Press Test print to check the printer and paper size.'}
                         </p>
+
+                        <div className="space-y-1">
+                            <label htmlFor="device-connection" className="text-sm font-medium">
+                                This device prints with
+                            </label>
+                            <Select value={deviceChoice ?? 'store'} onValueChange={chooseDevice}>
+                                <SelectTrigger id="device-connection">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="store">Same as the store setting</SelectItem>
+                                    {Object.entries(connections).map(([value, label]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-muted-foreground text-xs">Only for this browser. Set the tablet to RawBT here and leave the store setting for the computers.</p>
+                        </div>
                         {dirty && <p className="bg-muted rounded-md p-3 text-sm">You changed the settings. Save them first, then connect or test.</p>}
                         {printer.error && <p className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">{printer.error}</p>}
                         {message && <p className="bg-muted rounded-md p-3 text-sm">{message}</p>}
@@ -207,11 +242,11 @@ export default function PrinterPage({ settings, connections, business }: Props) 
                                     <Unplug className="size-4" /> Disconnect
                                 </Button>
                             )}
-                            <Button type="button" variant="outline" disabled={dirty || printer.status !== 'ready'} onClick={() => void run(() => print(testReceipt(settings, business), settings.printer_copies), 'Test sent. Check the paper.')}>
+                            <Button type="button" variant="outline" disabled={dirty || printer.status !== 'ready'} onClick={() => void run(() => print(testReceipt(mine, business), mine.printer_copies), 'Test sent. Check the paper.')}>
                                 <PrinterIcon className="size-4" /> Test print
                             </Button>
-                            {direct && (
-                                <Button type="button" variant="outline" disabled={dirty || printer.status !== 'ready'} onClick={() => void run(() => print(drawerPulse(settings)), 'Drawer signal sent.')}>
+                            {mine.printer_connection !== 'browser' && (
+                                <Button type="button" variant="outline" disabled={dirty || printer.status !== 'ready'} onClick={() => void run(() => print(drawerPulse(mine)), 'Drawer signal sent.')}>
                                     Open cash drawer
                                 </Button>
                             )}
