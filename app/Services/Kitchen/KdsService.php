@@ -77,7 +77,8 @@ class KdsService
                 ->values();
         });
 
-        $tickets->each(fn (KdsTicket $ticket) => KdsTicketUpdated::publish($ticket, 'created'));
+        // One push for the whole order, however many stations it split into.
+        KdsTicketUpdated::publishMany($tickets, 'created');
 
         return $tickets;
     }
@@ -197,8 +198,9 @@ class KdsService
 
         foreach ($tickets as $ticket) {
             $ticket->update(['status' => KdsTicketStatus::Cancelled->value]);
-            KdsTicketUpdated::publish($ticket, 'cancelled');
         }
+
+        KdsTicketUpdated::publishMany($tickets, 'cancelled');
     }
 
     private function finish(KdsTicket $ticket, User|Device $actor): void

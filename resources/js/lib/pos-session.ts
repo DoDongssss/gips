@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { posPollMs } from '@/lib/pos-live';
 import { posGet, posPost } from '@/lib/pos-http';
 import type { OrderDetail } from '@/pages/orders/types';
 
@@ -61,7 +62,7 @@ export const myOrdersQuery = (since: string) =>
     queryOptions({
         queryKey: ['pos', 'my-orders', since],
         queryFn: async () => (await posGet<{ data: PosSessionData }>(`/api/v1/pos/my-orders?since=${encodeURIComponent(since)}`)).data,
-        refetchInterval: 30_000,
+        refetchInterval: posPollMs(30_000),
         staleTime: 10_000,
     });
 

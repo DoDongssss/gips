@@ -16,12 +16,12 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                 aria-label="Your order"
                 className={cn(
                     'bg-card absolute flex flex-col overflow-hidden shadow-2xl transition-transform duration-300 ease-out',
-                    'landscape:inset-y-0 landscape:right-0 landscape:w-[clamp(26rem,40vw,38rem)] landscape:rounded-l-3xl',
-                    'portrait:inset-x-0 portrait:bottom-0 portrait:h-[82%] portrait:rounded-t-3xl',
+                    'landscape:inset-y-0 landscape:right-0 landscape:w-[clamp(24rem,38vw,34rem)] landscape:rounded-l-2xl',
+                    'portrait:inset-x-0 portrait:bottom-0 portrait:h-[82%] portrait:rounded-t-2xl',
                     open ? 'translate-x-0 translate-y-0' : 'landscape:translate-x-full portrait:translate-y-full',
                 )}
             >
-                <span className="bg-border mx-auto mt-3 h-1.5 w-14 shrink-0 rounded-full landscape:hidden" />
+                <span className="bg-border mx-auto mt-2 h-1 w-12 shrink-0 rounded-full landscape:hidden" />
                 <OrderSummary onClose={onClose} />
             </aside>
         </div>

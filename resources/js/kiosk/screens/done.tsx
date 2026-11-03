@@ -30,32 +30,32 @@ export default function DoneScreen() {
 
     return (
         <Frame className="bg-secondary animate-in fade-in duration-500">
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 overflow-y-auto p-10 text-center">
-                <div className="space-y-4">
-                    <span className="bg-success text-success-foreground ring-success/20 mx-auto flex size-24 items-center justify-center rounded-full shadow-lg ring-8">
-                        <Check className="size-12" strokeWidth={3} />
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto p-6 text-center">
+                <div className="space-y-3">
+                    <span className="bg-success text-success-foreground ring-success/20 mx-auto flex size-20 items-center justify-center rounded-2xl shadow-md ring-4">
+                        <Check className="size-10" strokeWidth={3} />
                     </span>
-                    <p className="text-6xl font-semibold tracking-tight">Thank you!</p>
+                    <p className="text-5xl font-semibold tracking-tight">Thank you!</p>
                 </div>
 
                 {/* Ticket */}
-                <div className="bg-card w-full max-w-3xl overflow-hidden rounded-3xl shadow-xl">
-                    <div className="bg-primary text-primary-foreground px-10 py-8">
-                        <p className="text-primary-foreground/70 flex items-center justify-center gap-2 text-2xl">
-                            <Hash className="size-6" />
+                <div className="bg-card ring-border w-full max-w-2xl overflow-hidden rounded-2xl shadow-lg ring-1">
+                    <div className="bg-primary text-primary-foreground px-8 py-6">
+                        <p className="text-primary-foreground/70 flex items-center justify-center gap-1.5 text-xl">
+                            <Hash className="size-5" />
                             Your order number
                         </p>
-                        <p className="text-9xl leading-none font-semibold tracking-tight tabular-nums portrait:text-[12rem]">{placed.order_number}</p>
+                        <p className="text-8xl leading-none font-semibold tracking-tight tabular-nums portrait:text-[10rem]">{placed.order_number}</p>
                     </div>
 
                     <div className="relative">
-                        <span aria-hidden className="bg-secondary absolute top-0 -left-5 size-10 -translate-y-1/2 rounded-full" />
-                        <span aria-hidden className="bg-secondary absolute top-0 -right-5 size-10 -translate-y-1/2 rounded-full" />
-                        <div className="border-border mx-8 border-t-2 border-dashed" />
+                        <span aria-hidden className="bg-secondary absolute top-0 -left-4 size-8 -translate-y-1/2 rounded-full" />
+                        <span aria-hidden className="bg-secondary absolute top-0 -right-4 size-8 -translate-y-1/2 rounded-full" />
+                        <div className="border-border mx-6 border-t-2 border-dashed" />
                     </div>
 
-                    <div className="space-y-4 px-10 py-6 text-left">
-                        <ul className="space-y-1.5 text-xl">
+                    <div className="space-y-3 px-8 py-5 text-left">
+                        <ul className="space-y-1 text-lg">
                             {placed.items.map((item, i) => (
                                 <li key={i} className="flex justify-between gap-4">
                                     <span className="min-w-0 truncate">
@@ -67,36 +67,36 @@ export default function DoneScreen() {
                                 </li>
                             ))}
                         </ul>
-                        <div className="border-border flex items-baseline justify-between border-t pt-4">
-                            <span className="text-muted-foreground text-xl">
+                        <div className="border-border flex items-baseline justify-between border-t pt-3">
+                            <span className="text-muted-foreground text-lg">
                                 {typeLabel(placed.type)} · {itemCount} {itemCount === 1 ? 'item' : 'items'}
                             </span>
-                            <span className="text-4xl font-semibold tabular-nums">{peso(placed.total_cents)}</span>
+                            <span className="text-3xl font-semibold tabular-nums">{peso(placed.total_cents)}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Next steps */}
-                <div className="grid w-full max-w-3xl grid-cols-2 gap-4 text-left">
-                    <div className="bg-accent text-accent-foreground flex items-center gap-4 rounded-2xl p-5">
-                        <span className="bg-card flex size-14 shrink-0 items-center justify-center rounded-full shadow-sm">
-                            <Banknote className="size-7" />
+                <div className="grid w-full max-w-2xl grid-cols-2 gap-3 text-left">
+                    <div className="bg-accent text-accent-foreground flex items-center gap-3 rounded-xl p-4">
+                        <span className="bg-card flex size-12 shrink-0 items-center justify-center rounded-lg shadow-sm">
+                            <Banknote className="size-6" />
                         </span>
-                        <span className="text-2xl leading-tight font-semibold">Pay at the counter</span>
+                        <span className="text-xl leading-tight font-semibold">Pay at the counter</span>
                     </div>
-                    <div className="bg-accent text-accent-foreground flex items-center gap-4 rounded-2xl p-5">
-                        <span className="bg-card flex size-14 shrink-0 items-center justify-center rounded-full text-2xl font-semibold shadow-sm tabular-nums">#</span>
-                        <span className="text-2xl leading-tight font-semibold">Wait for your number</span>
+                    <div className="bg-accent text-accent-foreground flex items-center gap-3 rounded-xl p-4">
+                        <span className="bg-card flex size-12 shrink-0 items-center justify-center rounded-lg text-xl font-semibold shadow-sm tabular-nums">#</span>
+                        <span className="text-xl leading-tight font-semibold">Wait for your number</span>
                     </div>
                 </div>
 
-                {placed.requires_verification && <p className={cn('border-warning/50 bg-warning/15 rounded-2xl border-2 px-6 py-4 text-xl font-semibold', warningText)}>Please show your senior / PWD ID to the cashier.</p>}
+                {placed.requires_verification && <p className={cn('border-warning/50 bg-warning/15 rounded-xl border-2 px-5 py-3 text-lg font-semibold', warningText)}>Please show your senior / PWD ID to the cashier.</p>}
 
-                <p className="text-muted-foreground">Your order is held for {placed.expires_in_minutes} minutes until it is paid.</p>
+                <p className="text-muted-foreground text-sm">Your order is held for {placed.expires_in_minutes} minutes until it is paid.</p>
             </div>
 
-            <div className="bg-card space-y-3 rounded-t-3xl p-6 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.2)]">
-                <div className="bg-secondary h-1.5 overflow-hidden rounded-full">
+            <div className="bg-card space-y-2.5 border-t p-4">
+                <div className="bg-secondary h-1 overflow-hidden rounded-full">
                     <div className="bg-primary h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${Math.max(0, (left / RETURN_SECONDS) * 100)}%` }} />
                 </div>
                 <BigButton onClick={() => reset()} className="w-full">

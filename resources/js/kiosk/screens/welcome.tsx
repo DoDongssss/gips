@@ -43,37 +43,37 @@ export default function Welcome() {
                 </div>
             )}
 
-            <div className="relative z-10 flex flex-1 flex-col justify-between p-12 text-white portrait:p-16">
-                <div className="flex items-center gap-3 self-start rounded-full bg-white/15 px-6 py-3 text-xl font-medium backdrop-blur">
-                    <UtensilsCrossed className="size-6" />
+            <div className="relative z-10 flex flex-1 flex-col justify-between p-8 text-white portrait:p-10">
+                <div className="flex items-center gap-2 self-start rounded-lg bg-white/15 px-4 py-2 text-lg font-medium backdrop-blur">
+                    <UtensilsCrossed className="size-5" />
                     Self-order kiosk
                 </div>
 
-                <div key={banner?.id ?? 'message'} className="animate-in fade-in slide-in-from-bottom-4 space-y-12 duration-700">
-                    <div className="max-w-4xl space-y-5">
+                <div key={banner?.id ?? 'message'} className="animate-in fade-in slide-in-from-bottom-4 space-y-8 duration-700">
+                    <div className="max-w-4xl space-y-4">
                         <p className="text-7xl leading-[1.02] font-semibold tracking-tight portrait:text-9xl">{banner?.content?.headline || message || 'Welcome! Tap to order'}</p>
                         {banner?.content?.headline && banner.content.subtext && <p className="text-3xl text-white/85 portrait:text-5xl">{banner.content.subtext}</p>}
                     </div>
 
                     <div className="flex items-center justify-between gap-6">
-                        <div className="space-y-5">
+                        <div className="space-y-4">
                             <span className="relative inline-flex">
-                                <span aria-hidden className="absolute inset-0 animate-ping rounded-full bg-white/30 [animation-duration:2.5s]" />
-                                <span className="relative inline-flex items-center gap-4 rounded-full bg-white px-12 py-6 text-3xl font-semibold text-[var(--navy)] shadow-2xl portrait:px-16 portrait:py-8 portrait:text-5xl">
+                                <span aria-hidden className="absolute inset-0 animate-ping rounded-2xl bg-white/30 [animation-duration:2.5s]" />
+                                <span className="relative inline-flex items-center gap-3 rounded-2xl bg-white px-10 py-5 text-3xl font-semibold text-[var(--navy)] shadow-2xl portrait:px-14 portrait:py-7 portrait:text-5xl">
                                     Touch to start
                                     <ArrowRight className="size-8 portrait:size-12" />
                                 </span>
                             </span>
-                            <p className="flex items-center gap-2 text-xl text-white/75 portrait:text-2xl">
-                                <Banknote className="size-6" />
+                            <p className="flex items-center gap-2 text-lg text-white/75 portrait:text-2xl">
+                                <Banknote className="size-5" />
                                 Dine in or takeout · Pay at the counter
                             </p>
                         </div>
 
                         {banners.length > 1 && (
-                            <div className="flex items-center gap-2" aria-hidden>
+                            <div className="flex items-center gap-1.5" aria-hidden>
                                 {banners.map((b, i) => (
-                                    <span key={b.id} className={cn('h-2.5 rounded-full transition-all duration-500', i === active ? 'w-10 bg-white' : 'w-2.5 bg-white/40')} />
+                                    <span key={b.id} className={cn('h-2 rounded-full transition-all duration-500', i === active ? 'w-8 bg-white' : 'w-2 bg-white/40')} />
                                 ))}
                             </div>
                         )}

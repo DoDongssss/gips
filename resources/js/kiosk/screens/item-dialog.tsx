@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react';
+import { Check, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { peso } from '@/kiosk/format';
@@ -19,8 +19,6 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
     const [variantId, setVariantId] = useState<number | null>(null);
     const [picked, setPicked] = useState<Record<number, number[]>>({});
     const [quantity, setQuantity] = useState(1);
-
-    const DEFAULT_PRODUCT_IMAGE = '/storage/menu/products/default_product.jpg';
 
     useEffect(() => {
         if (!product) return;
@@ -58,36 +56,42 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
     }
 
     return (
-        <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/55 duration-200 landscape:items-center landscape:p-8" onClick={onClose}>
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/55 duration-200 landscape:items-center landscape:p-6" onClick={onClose}>
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-label={product.name}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-background animate-in slide-in-from-bottom-8 relative flex max-h-[94%] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl duration-300 landscape:h-full landscape:max-h-[44rem] landscape:max-w-6xl landscape:flex-row landscape:rounded-3xl"
+                className="bg-background animate-in slide-in-from-bottom-8 relative flex max-h-[94%] w-full flex-col overflow-hidden rounded-t-2xl shadow-2xl duration-300 landscape:h-full landscape:max-h-[42rem] landscape:max-w-5xl landscape:flex-row landscape:rounded-2xl"
             >
-                <button type="button" onClick={onClose} aria-label="Close" className="bg-card text-foreground absolute top-4 right-4 z-10 flex size-14 items-center justify-center rounded-full shadow-lg transition-transform active:scale-90">
-                    <X className="size-6" />
-                </button>
-
                 {/* Picture, name and price */}
-                <div className="relative h-60 shrink-0 landscape:h-auto landscape:w-[40%]">
-                    <Thumb src={product.image_url ?? DEFAULT_PRODUCT_IMAGE} name={product.name} className="absolute inset-0 size-full text-8xl" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 space-y-2 p-6 text-white">
-                        <h2 className="text-4xl leading-tight font-semibold tracking-tight">{product.name}</h2>
-                        {product.description && <p className="line-clamp-3 text-lg text-white/85">{product.description}</p>}
-                        <p className="text-3xl font-semibold tabular-nums">{peso(unit)}</p>
+                <div className="relative h-56 shrink-0 overflow-hidden landscape:h-auto landscape:w-[38%]">
+                    <Thumb src={product.image_url} name={product.name} className="absolute inset-0 size-full text-8xl" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 space-y-1.5 p-4 text-white">
+                        <h2 className="text-3xl leading-tight font-semibold tracking-tight">{product.name}</h2>
+                        {product.description && <p className="line-clamp-2 text-base text-white/85 landscape:line-clamp-3">{product.description}</p>}
+                        <p className="text-2xl font-semibold tabular-nums">{peso(unit)}</p>
                     </div>
                 </div>
 
                 {/* Choices */}
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="flex-1 space-y-8 overflow-y-auto p-6 landscape:p-8">
+                    <div className="flex items-center justify-between gap-3 border-b px-4 py-2">
+                        <p className="text-muted-foreground flex items-center gap-2 text-base">
+                            <SlidersHorizontal className="size-4" />
+                            Customize your order
+                        </p>
+                        <button type="button" onClick={onClose} aria-label="Close" className="bg-secondary flex size-11 shrink-0 items-center justify-center rounded-lg transition-transform active:scale-90">
+                            <X className="size-5" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 space-y-5 overflow-y-auto p-4 landscape:p-5">
                         {product.variants.length > 0 && (
                             <section>
                                 <SectionHeading title="Size" />
-                                <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3">
+                                <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2">
                                     {product.variants.map((v) => (
                                         <Choice key={v.id} selected={v.id === variantId} onClick={() => setVariantId(v.id)} label={v.name} detail={peso(v.price_cents)} />
                                     ))}
@@ -105,14 +109,14 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
                                     <SectionHeading
                                         title={group.name}
                                         badge={
-                                            <span className={cn('inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium', unmet ? 'bg-destructive/10 text-destructive' : need > 0 ? cn('bg-success/15', successText) : 'bg-muted text-muted-foreground')}>
-                                                {!unmet && need > 0 && <Check className="size-4" strokeWidth={3} />}
+                                            <span className={cn('inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-medium', unmet ? 'bg-destructive/10 text-destructive' : need > 0 ? cn('bg-success/15', successText) : 'bg-muted text-muted-foreground')}>
+                                                {!unmet && need > 0 && <Check className="size-3.5" strokeWidth={3} />}
                                                 {need > 0 ? 'Required' : 'Optional'}
                                                 {group.selection_type === 'multiple' && group.max_select !== null ? ` · up to ${group.max_select}` : ''}
                                             </span>
                                         }
                                     />
-                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3">
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2">
                                         {available(group).map((m) => (
                                             <Choice
                                                 key={m.id}
@@ -129,7 +133,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
                         })}
                     </div>
 
-                    <div className="bg-card flex items-center gap-4 border-t p-5">
+                    <div className="bg-card flex items-center gap-3 border-t p-3">
                         <Stepper value={quantity} onChange={setQuantity} />
                         <BigButton
                             disabled={missing !== undefined}
@@ -154,13 +158,13 @@ function Choice({ selected, onClick, label, detail, square = false }: { selected
             type="button"
             onClick={onClick}
             aria-pressed={selected}
-            className={cn('flex min-h-[4.5rem] items-center gap-4 rounded-2xl border-2 px-5 text-left transition-all duration-150 active:scale-[0.98]', selected ? 'border-primary bg-primary/5' : 'border-border bg-card')}
+            className={cn('flex min-h-14 items-center gap-3 rounded-lg border-2 px-3 py-2 text-left transition-all duration-150 active:scale-[0.98]', selected ? 'border-primary bg-primary/5' : 'border-border bg-card')}
         >
-            <span className={cn('flex size-8 shrink-0 items-center justify-center border-2 transition-colors', square ? 'rounded-lg' : 'rounded-full', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40')}>
-                {selected && <Check className="size-5" strokeWidth={3} />}
+            <span className={cn('flex size-7 shrink-0 items-center justify-center border-2 transition-colors', square ? 'rounded-md' : 'rounded-full', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40')}>
+                {selected && <Check className="size-4" strokeWidth={3} />}
             </span>
-            <span className="flex-1 text-xl font-medium">{label}</span>
-            {detail && <span className="text-lg font-semibold tabular-nums">{detail}</span>}
+            <span className="min-w-0 flex-1 text-lg leading-tight font-medium">{label}</span>
+            {detail && <span className="shrink-0 text-base font-semibold whitespace-nowrap tabular-nums">{detail}</span>}
         </button>
     );
 }

@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { posPollMs } from '@/lib/pos-live';
 import { posGet, posPost } from '@/lib/pos-http';
 
 export type KdsItem = {
@@ -75,7 +76,7 @@ export const readyOrdersQuery = () =>
     queryOptions({
         queryKey: ['pos', 'ready-orders'],
         queryFn: async () => (await posGet<{ data: ReadyOrder[] }>('/api/v1/pos/ready-orders')).data,
-        refetchInterval: KDS_POLL_MS,
+        refetchInterval: posPollMs(KDS_POLL_MS),
         staleTime: 0,
     });
 

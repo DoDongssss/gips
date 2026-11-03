@@ -9,7 +9,20 @@ function xsrfToken(): string {
     return match ? decodeURIComponent(match[1]) : '';
 }
 
-/** One shared Echo connection. Returns null when VITE_PUSHER_APP_KEY is not set, so the app falls back to polling. */
+/** The paired kitchen screen keeps its device token here (see pages/kitchen/screen.tsx). */
+function deviceToken(): string | null {
+    try {
+        return (JSON.parse(localStorage.getItem('kitchen.device') ?? 'null') as { token?: string } | null)?.token ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * The ONE Echo connection for the whole app (also available as window.Echo).
+ * Staff are recognised by their session; a paired kitchen screen adds its device token.
+ * Returns null when VITE_PUSHER_APP_KEY is not set, so the app falls back to polling.
+ */
 export function getEcho(): Echo<'pusher'> | null {
     // Inertia renders pages on the server too (SSR), where there is no window. Nothing to connect to there.
     if (typeof window === 'undefined') {
@@ -38,9 +51,20 @@ export function getEcho(): Echo<'pusher'> | null {
         channelAuthorization: {
             endpoint: '/broadcasting/auth',
             transport: 'ajax',
-            headersProvider: () => ({ 'X-XSRF-TOKEN': xsrfToken(), Accept: 'application/json' }),
+            // Read on every join, so a screen that pairs after the page loaded still authorises.
+            headersProvider: () => {
+                const token = deviceToken();
+
+                return {
+                    'X-XSRF-TOKEN': xsrfToken(),
+                    Accept: 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                };
+            },
         },
     } as never) as Echo<'pusher'>;
+
+    (window as unknown as { Echo: Echo<'pusher'> }).Echo = instance;
 
     if (import.meta.env.DEV) {
         const { connection } = (instance.connector as unknown as { pusher: Pusher }).pusher;

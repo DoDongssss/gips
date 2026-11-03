@@ -30,8 +30,10 @@ import { usePosSince } from '@/hooks/use-pos-since';
 import { useRealtimeRefetch } from '@/hooks/use-realtime';
 import { useShiftGate } from '@/hooks/use-shift-gate';
 import { readyOrdersQuery } from '@/lib/kds';
+import { kioskOrdersQuery } from '@/lib/kiosk-orders';
 import { formatPeso } from '@/lib/money';
 import { configQuery } from '@/lib/pos-api';
+import { setPosLive } from '@/lib/pos-live';
 import { myOrdersQuery } from '@/lib/pos-session';
 import { ShiftChip } from '@/pages/pos/shift-chip';
 import { dashboard } from '@/routes';
@@ -94,7 +96,13 @@ export function PosHeader() {
     useQuery({ ...configQuery, refetchOnMount: 'always' });
 
     const { data } = useQuery(myOrdersQuery(since));
-    useRealtimeRefetch('pos.orders', 'order.updated', readyOrdersQuery().queryKey);
+    // One push refetches the ready list, the kiosk orders waiting at the counter and my orders.
+    const live = useRealtimeRefetch('pos.orders', 'order.updated', [readyOrdersQuery().queryKey, kioskOrdersQuery().queryKey, ['pos', 'my-orders']]);
+    useEffect(() => {
+        setPosLive(live);
+
+        return () => setPosLive(false);
+    }, [live]);
     const readyCount = (useQuery(readyOrdersQuery()).data ?? []).length;
     const summary = data?.summary;
     const unpaidCount = summary?.unpaid_count ?? 0;

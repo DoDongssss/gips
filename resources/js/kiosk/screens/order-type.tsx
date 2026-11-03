@@ -17,34 +17,34 @@ export default function OrderTypeScreen() {
         <Frame className="bg-secondary">
             <TopBar title="How would you like your order?" onBack={() => reset('abandoned')} />
 
-            <div className="grid flex-1 grid-cols-2 gap-6 p-8 portrait:grid-cols-1 portrait:gap-8">
+            <div className="grid flex-1 grid-cols-2 gap-4 p-5 portrait:grid-cols-1">
                 {options.map(({ type, label, hint, icon: Icon, tint }) => (
                     <button
                         key={type}
                         type="button"
                         onClick={() => chooseType(type)}
-                        className="bg-card relative flex flex-col items-center justify-center gap-8 overflow-hidden rounded-3xl shadow-md transition-all duration-150 active:scale-[0.98]"
+                        className="bg-card ring-border relative flex flex-col items-center justify-center gap-6 overflow-hidden rounded-2xl shadow-sm ring-1 transition-all duration-150 active:scale-[0.98]"
                     >
-                        <span aria-hidden className="absolute inset-x-0 top-0 h-3" style={{ backgroundColor: tint }} />
+                        <span aria-hidden className="absolute inset-x-0 top-0 h-2" style={{ backgroundColor: tint }} />
 
-                        <span className="flex size-52 items-center justify-center rounded-full" style={tintStyle(tint)}>
-                            <Icon className="size-24" strokeWidth={1.5} />
+                        <span className="flex size-44 items-center justify-center rounded-2xl" style={tintStyle(tint)}>
+                            <Icon className="size-20" strokeWidth={1.5} />
                         </span>
 
-                        <span className="space-y-2 text-center">
-                            <span className="block text-6xl font-semibold tracking-tight">{label}</span>
-                            <span className="text-muted-foreground block text-3xl">{hint}</span>
+                        <span className="space-y-1 text-center">
+                            <span className="block text-5xl font-semibold tracking-tight">{label}</span>
+                            <span className="text-muted-foreground block text-2xl">{hint}</span>
                         </span>
 
-                        <span className="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-8 py-4 text-2xl font-semibold shadow-md">
+                        <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-lg px-6 py-3 text-xl font-semibold shadow-sm">
                             Choose
-                            <ChevronRight className="size-6" />
+                            <ChevronRight className="size-5" />
                         </span>
                     </button>
                 ))}
             </div>
 
-            <div className="px-8 pb-8">
+            <div className="px-5 pb-5">
                 <BigButton variant="ghost" onClick={() => reset('abandoned')} className="w-full">
                     Cancel
                 </BigButton>

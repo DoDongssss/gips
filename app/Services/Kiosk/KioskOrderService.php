@@ -5,6 +5,7 @@ namespace App\Services\Kiosk;
 use App\Enums\OrderChannel;
 use App\Models\Device;
 use App\Models\KioskSession;
+use App\Events\PosOrdersChanged;
 use App\Models\Order;
 use App\Services\Orders\OrderService;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -28,7 +29,7 @@ class KioskOrderService
     {
         $this->assertInService($device);
 
-        return DB::transaction(function () use ($device, $sessionUuid, $cart, $seniorPwd) {
+        [$order, $created] = DB::transaction(function () use ($device, $sessionUuid, $cart, $seniorPwd) {
             $session = KioskSession::query()->where('device_id', $device->id)->where('uuid', $sessionUuid)->lockForUpdate()->firstOrFail();
 
             if ($session->order_id !== null) {
@@ -54,6 +55,13 @@ class KioskOrderService
 
             return [$order, true];
         });
+
+        // A new kiosk order is waiting at the counter: tell the registers now (once, after the response).
+        if ($created) {
+            PosOrdersChanged::queue();
+        }
+
+        return [$order, $created];
     }
 
     public function assertInService(Device $device): void

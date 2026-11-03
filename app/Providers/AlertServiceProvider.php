@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\PosOrdersChanged;
+use App\Models\Order;
 use App\Models\StockLevel;
 use App\Services\Alerts\AlertWatcher;
 use Illuminate\Support\Facades\Cache;
@@ -26,5 +28,9 @@ class AlertServiceProvider extends ServiceProvider
                 }
             });
         });
+
+        // Any order created or changed (new kiosk order, paid, status change, void, edit) tells the registers to look again.
+        // One push per request however many rows change, sent after the response so it never slows the cashier down.
+        Order::saved(fn () => PosOrdersChanged::queue());
     }
 }

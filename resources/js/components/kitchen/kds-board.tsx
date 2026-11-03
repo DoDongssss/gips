@@ -1,13 +1,12 @@
 import { Head } from '@inertiajs/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { QueryKey } from '@tanstack/react-query';
 import { Check, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { useRealtimeRefetch } from '@/hooks/use-realtime';
-import { kdsClient } from '@/lib/kds';
+import { KDS_POLL_MS, kdsClient } from '@/lib/kds';
 import type { KdsTicket } from '@/lib/kds';
 import { errorList, PosHttpError } from '@/lib/pos-http';
 import type { ReactNode } from 'react';
@@ -25,12 +24,8 @@ type Props = {
 /** On an all-stations screen (station.id === 0) each ticket also says which station it is for. */
 type StationTicket = KdsTicket & { station?: { id: number; name: string } };
 
-/** Live updates for one station. An all-stations screen has no single channel, so it polls instead. */
-function Realtime({ stationId, queryKey }: { stationId: number; queryKey: QueryKey }) {
-    useRealtimeRefetch(`kds.station.${stationId}`, 'ticket.updated', queryKey);
-
-    return null;
-}
+/** While the live connection is up the screen only re-checks now and then, as a safety net. */
+const LIVE_POLL_MS = 60_000;
 
 type Tone = 'ok' | 'warning' | 'late';
 
@@ -85,9 +80,13 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
     const client = kdsClient(station.id, token);
     const boardQuery = client.boardQuery;
     const isAll = station.id === 0;
+
+    // A single station listens on its own channel; an all-stations screen listens on kds.all.
+    const live = useRealtimeRefetch(isAll ? 'kds.all' : `kds.station.${station.id}`, 'ticket.updated', boardQuery.queryKey);
+
     const { data, isPending, isError, error, dataUpdatedAt } = useQuery({
         ...boardQuery,
-        refetchInterval: isAll ? 5000 : boardQuery.refetchInterval,
+        refetchInterval: live ? LIVE_POLL_MS : KDS_POLL_MS,
     });
 
     useEffect(() => {
@@ -157,7 +156,6 @@ export function KdsBoard({ station, token, leading, onUnauthorized }: Props) {
     return (
         <>
             <Head title={`${station.name} display`} />
-            {!isAll && <Realtime stationId={station.id} queryKey={boardQuery.queryKey} />}
 
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
                 <div className="flex items-center gap-3">

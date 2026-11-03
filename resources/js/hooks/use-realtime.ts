@@ -1,30 +1,54 @@
 import { useQueryClient } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import type Pusher from 'pusher-js';
+import { useEffect, useState } from 'react';
 
-type EchoChannel = { listen: (event: string, callback: () => void) => EchoChannel };
-type EchoLike = { private: (name: string) => EchoChannel; leave: (name: string) => void };
+import { getEcho } from '@/lib/echo';
 
 /**
- * Refetches a query the moment the server broadcasts on a private channel.
- * `window.Echo` is created once Reverb is installed; until then this does nothing
- * and the query's own polling keeps the screen current.
+ * Refetches queries the moment the server broadcasts on a private channel, using the app's single Echo
+ * connection (lib/echo.ts). Pass one query key, or a list of keys (each one refetches everything that starts with it).
+ * Returns true while the channel is joined, so the caller can poll less often; false when Pusher is not set up
+ * or the connection is down (the queries' own polling keeps the screen current).
+ * Joining or rejoining refetches once, to catch anything missed while disconnected.
  */
-export function useRealtimeRefetch(channel: string, event: string, queryKey: QueryKey): void {
+export function useRealtimeRefetch(channel: string, event: string, queryKeys: QueryKey | QueryKey[]): boolean {
     const queryClient = useQueryClient();
-    const key = JSON.stringify(queryKey);
+    const key = JSON.stringify(queryKeys);
+    const [live, setLive] = useState(false);
 
     useEffect(() => {
-        const echo = (window as unknown as { Echo?: EchoLike }).Echo;
+        const echo = getEcho();
 
         if (!echo) {
             return;
         }
 
-        echo.private(channel).listen(`.${event}`, () => {
-            void queryClient.invalidateQueries({ queryKey: JSON.parse(key) as QueryKey });
-        });
+        const parsed = JSON.parse(key) as QueryKey | QueryKey[];
+        const keys: QueryKey[] = Array.isArray(parsed[0]) ? (parsed as QueryKey[]) : [parsed as QueryKey];
+        const refetch = () => keys.forEach((queryKey) => void queryClient.invalidateQueries({ queryKey }));
+        const joined = echo.private(channel);
+        const { connection } = (echo.connector as unknown as { pusher: Pusher }).pusher;
+        const onState = (state: { current: string }) => {
+            if (state.current !== 'connected') {
+                setLive(false);
+            }
+        };
 
-        return () => echo.leave(channel);
+        joined.listen(`.${event}`, refetch);
+        joined.subscribed(() => {
+            setLive(true);
+            refetch();
+        });
+        joined.error(() => setLive(false));
+        connection.bind('state_change', onState);
+
+        return () => {
+            connection.unbind('state_change', onState);
+            echo.leave(channel);
+            setLive(false);
+        };
     }, [channel, event, key, queryClient]);
+
+    return live;
 }

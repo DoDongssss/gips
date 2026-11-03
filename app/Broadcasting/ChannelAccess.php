@@ -22,6 +22,15 @@ class ChannelAccess
         return $actor->is_active !== false && $actor->can('kds.view');
     }
 
+    public static function allStations(User|Device $actor): bool
+    {
+        if ($actor instanceof Device) {
+            return $actor->type === 'kds' && $actor->is_active && $actor->station_id === null;
+        }
+
+        return $actor->is_active !== false && $actor->can('kds.view');
+    }
+
     public static function orders(User|Device $actor): bool
     {
         return $actor instanceof User && $actor->is_active !== false && $actor->can('order.view');
