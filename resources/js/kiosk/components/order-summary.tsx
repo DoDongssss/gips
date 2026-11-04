@@ -1,7 +1,8 @@
 import { Banknote, Check, ShoppingBag, X } from 'lucide-react';
 
 import { peso, typeLabel } from '@/kiosk/format';
-import { cartCents, cartCount, lineCents, unitCents } from '@/kiosk/pricing';
+import { cartCount, lineCents, unitCents } from '@/kiosk/pricing';
+import { useOrderPreview } from '@/kiosk/use-order-preview';
 import { BigButton, CompactStepper, Thumb, warningText } from '@/kiosk/screens/ui';
 import { useKiosk } from '@/kiosk/store';
 import { useDragScroll } from '@/kiosk/use-drag-scroll';
@@ -15,11 +16,14 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
     const lines = useKiosk((s) => s.lines);
     const orderType = useKiosk((s) => s.orderType);
     const seniorPwd = useKiosk((s) => s.seniorPwd);
+    const customerName = useKiosk((s) => s.customerName);
     const placing = useKiosk((s) => s.placing);
-    const { setQuantity, setSeniorPwd, checkout } = useKiosk.getState();
+    const { setQuantity, setSeniorPwd, setCustomerName, checkout } = useKiosk.getState();
 
     const dragScroll = useDragScroll<HTMLDivElement>();
     const count = cartCount(lines);
+    const { summary, calculating, fallbackCents } = useOrderPreview();
+    const displayTotal = summary?.total_cents ?? fallbackCents;
 
     return (
         <div className="flex h-full min-h-0 flex-col">
@@ -75,6 +79,20 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
                 ))}
 
                 {lines.length > 0 && (
+                    <label className="bg-card block rounded-xl border px-3 py-2.5">
+                        <span className="text-muted-foreground block text-sm">Name for your order (optional)</span>
+                        <input
+                            type="text"
+                            maxLength={100}
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder="Your name"
+                            className="mt-1 w-full bg-transparent text-base font-medium outline-none"
+                        />
+                    </label>
+                )}
+
+                {lines.length > 0 && (
                     <button
                         type="button"
                         onClick={() => setSeniorPwd(!seniorPwd)}
@@ -95,8 +113,13 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
             <div className="space-y-3 border-t border-dashed px-4 py-3">
                 <div className="flex items-baseline justify-between">
                     <span className="text-muted-foreground text-lg">Total</span>
-                    <span className="text-4xl font-semibold tracking-tight tabular-nums">{peso(cartCents(lines))}</span>
+                    <span className="text-4xl font-semibold tracking-tight tabular-nums">{calculating && !summary ? '…' : peso(displayTotal)}</span>
                 </div>
+                {summary && summary.tax_cents > 0 && (
+                    <p className="text-muted-foreground text-sm tabular-nums">
+                        Subtotal {peso(summary.subtotal_cents)} · Tax {peso(summary.tax_cents)}
+                    </p>
+                )}
                 <p className="text-muted-foreground flex items-center gap-2 text-sm">
                     <Banknote className="size-4 shrink-0" />
                     Pay at the counter. Final amount confirmed there.

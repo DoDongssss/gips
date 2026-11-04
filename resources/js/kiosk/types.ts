@@ -47,11 +47,18 @@ export type Status = {
 
 export type Banner = { id: number; title: string; type: string; image_url: string | null; content: { headline?: string; subtext?: string } | null };
 
-export type Suggestion = { product_id: number; message: string | null };
+export type Suggestion = { product_id: number; message: string | null; product?: Product | null };
+
+export type PricedSummary = {
+    subtotal_cents: number;
+    discount_cents: number;
+    tax_cents: number;
+    total_cents: number;
+};
 
 export type OrderType = 'dine_in' | 'takeout';
 
-export type CartLine = { key: string; product: Product; variant: Variant | null; modifiers: Modifier[]; quantity: number };
+export type CartLine = { key: string; product: Product; variant: Variant | null; modifiers: Modifier[]; quantity: number; notes?: string | null };
 
 export type PlacedOrder = {
     order_number: string;

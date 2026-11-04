@@ -13,7 +13,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Settings > Devices: every registered terminal (kiosk, register, kitchen screen): add, switch off, pair, unpair, delete. */
+/** Settings > Devices: kiosks and kitchen screens (pairing). Register terminals use staff sign-in, not this list. */
 class DeviceController extends Controller implements HasMiddleware
 {
     use ReportsDomainErrors;
@@ -74,6 +74,10 @@ class DeviceController extends Controller implements HasMiddleware
     {
         if (! $device->is_active) {
             return $this->attempt(fn () => throw new DomainException('Switch the device on before pairing it.'), '');
+        }
+
+        if ($device->type === Device::POS) {
+            return $this->attempt(fn () => throw new DomainException('Register terminals use staff sign-in, not a pairing code.'), '');
         }
 
         return back()->with('pairing', $this->pairingFlash($device, $pairing->issueCode($device)));

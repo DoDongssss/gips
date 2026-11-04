@@ -1,4 +1,4 @@
-import type { Banner, Category, OrderType, PlacedOrder, Status, Suggestion } from '@/kiosk/types';
+import type { Banner, Category, OrderType, PlacedOrder, PricedSummary, Status, Suggestion } from '@/kiosk/types';
 
 const BASE = '/api/v1/kiosk';
 const TOKEN_KEY = 'gip-kiosk-token';
@@ -91,6 +91,13 @@ export const api = {
     upsell: (productIds: number[]) => request<Suggestion[]>('POST', '/upsell', { product_ids: productIds }),
     startSession: (language?: string) => request<{ session_uuid: string }>('POST', '/sessions', { language }),
     endSession: (uuid: string, status: 'abandoned' | 'timed_out', itemsCount: number) => request<{ ok: boolean }>('POST', `/sessions/${uuid}/end`, { status, items_count: itemsCount }),
-    placeOrder: (payload: { session_uuid: string; type: OrderType; senior_pwd: boolean; items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[] }[] }) =>
-        request<PlacedOrder>('POST', '/orders', payload),
+    previewOrder: (payload: { type: OrderType; customer_name?: string; items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[]; notes?: string | null }[] }) =>
+        request<PricedSummary>('POST', '/orders/preview', payload),
+    placeOrder: (payload: {
+        session_uuid: string;
+        type: OrderType;
+        senior_pwd: boolean;
+        customer_name?: string;
+        items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[]; notes?: string | null }[];
+    }) => request<PlacedOrder>('POST', '/orders', payload),
 };

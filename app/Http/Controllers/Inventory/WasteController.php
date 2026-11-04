@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,28 +29,64 @@ class WasteController extends Controller implements HasMiddleware
 
     public function index(Request $request): Response
     {
-        $logs = WasteLog::query()
-            ->with(['ingredient:id,name,base_unit_id', 'ingredient.baseUnit:id,abbreviation', 'user:id,name'])
-            ->when($request->integer('ingredient'), fn ($q, $id) => $q->where('ingredient_id', $id))
-            ->when(WasteReason::tryFrom($request->string('reason')->toString()), fn ($q, $r) => $q->where('reason', $r->value))
-            ->latest('id')
-            ->paginate(20)
-            ->withQueryString()
-            ->through(fn (WasteLog $w) => [
-                'id' => $w->id,
-                'ingredient' => $w->ingredient->name,
-                'unit' => $w->ingredient->baseUnit?->abbreviation,
-                'quantity' => (string) $w->quantity,
-                'reason' => $w->reason->value,
-                'notes' => $w->notes,
-                'user' => $w->user->name,
-                'created_at' => $w->created_at?->toIso8601String(),
-            ]);
+        $search = $request->string('search')->toString();
+        $ingredientId = $request->integer('ingredient') ?: null;
+        $reason = $request->string('reason')->toString();
+
+        $sortable = ['created_at', 'ingredient', 'quantity', 'reason', 'user'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
 
         return Inertia::render('inventory/waste/index', [
-            'logs' => $logs,
+            // Optional: not sent on the first visit. The page asks for it with the "Load waste log" button.
+            'logs' => Inertia::optional(fn () => WasteLog::query()
+                ->with(['ingredient:id,name,base_unit_id', 'ingredient.baseUnit:id,abbreviation', 'user:id,name'])
+                ->when($ingredientId, fn ($q, $id) => $q->where('ingredient_id', $id))
+                ->when(WasteReason::tryFrom($reason), fn ($q, $r) => $q->where('reason', $r->value))
+                ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                    ->where('notes', 'like', "%{$search}%")
+                    ->orWhereHas('ingredient', fn ($i) => $i->where('name', 'like', "%{$search}%"))))
+                ->when($sort === 'ingredient', fn ($q) => $q->orderBy(
+                    DB::table('ingredients')
+                        ->select('name')
+                        ->whereColumn('ingredients.id', 'waste_logs.ingredient_id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when($sort === 'user', fn ($q) => $q->orderBy(
+                    DB::table('users')
+                        ->select('name')
+                        ->whereColumn('users.id', 'waste_logs.user_id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when(
+                    in_array($sort, ['created_at', 'quantity', 'reason'], true),
+                    fn ($q) => $q->orderBy($sort, $direction),
+                )
+                ->orderByDesc('id')
+                ->paginate(20)
+                ->withQueryString()
+                ->through(fn (WasteLog $w) => [
+                    'id' => $w->id,
+                    'ingredient' => ['id' => $w->ingredient->id, 'name' => $w->ingredient->name],
+                    'unit' => $w->ingredient->baseUnit?->abbreviation,
+                    'quantity' => (string) $w->quantity,
+                    'reason' => $w->reason->value,
+                    'notes' => $w->notes,
+                    'user' => $w->user->name,
+                    'created_at' => $w->created_at?->toIso8601String(),
+                ])
+            ),
+            'ingredient' => $ingredientId ? Ingredient::withTrashed()->find($ingredientId, ['id', 'name']) : null,
             'reasons' => array_column(WasteReason::cases(), 'value'),
-            'filters' => ['ingredient' => $request->integer('ingredient') ?: null, 'reason' => $request->input('reason')],
+            'filters' => [
+                'search' => $search,
+                'ingredient' => $ingredientId,
+                'reason' => WasteReason::tryFrom($reason)?->value,
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 

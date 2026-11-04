@@ -17,6 +17,7 @@ type State = {
     orderType: OrderType | null;
     lines: CartLine[];
     seniorPwd: boolean;
+    customerName: string;
     suggestions: Suggestion[];
     upsellDone: boolean;
     placed: PlacedOrder | null;
@@ -35,16 +36,28 @@ type State = {
     begin: () => Promise<void>;
     chooseType: (type: OrderType) => void;
     goto: (step: Step) => void;
-    addLine: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number) => void;
+    addLine: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number, notes?: string | null) => void;
     setQuantity: (key: string, quantity: number) => void;
     setSeniorPwd: (value: boolean) => void;
+    setCustomerName: (value: string) => void;
     checkout: () => Promise<void>;
     place: () => Promise<void>;
     reset: (reason?: 'timed_out' | 'abandoned') => void;
     dismissNotice: () => void;
 };
 
-const blank: Pick<State, 'sessionUuid' | 'orderType' | 'lines' | 'seniorPwd' | 'suggestions' | 'upsellDone' | 'placed' | 'placing' | 'notice'> = { sessionUuid: null, orderType: null, lines: [], seniorPwd: false, suggestions: [], upsellDone: false, placed: null, placing: false, notice: null };
+const blank: Pick<State, 'sessionUuid' | 'orderType' | 'lines' | 'seniorPwd' | 'customerName' | 'suggestions' | 'upsellDone' | 'placed' | 'placing' | 'notice'> = {
+    sessionUuid: null,
+    orderType: null,
+    lines: [],
+    seniorPwd: false,
+    customerName: '',
+    suggestions: [],
+    upsellDone: false,
+    placed: null,
+    placing: false,
+    notice: null,
+};
 
 export const useKiosk = create<State>((set, get) => ({
     step: tokenStore.get() ? 'welcome' : 'pairing',
@@ -89,7 +102,7 @@ export const useKiosk = create<State>((set, get) => ({
     chooseType: (type) => set({ orderType: type, step: 'menu' }),
     goto: (step) => set({ step }),
 
-    addLine(product, variant, modifiers, quantity) {
+    addLine(product, variant, modifiers, quantity, notes = null) {
         const key = lineKey(product.id, variant?.id ?? null, modifiers);
         const lines = get().lines;
         const existing = lines.find((l) => l.key === key);
@@ -97,7 +110,9 @@ export const useKiosk = create<State>((set, get) => ({
         set({
             // A changed cart means the suggestions may be different: ask again at checkout.
             upsellDone: false,
-            lines: existing ? lines.map((l) => (l.key === key ? { ...l, quantity: Math.min(99, l.quantity + quantity) } : l)) : [...lines, { key, product, variant, modifiers, quantity }],
+            lines: existing
+                ? lines.map((l) => (l.key === key ? { ...l, quantity: Math.min(99, l.quantity + quantity), notes: notes ?? l.notes } : l))
+                : [...lines, { key, product, variant, modifiers, quantity, notes }],
         });
     },
 
@@ -106,6 +121,7 @@ export const useKiosk = create<State>((set, get) => ({
     },
 
     setSeniorPwd: (seniorPwd) => set({ seniorPwd }),
+    setCustomerName: (customerName) => set({ customerName }),
 
     /** From the cart: show suggestions once, then place the order. */
     async checkout() {
@@ -113,11 +129,13 @@ export const useKiosk = create<State>((set, get) => ({
 
         if (lines.length === 0) return;
 
-        if (!upsellDone && status?.settings?.upsell_enabled) {
+        const upsellEnabled = status?.settings?.upsell_enabled ?? true;
+
+        if (!upsellDone && upsellEnabled) {
             try {
                 const wanted = await api.upsell(lines.map((l) => l.product.id));
-                const known = new Set(menu.flatMap((c) => c.products.filter((p) => p.is_available).map((p) => p.id)));
-                const suggestions = wanted.filter((s) => known.has(s.product_id));
+                const byId = new Map(menu.flatMap((c) => c.products).map((p) => [p.id, p]));
+                const suggestions = wanted.filter((s) => Boolean(s.product ?? byId.get(s.product_id)));
 
                 set({ upsellDone: true, suggestions });
 
@@ -136,7 +154,7 @@ export const useKiosk = create<State>((set, get) => ({
     },
 
     async place() {
-        const { sessionUuid, orderType, lines, seniorPwd, placing } = get();
+        const { sessionUuid, orderType, lines, seniorPwd, customerName, placing } = get();
 
         if (!sessionUuid || !orderType || lines.length === 0 || placing) return;
 
@@ -147,7 +165,14 @@ export const useKiosk = create<State>((set, get) => ({
                 session_uuid: sessionUuid,
                 type: orderType,
                 senior_pwd: seniorPwd,
-                items: lines.map((l) => ({ product_id: l.product.id, variant_id: l.variant?.id ?? null, quantity: l.quantity, modifiers: l.modifiers.map((m) => m.id) })),
+                customer_name: customerName.trim() || undefined,
+                items: lines.map((l) => ({
+                    product_id: l.product.id,
+                    variant_id: l.variant?.id ?? null,
+                    quantity: l.quantity,
+                    modifiers: l.modifiers.map((m) => m.id),
+                    notes: l.notes?.trim() || undefined,
+                })),
             });
 
             set({ placed, step: 'done', placing: false });

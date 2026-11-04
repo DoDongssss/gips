@@ -4,6 +4,7 @@ namespace App\Services\Orders;
 
 use App\Enums\ApprovalAction;
 use App\Models\DiscountApproval;
+use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
@@ -19,9 +20,13 @@ use Illuminate\Validation\ValidationException;
 class ApprovalService
 {
     /** @param  array{user_id?:int|string, pin?:string}|null  $approval */
-    public function resolve(?User $requester, ?array $approval, string $permission): User
+    public function resolve(?User $requester, ?array $approval, string $permission, ?Order $order = null): User
     {
         if ($requester && $requester->can($permission)) {
+            return $requester;
+        }
+
+        if ($order && $requester && $order->created_by === $requester->id && in_array($permission, ['order.void', 'payment.refund'], true)) {
             return $requester;
         }
 

@@ -36,6 +36,12 @@ class OrderResource extends JsonResource
             'completed_at' => $this->completed_at?->toIso8601String(),
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
 
+            'cashier' => $this->whenLoaded('creator', fn () => $this->creator?->name),
+            'created_by' => $this->created_by,
+            'shift_id' => $this->shift_id,
+            'shift_opened_at' => $this->whenLoaded('shift', fn () => $this->shift?->opened_at?->toIso8601String()),
+            'device_name' => $this->whenLoaded('device', fn () => $this->device?->name),
+
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($i) => [
                 'id' => $i->id,
                 'product_id' => $i->product_id,
@@ -108,6 +114,7 @@ class OrderResource extends JsonResource
             ])->values()),
 
             'status_history' => $this->whenLoaded('statusHistory', fn () => $this->statusHistory->map(fn ($h) => [
+                'id' => $h->id,
                 'from' => $h->from_status,
                 'to' => $h->to_status,
                 'note' => $h->note,

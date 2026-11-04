@@ -23,8 +23,12 @@ class PosController extends Controller implements HasMiddleware
     {
         $user = $request->user();
 
-        if ($shifts->isRequired() && ! $shifts->current($user) && $user->can('shift.open')) {
-            return redirect()->route('shifts.index')->with('error', 'Open your shift to start taking orders.');
+        if ($shifts->isRequired() && ! $shifts->current($user)) {
+            if ($user->can('shift.open')) {
+                return redirect()->route('shifts.index')->with('error', 'Open your shift to start taking orders.');
+            }
+
+            abort(403, 'No shift is open. Ask a manager to open a shift before using the register.');
         }
 
         return Inertia::render('pos/index');

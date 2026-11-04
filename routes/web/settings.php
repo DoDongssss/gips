@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AlertsController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\Settings\PrinterController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -38,7 +37,7 @@ Route::middleware('auth')->prefix('settings')->group(function () {
         // Kept untouched so nothing that calls /settings/api/v1/pos/printer breaks.
         Route::get('api/v1/pos/printer', [PrinterController::class, 'forRegister'])->name('api.v1.pos.printer');
 
-        // Devices: kiosks, registers, kitchen screens (permission:device.manage is enforced in the controller)
+        // Devices: kiosks and kitchen screens (permission:device.manage is enforced in the controller)
         Route::controller(DeviceController::class)->prefix('devices')->name('devices.')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');

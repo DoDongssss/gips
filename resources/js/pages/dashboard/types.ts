@@ -1,5 +1,7 @@
 export type RangeKey = 'today' | 'yesterday' | '7d' | '30d' | 'month';
 
+export type LayoutPreset = 'owner' | 'operations' | 'cashier' | 'kitchen' | 'default';
+
 export type Range = {
     key: RangeKey;
     label: string;
@@ -10,6 +12,12 @@ export type Range = {
 };
 
 export type Access = { sales: boolean; live: boolean; shifts: boolean; inventory: boolean; purchasing: boolean; kiosk: boolean };
+
+export type DashboardMeta = {
+    business_date: string;
+    layout: LayoutPreset;
+    day_closed: boolean;
+};
 
 export type Summary = {
     orders: number;
@@ -34,6 +42,7 @@ export type ProductRow = { id: number; name: string; qty: number; cents: number 
 export type Sales = {
     summary: Summary;
     previous: Summary;
+    as_of: string;
     trend: { unit: 'hour' | 'day'; points: TrendPoint[] };
     hours: { hour: number; label: string; orders: number }[];
     payments: { name: string; type: string; count: number; cents: number }[];
@@ -72,8 +81,10 @@ export type OpenShift = {
     opened_at: string;
     opening_cents: number;
     cash_sales_cents: number;
+    cash_tips_cents: number;
     cash_in_cents: number;
     cash_out_cents: number;
+    cash_refunds_cents: number;
     expected_cents: number;
 };
 
@@ -102,22 +113,23 @@ export type Purchasing = {
 };
 
 export type Kiosk = {
-    /** true while the phase 7 tables do not exist: the numbers are placeholders. */
     demo: boolean;
     devices: { id: number; name: string; app_version: string | null; last_seen_at: string | null; online: boolean; out_of_service: boolean }[];
     sessions: { total: number; completed: number; abandoned: number; rate: number };
 };
 
-export type Alert = { level: 'danger' | 'warning' | 'info'; text: string; href?: string };
+export type AttentionItem = { id: string; level: 'danger' | 'warning' | 'info'; text: string; href?: string };
 
 export type DashboardProps = {
+    meta: DashboardMeta;
     range: Range;
     access: Access;
+    can_load: boolean;
     live: Live | null;
     shifts: Shifts | null;
     sales: Sales | null;
     inventory: InventoryStats | null;
     purchasing: Purchasing | null;
     kiosk: Kiosk | null;
-    alerts: Alert[];
+    attention: AttentionItem[];
 };

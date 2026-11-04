@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 /** The shared shell every dashboard block uses. */
 export function Card({ title, hint, action, className, children }: { title?: string; hint?: string; action?: ReactNode; className?: string; children: ReactNode }) {
     return (
-        <section className={cn('border-sidebar-border/70 dark:border-sidebar-border bg-card flex flex-col rounded-xl border p-4', className)}>
+        <section className={cn('border-sidebar-border/70 dark:border-sidebar-border bg-card flex flex-col rounded-xl border p-3', className)}>
             {(title || action) && (
-                <header className="mb-3 flex items-start justify-between gap-3">
+                <header className="mb-2 flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         {title && <h2 className="truncate text-sm font-semibold">{title}</h2>}
                         {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
@@ -21,7 +21,7 @@ export function Card({ title, hint, action, className, children }: { title?: str
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-    return <p className="text-muted-foreground py-6 text-center text-sm">{children}</p>;
+    return <p className="text-muted-foreground py-4 text-center text-sm">{children}</p>;
 }
 
 export function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: 'danger' | 'warning' | 'good' }) {

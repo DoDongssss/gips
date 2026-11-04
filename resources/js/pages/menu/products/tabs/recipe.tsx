@@ -107,6 +107,9 @@ export function RecipeTab({ product }: { product: ProductDetail }) {
 
     return (
         <form onSubmit={submit} className="space-y-5">
+            {!canEdit && (
+                <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">You can view this recipe. Saving changes requires recipe manage permission.</p>
+            )}
             <p className="text-muted-foreground text-sm">
                 Each sale deducts these amounts from stock once the order is paid. Leave a size empty to use the whole-product recipe.
             </p>

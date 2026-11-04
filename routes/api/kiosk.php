@@ -27,6 +27,7 @@ Route::prefix('v1/kiosk')->name('kiosk.api.')->group(function () {
         Route::middleware(EnsureKioskDevice::class.':orders:create')->group(function () {
             Route::post('sessions', [KioskSessionController::class, 'start'])->name('sessions.start');
             Route::post('sessions/{uuid}/end', [KioskSessionController::class, 'end'])->whereUuid('uuid')->name('sessions.end');
+            Route::post('orders/preview', [KioskOrderController::class, 'preview'])->middleware('throttle:60,1')->name('orders.preview');
             Route::post('orders', [KioskOrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
         });
     });

@@ -134,7 +134,17 @@ class OrderService
     public function load(Order $order): Order
     {
         return $order->load([
-            'items.modifiers', 'discounts', 'taxes', 'payments.method', 'payments.refunds', 'refunds', 'receipts', 'statusHistory',
+            'items.modifiers',
+            'discounts',
+            'taxes',
+            'payments.method',
+            'payments.refunds',
+            'refunds',
+            'receipts',
+            'statusHistory',
+            'creator:id,name',
+            'shift:id,opened_at',
+            'device:id,name',
         ]);
     }
 

@@ -120,6 +120,7 @@ class PaymentService
                 'paid_cents' => $paidCents,
                 'tip_cents' => $order->tip_cents + $tipTotal,
                 'payment_status' => $fullyPaid ? PaymentStatus::Paid : PaymentStatus::Partial,
+                'requires_verification' => $fullyPaid ? false : $order->requires_verification,
             ]);
 
             if ($fullyPaid) {

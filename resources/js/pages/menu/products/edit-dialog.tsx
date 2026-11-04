@@ -9,6 +9,7 @@ import { ImagesTab } from '@/pages/menu/products/tabs/images';
 import { ModifiersTab } from '@/pages/menu/products/tabs/modifiers';
 import { RecipeTab } from '@/pages/menu/products/tabs/recipe';
 import { VariantsTab } from '@/pages/menu/products/tabs/variants';
+import { formatPeso } from '@/lib/money';
 import { availability } from '@/routes/menu/products';
 import type { AttachableGroup, Option, ProductDetail } from '@/types/menu';
 
@@ -41,6 +42,23 @@ export default function ProductEditDialog({ product, categories, stations, modif
                                 </Can>
                             </div>
                             <DialogDescription>Details, sizes, images, add-ons and recipe for this product.</DialogDescription>
+                            {showRecipe && (
+                                <p className="text-muted-foreground text-xs">
+                                    {!product.margin_preview ? (
+                                        <>Add a recipe to track ingredient cost and food cost %.</>
+                                    ) : product.margin_preview.needs_conversion ? (
+                                        <>Recipe cost needs a unit conversion — check Inventory → Units.</>
+                                    ) : product.margin_preview.food_cost_pct !== null ? (
+                                        <>
+                                            Estimated food cost {product.margin_preview.food_cost_pct}% ({formatPeso(product.margin_preview.cost_cents ?? 0)} cost vs{' '}
+                                            {formatPeso(product.base_price_cents)} base price).{' '}
+                                            <a href="/inventory/reports" className="underline">
+                                                Inventory costs
+                                            </a>
+                                        </>
+                                    ) : null}
+                                </p>
+                            )}
                         </DialogHeader>
 
                         <Tabs defaultValue="details" key={product.id}>

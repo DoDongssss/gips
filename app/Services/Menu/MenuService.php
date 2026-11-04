@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class MenuService
 {
-    public const CACHE_KEY = 'menu.v2';
+    public const CACHE_KEY = MenuCache::KEY;
 
     /** @return array<int, array<string, mixed>> */
     public function menu(bool $includeUnavailable = false): array
@@ -49,7 +49,7 @@ class MenuService
 
     public function flush(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        app(MenuCache::class)->flush();
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -70,6 +70,8 @@ class MenuService
                 'id' => $c->id,
                 'name' => $c->name,
                 'slug' => $c->slug,
+                'description' => $c->description,
+                'image_url' => $c->image_url,
                 'sort_order' => $c->sort_order,
                 'products' => $c->products->map(fn (Product $p) => $this->product($p))->values()->all(),
             ])

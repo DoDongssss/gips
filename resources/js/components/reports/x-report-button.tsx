@@ -11,16 +11,18 @@ import type { XReport } from '@/lib/reports';
 
 type Props = {
     scope: 'shift' | 'day';
+    /** When set, generates an X report for this open shift (managers with view-all). */
+    shiftId?: number;
     label?: string;
     variant?: 'default' | 'outline' | 'ghost';
 };
 
 /** One click: builds a mid-day snapshot, shows it, and can print it. Nothing is reset. */
-export function XReportButton({ scope, label = 'X report', variant = 'outline' }: Props) {
+export function XReportButton({ scope, shiftId, label = 'X report', variant = 'outline' }: Props) {
     const [report, setReport] = useState<XReport | null>(null);
 
     const generate = useMutation({
-        mutationFn: () => makeXReport(scope),
+        mutationFn: () => makeXReport(scope, shiftId),
         onSuccess: setReport,
         onError: (error) => toast.error(errorMessages(error)[0]),
     });

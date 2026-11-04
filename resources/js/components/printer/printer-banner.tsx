@@ -26,21 +26,20 @@ export function PrinterBanner() {
         }
     }, [settings]);
 
-    // Tell the server on every change, and once a minute so it knows this register is still open.
+    // Tell the server when this register's printer state changes (Pusher handles alerts for managers).
     useEffect(() => {
-        if (!settings) return;
-
-        const send = () => void reportPrinterStatus(health.online, health.message, settings.printer_connection);
-        const signature = `${health.online}|${health.message}`;
-
-        if (signature !== lastSent.current) {
-            lastSent.current = signature;
-            send();
+        if (!settings) {
+            return;
         }
 
-        const timer = window.setInterval(send, 60_000);
+        const signature = `${health.online}|${health.message}|${settings.printer_connection}`;
 
-        return () => window.clearInterval(timer);
+        if (signature === lastSent.current) {
+            return;
+        }
+
+        lastSent.current = signature;
+        void reportPrinterStatus(health.online, health.message, settings.printer_connection);
     }, [settings, health.online, health.message]);
 
     // Printer came back by itself (restored or reconnected): print what was waiting.

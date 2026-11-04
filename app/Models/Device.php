@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -16,8 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
  * What each type does:
  *  - kiosk:   authenticates with its own Sanctum token (abilities menu:read, orders:create)
  *  - kitchen: authenticates with its own Sanctum token (abilities kds:read, kds:bump) and shows one station
- *  - pos:     the cashier signs in with a staff login; the device record only marks this tablet as
- *             allowed to use PIN quick-login, so it gets no token abilities
+ *  - pos:     legacy rows only; new registers are not registered here. Cashiers use staff sign-in (password or PIN).
  *
  * A device never uses staff role permissions.
  */

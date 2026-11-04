@@ -17,8 +17,9 @@ class KioskMaintain extends Command
         $expired = $maintenance->expireUnpaidOrders();
         $closed = $maintenance->closeStaleSessions();
         $offline = $maintenance->reportOfflineKiosks();
+        $pruned = $maintenance->pruneHeartbeats();
 
-        $this->info("Cancelled {$expired} unpaid order(s), closed {$closed} stale session(s), reported ".count($offline).' offline kiosk(s).');
+        $this->info("Cancelled {$expired} unpaid order(s), closed {$closed} stale session(s), reported ".count($offline).' offline kiosk(s), pruned '.$pruned.' heartbeat(s).');
 
         return self::SUCCESS;
     }

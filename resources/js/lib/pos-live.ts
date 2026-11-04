@@ -5,11 +5,8 @@ export const setPosLive = (value: boolean): void => {
     live = value;
 };
 
-/**
- * For a query's refetchInterval: check often while there is no live connection (`fast`),
- * and only now and then as a safety net while there is one (`slow`).
- */
+/** While Pusher is connected on the register, order lists refresh from pushes only. */
 export const posPollMs =
-    (fast: number, slow = 60_000) =>
-    (): number =>
-        live ? slow : fast;
+    (fallbackMs: number) =>
+    (): number | false =>
+        live ? false : fallbackMs;

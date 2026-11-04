@@ -7,6 +7,7 @@ import { Can } from '@/components/can';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/hooks/use-can';
 import { errorMessages } from '@/lib/api';
+import { startEditing } from '@/lib/order-edit';
 import { formatPeso } from '@/lib/money';
 import { configQuery, orderAction } from '@/lib/pos-api';
 import type { OrderAction } from '@/lib/pos-api';
@@ -14,9 +15,11 @@ import { ActionDialog } from '@/pages/orders/action-dialog';
 import { PaymentDialog } from '@/pages/orders/payment-dialog';
 import { RefundDialog } from '@/pages/orders/refund-dialog';
 import { ReceiptDialog } from '@/pages/orders/receipt-dialog';
-import { humanize, OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
+import { ChannelBadge, humanize, OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
 import type { Approver, OrderDetail, OrderPayment, OrderReceipt } from '@/pages/orders/types';
+import { index as auditLogsIndex } from '@/routes/audit-logs';
 import { index } from '@/routes/orders';
+import { index as posIndex } from '@/routes/pos';
 
 type Props = {
     order: OrderDetail;
@@ -25,7 +28,7 @@ type Props = {
     /** Managers who can approve a refund with their PIN. */
     refund_approvers: Approver[];
     /** What this person may do to this order: only its own cashier, or a manager, can void or refund. */
-    can?: { void: boolean; refund: boolean };
+    can?: { void: boolean; refund: boolean; edit_in_pos?: boolean };
 };
 
 const formatDateTime = (value: string | null): string => (value ? new Date(value).toLocaleString() : '—');
@@ -83,6 +86,22 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
         onError: (error) => toast.error(errorMessages(error)[0]),
     });
 
+    async function openInPos() {
+        try {
+            await startEditing(order.id);
+            router.visit(posIndex.url());
+        } catch (error) {
+            toast.error(errorMessages(error)[0] ?? 'Could not open this order in the register.');
+        }
+    }
+
+    const backToListHref = index.url({
+        query: {
+            date: order.business_date,
+            highlight: order.id,
+        },
+    });
+
     return (
         <>
             <Head title={`Order ${order.order_number}`} />
@@ -94,10 +113,18 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
                             <h1 className="text-xl font-semibold tracking-tight">Order {order.order_number}</h1>
                             <OrderStatusBadge status={order.status} />
                             <PaymentStatusBadge status={order.payment_status} />
+                            <ChannelBadge channel={order.channel} />
+                            {order.requires_verification && (
+                                <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                    ID check
+                                </span>
+                            )}
                         </div>
                         <p className="text-muted-foreground text-sm">
-                            {orderTypeLabel[order.type] ?? order.type} · {humanize(order.channel)} · {formatDateTime(order.created_at)}
+                            {orderTypeLabel[order.type] ?? order.type} · {formatDateTime(order.created_at)}
                             {order.customer_name && ` · ${order.customer_name}`}
+                            {order.cashier && ` · Cashier ${order.cashier}`}
+                            {order.device_name && ` · ${order.device_name}`}
                         </p>
                         {order.cancel_reason && <p className="text-sm">Reason: {order.cancel_reason}</p>}
                         {lockedOut && (
@@ -136,8 +163,28 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
                             </Button>
                         )}
 
+                        {allowed.edit_in_pos && (
+                            <Button variant="outline" onClick={() => void openInPos()}>
+                                Edit in register
+                            </Button>
+                        )}
+
+                        <Can permission="audit.view">
+                            <Button variant="ghost" asChild>
+                                <Link
+                                    href={auditLogsIndex.url({
+                                        query: { search: order.order_number, log: 'orders' },
+                                    })}
+                                >
+                                    Audit log
+                                </Link>
+                            </Button>
+                        </Can>
+
                         <Button variant="ghost" asChild>
-                            <Link href={index.url({ query: { date: order.business_date } })}>Back to orders</Link>
+                            <Link href={backToListHref} only={['orders', 'filters', 'summary']} preserveState>
+                                Back to orders
+                            </Link>
                         </Button>
                     </div>
                 </div>
@@ -152,6 +199,7 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
                                             <th className="py-1.5 pr-3 font-medium">Item</th>
                                             <th className="px-3 py-1.5 text-right font-medium">Price</th>
                                             <th className="px-3 py-1.5 text-right font-medium">Qty</th>
+                                            <th className="px-3 py-1.5 font-medium">Line status</th>
                                             <th className="py-1.5 pl-3 text-right font-medium">Total</th>
                                         </tr>
                                     </thead>
@@ -182,6 +230,7 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
                                                 </td>
                                                 <td className="px-3 py-2 text-right align-top">{formatPeso(item.unit_price_cents + item.modifiers_total_cents)}</td>
                                                 <td className="px-3 py-2 text-right align-top">{item.quantity}</td>
+                                                <td className="text-muted-foreground px-3 py-2 align-top text-xs capitalize">{humanize(item.status)}</td>
                                                 <td className="py-2 pl-3 text-right align-top font-medium">{formatPeso(item.line_total_cents)}</td>
                                             </tr>
                                         ))}
@@ -299,8 +348,8 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
 
                         <Section title="History">
                             <ol className="space-y-3">
-                                {history.map((entry, i) => (
-                                    <li key={i} className="text-sm">
+                                {history.map((entry) => (
+                                    <li key={entry.id} className="text-sm">
                                         <p className="font-medium">
                                             {entry.from ? `${humanize(entry.from)} → ` : ''}
                                             {humanize(entry.to)}

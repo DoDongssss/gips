@@ -7,3 +7,4 @@ use Illuminate\Support\Facades\Schedule;
 // Schedule::command('inventory:deduct-missing')->everyFiveMinutes()->withoutOverlapping();
 
 Schedule::command('devices:watch')->everyMinute();
+Schedule::command('kiosk:maintain')->everyMinute()->withoutOverlapping();

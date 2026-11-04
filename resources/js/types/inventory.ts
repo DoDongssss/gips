@@ -60,7 +60,7 @@ export type MovementRow = {
 
 export type WasteRow = {
     id: number;
-    ingredient: string;
+    ingredient: { id: number; name: string };
     unit: string | null;
     quantity: string;
     reason: string;
@@ -150,7 +150,8 @@ export type PurchaseOrderDetail = PurchaseOrderRow & {
 export type ReceiptRow = {
     id: number;
     receipt_number: string;
-    supplier: string | null;
+    supplier: { id: number; name: string };
+    purchase_order_id: number | null;
     po_number: string | null;
     invoice_no: string | null;
     items_count: number;

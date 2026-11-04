@@ -8,7 +8,7 @@ use App\Models\Order;
 use App\Models\Receipt;
 use App\Models\Refund;
 use App\Models\User;
-use App\Support\PosSettings;
+use App\Services\ConfigurationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -100,13 +100,13 @@ class ReceiptService
 
         return [
             'business' => [
-                'name' => PosSettings::get('business', 'name', config('app.name')),
-                'address' => PosSettings::get('business', 'address'),
-                'tin' => PosSettings::get('business', 'tin'),
-                'phone' => PosSettings::get('business', 'phone'),
+                'name' => app(ConfigurationService::class)->get('business_name'),
+                'address' => app(ConfigurationService::class)->get('business_address'),
+                'tin' => app(ConfigurationService::class)->get('business_tin'),
+                'phone' => app(ConfigurationService::class)->get('business_phone'),
             ],
-            'header' => PosSettings::get('receipt', 'header'),
-            'footer' => PosSettings::get('receipt', 'footer'),
+            'header' => app(ConfigurationService::class)->get('receipt_header'),
+            'footer' => app(ConfigurationService::class)->get('receipt_footer'),
             'order_number' => $order->order_number,
             'order_type' => $order->type->value,
             'business_date' => $order->business_date->toDateString(),

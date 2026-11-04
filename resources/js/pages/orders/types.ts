@@ -15,8 +15,17 @@ export type OrderRow = {
     customer_name: string | null;
     total_cents: number;
     paid_cents: number;
+    requires_verification?: boolean;
     cashier: string | null;
     created_at: string | null;
+};
+
+export type OrderSummary = {
+    count: number;
+    total_cents: number;
+    paid_cents: number;
+    discount_cents: number;
+    void_count: number;
 };
 
 export type ReceiptContent = {
@@ -128,6 +137,11 @@ export type OrderDetail = {
     confirmed_at: string | null;
     completed_at: string | null;
     cancelled_at: string | null;
+    cashier?: string | null;
+    created_by?: number | null;
+    shift_id?: number | null;
+    shift_opened_at?: string | null;
+    device_name?: string | null;
     items?: OrderItem[];
     discounts?: {
         name: string;
@@ -142,7 +156,7 @@ export type OrderDetail = {
     payments?: OrderPayment[];
     refunds?: { id: number; payment_id: number; amount_cents: number; reason: string | null; refunded_at: string | null }[];
     receipts?: OrderReceipt[];
-    status_history?: { from: string | null; to: string; note: string | null; at: string | null }[];
+    status_history?: { id: number; from: string | null; to: string; note: string | null; at: string | null }[];
 };
 
 export type Approver = { id: number; name: string };
@@ -166,9 +180,10 @@ export type PaymentMethodOption = {
 };
 
 export type PosConfig = {
-    shift: { required: boolean; open: boolean; opened_at: string | null };
+    shift: { required: boolean; open: boolean; opened_at: string | null; id?: number | null };
     discounts: PosDiscount[];
     payment_methods: PaymentMethodOption[];
     tax: { name: string; rate: string; is_inclusive: boolean } | null;
     approvers: Approver[];
+    price_override_approvers: Approver[];
 };

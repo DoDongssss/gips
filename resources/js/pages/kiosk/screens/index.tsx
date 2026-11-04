@@ -82,7 +82,7 @@ export default function ScreensIndex({ screens }: Props) {
 
 ScreensIndex.layout = {
     breadcrumbs: [
-        { title: 'Kiosk', href: '/kiosk/devices' },
+        { title: 'Settings', href: '/settings/devices' },
         { title: 'Welcome screens', href: index() },
     ],
 };

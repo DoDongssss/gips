@@ -79,6 +79,12 @@ export async function orderAction(
     return (await api<{ data: OrderDetail }>(`${BASE}/orders/${orderId}/${action}`, { method: 'POST', body: body ?? {} })).data;
 }
 
+export async function lookupOrder(number: string): Promise<OrderDetail> {
+    const trimmed = number.trim().toUpperCase();
+
+    return (await api<{ data: OrderDetail }>(`${BASE}/orders/lookup/${encodeURIComponent(trimmed)}`)).data;
+}
+
 export async function refundPayment(
     orderId: number,
     body: { payment_id: number; amount_cents: number; reason: string; approval?: Approval },
@@ -93,6 +99,11 @@ export async function refundPayment(
     ).data;
 }
 
-export async function makeXReport(scope: 'shift' | 'day'): Promise<XReport> {
-    return (await api<{ data: XReport }>(`${BASE}/reports/x`, { method: 'POST', body: { scope } })).data;
+export async function makeXReport(scope: 'shift' | 'day', shiftId?: number): Promise<XReport> {
+    const body: { scope: 'shift' | 'day'; shift_id?: number } = { scope };
+    if (shiftId) {
+        body.shift_id = shiftId;
+    }
+
+    return (await api<{ data: XReport }>(`${BASE}/reports/x`, { method: 'POST', body })).data;
 }

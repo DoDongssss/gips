@@ -1,26 +1,107 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import type { SortingState } from '@tanstack/react-table';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Pager } from '@/components/inventory/pager';
-import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/data-table';
+import { Pager } from '@/components/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cleanQuery } from '@/lib/inventory';
+import { columnClassNames, getColumns } from '@/pages/inventory/suppliers/columns';
 import SupplierDialog from '@/pages/inventory/suppliers/supplier-dialog';
-import { index, show } from '@/routes/inventory/suppliers';
-import type { Paginated } from '@/types/menu';
+import { index } from '@/routes/inventory/suppliers';
 import type { Supplier } from '@/types/inventory';
+import type { Paginated } from '@/types/menu';
 
-type Props = { suppliers: Paginated<Supplier>; filters: { search: string } };
+type Filters = {
+    search: string;
+    filter: string;
+    sort?: string | null;
+    direction?: 'asc' | 'desc' | null;
+};
+
+type Props = {
+    // Optional on the server: undefined until the person asks for it.
+    suppliers?: Paginated<Supplier>;
+    filters: Filters;
+};
+
+const ONLY = ['suppliers', 'filters'];
 
 export default function SuppliersIndex({ suppliers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [loading, setLoading] = useState(false);
     const [dialog, setDialog] = useState<{ open: boolean; supplier?: Supplier }>({ open: false });
 
-    function submit(event: FormEvent) {
+    const [loaded, setLoaded] = useState<Paginated<Supplier> | undefined>(suppliers);
+    const data = suppliers ?? loaded;
+
+    const columns = useMemo(
+        () =>
+            getColumns({
+                onEdit: (supplier) => setDialog({ open: true, supplier }),
+            }),
+        [],
+    );
+
+    const sorting = useMemo<SortingState>(
+        () => (filters.sort ? [{ id: filters.sort, desc: filters.direction === 'desc' }] : []),
+        [filters.sort, filters.direction],
+    );
+
+    function visit(next: Partial<Filters> = {}) {
+        const merged = { ...filters, ...next };
+
+        router.get(
+            index.url(),
+            cleanQuery({
+                search: merged.search,
+                filter: merged.filter,
+                sort: merged.sort,
+                direction: merged.direction,
+            }),
+            {
+                only: ONLY,
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onStart: () => setLoading(true),
+                onFinish: () => setLoading(false),
+            },
+        );
+    }
+
+    function loadSuppliers() {
+        router.reload({
+            only: ONLY,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }
+
+    useEffect(() => {
+        if (suppliers) {
+            setLoaded(suppliers);
+        } else if (loaded) {
+            loadSuppliers();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [suppliers]);
+
+    function submitSearch(event: FormEvent) {
         event.preventDefault();
-        router.get(index.url(), cleanQuery({ search }), { preserveState: true, replace: true });
+        visit({ search });
+    }
+
+    function handleSortingChange(next: SortingState) {
+        const [first] = next;
+
+        visit({
+            sort: first?.id ?? null,
+            direction: first ? (first.desc ? 'desc' : 'asc') : null,
+        });
     }
 
     return (
@@ -29,66 +110,54 @@ export default function SuppliersIndex({ suppliers, filters }: Props) {
 
             <div className="space-y-6 p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
+                    <div className="space-y-1">
                         <h1 className="text-xl font-semibold tracking-tight">Suppliers</h1>
-                        <p className="text-muted-foreground text-sm">{suppliers.total} total</p>
+                        {data && <p className="text-muted-foreground text-sm">{data.total} total</p>}
                     </div>
                     <Button onClick={() => setDialog({ open: true })}>Add supplier</Button>
                 </div>
 
-                <form onSubmit={submit} className="flex max-w-sm gap-2">
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search suppliers" aria-label="Search suppliers" />
-                    <Button type="submit" variant="outline">
-                        Search
-                    </Button>
-                </form>
+                <div className="flex flex-wrap gap-2">
+                    <form onSubmit={submitSearch} className="flex min-w-64 max-w-sm flex-1 gap-2">
+                        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, contact, phone, or email" aria-label="Search suppliers" />
+                        <Button type="submit" variant="outline" disabled={loading}>
+                            Search
+                        </Button>
+                    </form>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="text-muted-foreground border-b text-left">
-                            <tr>
-                                <th className="p-3 font-medium">Supplier</th>
-                                <th className="p-3 font-medium">Contact</th>
-                                <th className="p-3 font-medium">Phone</th>
-                                <th className="p-3 text-right font-medium">Ingredients</th>
-                                <th className="p-3 font-medium">Status</th>
-                                <th className="w-44 p-3" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {suppliers.data.map((supplier) => (
-                                <tr key={supplier.id} className="border-b last:border-0">
-                                    <td className="p-3 font-medium">{supplier.name}</td>
-                                    <td className="text-muted-foreground p-3">{supplier.contact_person ?? '—'}</td>
-                                    <td className="text-muted-foreground p-3">{supplier.phone ?? '—'}</td>
-                                    <td className="p-3 text-right tabular-nums">{supplier.ingredients_count ?? 0}</td>
-                                    <td className="p-3">
-                                        <Badge variant={supplier.is_active ? 'default' : 'secondary'}>{supplier.is_active ? 'Active' : 'Inactive'}</Badge>
-                                    </td>
-                                    <td className="p-3">
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => setDialog({ open: true, supplier })}>
-                                                Edit
-                                            </Button>
-                                            <Button size="sm" asChild>
-                                                <Link href={show.url(supplier.id)}>Prices</Link>
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {suppliers.data.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="text-muted-foreground p-8 text-center">
-                                        No suppliers yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                    <Select value={filters.filter || 'active'} onValueChange={(value) => visit({ filter: value })}>
+                        <SelectTrigger className="w-44" aria-label="Status filter">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="active">Active only</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
-                <Pager currentPage={suppliers.current_page} lastPage={suppliers.last_page} prevUrl={suppliers.prev_page_url} nextUrl={suppliers.next_page_url} />
+                <DataTable
+                    columns={columns}
+                    data={data?.data ?? []}
+                    sorting={sorting}
+                    onSortingChange={handleSortingChange}
+                    columnClassNames={columnClassNames}
+                    emptyContent={
+                        data ? (
+                            'No suppliers found.'
+                        ) : (
+                            <div className="flex flex-col items-center gap-3">
+                                <p className="text-sm">Suppliers aren&apos;t loaded yet.</p>
+                                <Button onClick={loadSuppliers} disabled={loading}>
+                                    {loading ? 'Loading…' : 'Load suppliers'}
+                                </Button>
+                            </div>
+                        )
+                    }
+                />
+
+                {data && <Pager currentPage={data.current_page} lastPage={data.last_page} prevUrl={data.prev_page_url} nextUrl={data.next_page_url} only={ONLY} />}
             </div>
 
             <SupplierDialog open={dialog.open} supplier={dialog.supplier} onOpenChange={(open) => setDialog((current) => ({ ...current, open }))} />

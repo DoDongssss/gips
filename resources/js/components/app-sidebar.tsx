@@ -134,7 +134,7 @@ const sections: Section[] = [
                     { title: 'Devices', href: DevicesIndex(), permission: 'device.manage' },
                     { title: 'Printer', href: PrinterShow(), permission: 'setting.view' },
                     { title: 'Roles & permissions', href: RolesIndex(), permission: 'role.manage' },
-                    { title: 'Audit Logs', href: AuditLogsIndex(), permission: 'setting.view' },
+                    { title: 'Audit Logs', href: AuditLogsIndex(), permission: 'audit.view' },
                 ],
             },
         ],

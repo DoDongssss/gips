@@ -184,7 +184,7 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
 
     // Whose PIN can be used: when both are needed, only managers who can approve both.
     const discountApprovers = config?.approvers ?? [];
-    const overrideApprovers = (config as { price_override_approvers?: typeof discountApprovers } | undefined)?.price_override_approvers ?? [];
+    const overrideApprovers = config?.price_override_approvers ?? [];
     const approvers =
         discountNeedsApproval && priceNeedsApproval
             ? discountApprovers.filter((a) => overrideApprovers.some((o) => o.id === a.id))
@@ -391,7 +391,10 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
 
         return (
             <Dialog open onOpenChange={(open) => !open && close()}>
-                <DialogContent showCloseButton={false} className="max-h-[94vh] gap-4 overflow-y-auto rounded-2xl border-0 bg-white p-5 shadow-2xl sm:max-w-lg">
+                <DialogContent
+                    showCloseButton={false}
+                    className="!flex h-[min(92vh,860px)] w-[min(99vw,72rem)] max-w-[72rem] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-4 shadow-2xl sm:p-6"
+                >
                     <OrderReview
                         title={savedMode ? `Review order ${order?.order_number}` : editingOrder ? `Review changes to ${editingOrder.order_number}` : 'Review order'}
                         typeLabel={typeValue === 'dine_in' ? 'Dine in' : typeValue === 'delivery' ? 'Delivery' : 'Takeout'}
@@ -617,6 +620,9 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                         )}
 
                         <DialogFooter className="gap-1.5 sm:gap-1.5">
+                            <Button type="button" variant="ghost" className="h-12" onClick={() => setStep('review')}>
+                                Back
+                            </Button>
                             <Button type="button" variant="ghost" className="h-12" onClick={close}>
                                 {created ? 'Close (saved unpaid)' : 'Cancel'}
                             </Button>

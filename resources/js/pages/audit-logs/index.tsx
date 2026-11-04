@@ -1,11 +1,13 @@
-import { Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import type { SortingState } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { DataTable } from '@/components/data-table';
+import { Pager } from '@/components/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { columnClassNames, getColumns } from '@/pages/audit-logs/columns';
 import { DetailDialog, formatEventName } from '@/pages/audit-logs/detail_dialog';
 import type { AuditLogRow } from '@/pages/audit-logs/detail_dialog';
@@ -18,15 +20,13 @@ type Filters = {
     user: string;
     from: string;
     to: string;
-    sort?: string | null;
-    direction?: 'asc' | 'desc' | null;
+    sort: string | null;
+    direction: 'asc' | 'desc' | null;
 };
 
 type Paginated<T> = {
     data: T[];
     total: number;
-    from: number | null;
-    to: number | null;
     current_page: number;
     last_page: number;
     prev_page_url: string | null;
@@ -40,133 +40,218 @@ type Options = {
 };
 
 type Props = {
-    // Optional on the server: undefined until the person asks for them.
     logs?: Paginated<AuditLogRow>;
     options?: Options;
     filters: Filters;
 };
 
-// Partial reloads: only these props are requested, which is also what makes
-// the optional `logs` and `options` props come back.
 const ONLY = ['logs', 'options', 'filters'];
-
-const EMPTY: Filters = { search: '', log: '', event: '', user: '', from: '', to: '' };
-
-const selectClass =
-    'border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
+const ALL = 'all';
 
 export default function Index({ logs, options, filters }: Props) {
-    const [form, setForm] = useState<Filters>(filters);
+    const [search, setSearch] = useState(filters.search ?? '');
     const [selected, setSelected] = useState<AuditLogRow | null>(null);
     const [loading, setLoading] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Memoized so TanStack Table doesn't rebuild columns on every render.
     const columns = useMemo(() => getColumns({ onDetails: setSelected }), []);
 
-    // Sorting state comes from the server (query string), so it survives reloads and pagination.
     const sorting = useMemo<SortingState>(
-        () => (filters.sort ? [{ id: filters.sort, desc: filters.direction !== 'asc' }] : []),
+        () => (filters.sort ? [{ id: filters.sort, desc: filters.direction === 'desc' }] : []),
         [filters.sort, filters.direction],
     );
 
-    const set = (key: keyof Filters, value: string) => setForm((current) => ({ ...current, [key]: value }));
+    function queryParams(next: Partial<Filters> = {}, page?: number) {
+        const merged = { ...filters, ...next };
 
-    function visit(data: Filters) {
-        const query = Object.fromEntries(Object.entries(data).filter(([, value]) => value !== '' && value !== null && value !== undefined));
+        const params: Record<string, string | number | undefined> = {
+            search: merged.search || undefined,
+            log: merged.log || undefined,
+            event: merged.event || undefined,
+            user: merged.user || undefined,
+            from: merged.from || undefined,
+            to: merged.to || undefined,
+            sort: merged.sort ?? undefined,
+            direction: merged.direction ?? undefined,
+        };
 
-        router.get(index.url(), query, {
-            only: ONLY,
-            preserveState: true,
-            replace: true,
-            onStart: () => setLoading(true),
-            onFinish: () => setLoading(false),
-        });
+        if (page !== undefined) {
+            params.page = page > 1 ? page : undefined;
+        }
+
+        return params;
     }
 
-    // Loads with the filters currently applied on the server (not half-typed ones).
+    function visit(next: Partial<Filters> = {}, options: { resetPage?: boolean; page?: number } = {}) {
+        const resetPage = options.resetPage ?? Object.keys(next).length > 0;
+        const page = options.page ?? (resetPage ? 1 : logs?.current_page ?? 1);
+
+        router.get(
+            index.url({ query: queryParams(next, page) }),
+            {},
+            {
+                only: ONLY,
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onStart: () => setLoading(true),
+                onFinish: () => setLoading(false),
+            },
+        );
+    }
+
     function loadLogs() {
-        visit(filters);
+        visit({});
     }
 
-    function submit(event: FormEvent) {
+    useEffect(() => {
+        if (logs) {
+            setHasLoaded(true);
+        } else if (hasLoaded) {
+            loadLogs();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [logs]);
+
+    useEffect(() => {
+        if (logs) {
+            return;
+        }
+
+        const preset =
+            filters.search || filters.log || filters.event || filters.user || filters.from || filters.to;
+
+        if (preset) {
+            loadLogs();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+    }, [filters.search]);
+
+    useEffect(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            if (search !== (filters.search ?? '')) {
+                visit({ search });
+            }
+        }, 400);
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    function submitSearch(event: FormEvent) {
         event.preventDefault();
-        visit({ ...form, sort: filters.sort, direction: filters.direction });
-    }
-
-    function reset() {
-        setForm(EMPTY);
-        visit({ ...EMPTY, sort: filters.sort, direction: filters.direction });
+        visit({ search });
     }
 
     function handleSortingChange(next: SortingState) {
         const [first] = next;
-        visit({ ...filters, sort: first?.id, direction: first ? (first.desc ? 'desc' : 'asc') : null });
+        visit({ sort: first?.id ?? null, direction: first ? (first.desc ? 'desc' : 'asc') : null });
     }
+
+    function clearFilters() {
+        setSearch('');
+        visit({ search: '', log: '', event: '', user: '', from: '', to: '' });
+    }
+
+    const filtersActive =
+        Boolean(filters.search) ||
+        Boolean(filters.log) ||
+        Boolean(filters.event) ||
+        Boolean(filters.user) ||
+        Boolean(filters.from) ||
+        Boolean(filters.to);
+
+    function filterSelect(
+        key: 'log' | 'event' | 'user',
+        placeholder: string,
+        items: { value: string; label: string }[],
+    ) {
+        const value = filters[key] || ALL;
+
+        return (
+            <Select value={value} onValueChange={(next) => visit({ [key]: next === ALL ? '' : next } as Partial<Filters>)}>
+                <SelectTrigger className="w-44" aria-label={placeholder}>
+                    <SelectValue placeholder={placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value={ALL}>{placeholder}</SelectItem>
+                    {items.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        );
+    }
+
+    const logOptions = (options?.logs ?? []).map((log) => ({ value: log, label: formatEventName(log) }));
+    const eventOptions = (options?.events ?? []).map((event) => ({ value: event, label: formatEventName(event) }));
+    const userOptions = (options?.users ?? []).map((user) => ({ value: String(user.id), label: user.name }));
 
     return (
         <>
+            <Head title="Audit log" />
+
             <div className="space-y-6 p-6">
                 <div className="space-y-1">
                     <h1 className="text-xl font-semibold tracking-tight">Audit log</h1>
                     <p className="text-muted-foreground text-sm">
-                        A record of who did what, and when. Entries cannot be edited or deleted here.
+                        Who did what, and when. Entries cannot be edited or deleted here.
                         {logs && ` ${logs.total} total.`}
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                    <Input
-                        className="lg:col-span-2"
-                        placeholder="Search description"
-                        value={form.search}
-                        onChange={(event) => set('search', event.target.value)}
-                    />
-
-                    <select className={selectClass} value={form.log} onChange={(event) => set('log', event.target.value)}>
-                        <option value="">All areas</option>
-                        {(options?.logs ?? []).map((log) => (
-                            <option key={log} value={log}>
-                                {formatEventName(log)}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select className={selectClass} value={form.event} onChange={(event) => set('event', event.target.value)}>
-                        <option value="">All events</option>
-                        {(options?.events ?? []).map((event) => (
-                            <option key={event} value={event}>
-                                {formatEventName(event)}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select className={selectClass} value={form.user} onChange={(event) => set('user', event.target.value)}>
-                        <option value="">Everyone</option>
-                        {(options?.users ?? []).map((user) => (
-                            <option key={user.id} value={String(user.id)}>
-                                {user.name}
-                            </option>
-                        ))}
-                    </select>
-
-                    <div className="flex gap-2">
-                        <Button type="submit" disabled={loading}>
-                            Apply
+                <div className="flex flex-wrap items-end gap-2">
+                    <form onSubmit={submitSearch} className="flex min-w-[14rem] flex-1 gap-2 sm:max-w-md">
+                        <Input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search description"
+                            aria-label="Search audit log"
+                        />
+                        <Button type="submit" variant="outline" disabled={loading}>
+                            Search
                         </Button>
-                        <Button type="button" variant="outline" onClick={reset} disabled={loading}>
-                            Reset
-                        </Button>
-                    </div>
+                    </form>
+
+                    {filterSelect('log', 'All areas', logOptions)}
+                    {filterSelect('event', 'All events', eventOptions)}
+                    {filterSelect('user', 'Everyone', userOptions)}
 
                     <label className="text-muted-foreground flex items-center gap-2 text-sm">
                         From
-                        <Input type="date" value={form.from} onChange={(event) => set('from', event.target.value)} />
+                        <Input
+                            type="date"
+                            className="w-auto"
+                            value={filters.from}
+                            onChange={(event) => visit({ from: event.target.value })}
+                        />
                     </label>
                     <label className="text-muted-foreground flex items-center gap-2 text-sm">
                         To
-                        <Input type="date" value={form.to} onChange={(event) => set('to', event.target.value)} />
+                        <Input type="date" className="w-auto" value={filters.to} onChange={(event) => visit({ to: event.target.value })} />
                     </label>
-                </form>
+
+                    {filtersActive && (
+                        <Button type="button" variant="ghost" onClick={clearFilters}>
+                            Clear filters
+                        </Button>
+                    )}
+                </div>
 
                 <DataTable
                     columns={columns}
@@ -176,7 +261,7 @@ export default function Index({ logs, options, filters }: Props) {
                     columnClassNames={columnClassNames}
                     emptyContent={
                         logs ? (
-                            'No activity found.'
+                            'No activity found for these filters.'
                         ) : (
                             <div className="flex flex-col items-center gap-3">
                                 <p className="text-sm">The audit log isn&apos;t loaded yet.</p>
@@ -188,36 +273,14 @@ export default function Index({ logs, options, filters }: Props) {
                     }
                 />
 
-                {logs && logs.last_page > 1 && (
-                    <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground text-sm">
-                            Showing {logs.from}–{logs.to} of {logs.total}
-                        </p>
-                        <div className="flex gap-2">
-                            {logs.prev_page_url ? (
-                                <Button variant="outline" size="sm" asChild>
-                                    <Link href={logs.prev_page_url} only={ONLY} preserveState>
-                                        Previous
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button variant="outline" size="sm" disabled>
-                                    Previous
-                                </Button>
-                            )}
-                            {logs.next_page_url ? (
-                                <Button variant="outline" size="sm" asChild>
-                                    <Link href={logs.next_page_url} only={ONLY} preserveState>
-                                        Next
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button variant="outline" size="sm" disabled>
-                                    Next
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                {logs && (
+                    <Pager
+                        currentPage={logs.current_page}
+                        lastPage={logs.last_page}
+                        prevUrl={logs.prev_page_url}
+                        nextUrl={logs.next_page_url}
+                        only={ONLY}
+                    />
                 )}
             </div>
 
@@ -227,10 +290,5 @@ export default function Index({ logs, options, filters }: Props) {
 }
 
 Index.layout = {
-    breadcrumbs: [
-        {
-            title: 'Audit Logs',
-            href: index(),
-        },
-    ],
+    breadcrumbs: [{ title: 'Audit Logs', href: index() }],
 };

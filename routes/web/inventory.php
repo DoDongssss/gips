@@ -12,8 +12,8 @@ use App\Http\Controllers\Inventory\StockAdjustmentController;
 use App\Http\Controllers\Inventory\StockCountController;
 use App\Http\Controllers\Inventory\StockMovementController;
 use App\Http\Controllers\Inventory\SupplierController;
-use App\Http\Controllers\Inventory\UnitConversionController;
 use App\Http\Controllers\Inventory\UnitController;
+use App\Http\Controllers\Inventory\UnitConversionController;
 use App\Http\Controllers\Inventory\WasteController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('receipts', GoodsReceiptController::class)->only(['index', 'create', 'store', 'show']);
 
         // ── Reports
+        Route::get('reports/export', [InventoryReportController::class, 'export'])->name('reports.export');
         Route::get('reports', [InventoryReportController::class, 'index'])->name('reports.index');
     });
 

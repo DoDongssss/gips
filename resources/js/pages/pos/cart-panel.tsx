@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/hooks/use-can';
 import { usePricedCart } from '@/hooks/use-priced-cart';
-import { menuQuery } from '@/lib/pos-api';
+import { configQuery, menuQuery } from '@/lib/pos-api';
 import { errorList } from '@/lib/pos-http';
 import { formatPeso } from '@/lib/money';
 import type { CartLine } from '@/stores/cart-store';
@@ -33,7 +33,11 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
     const editing = useOrderEdit((state) => state.editing);
     const { can } = useCan();
     const menu = useQuery(menuQuery);
+    const config = useQuery(configQuery);
     const [priceLine, setPriceLine] = useState<CartLine | null>(null);
+
+    const canOverridePrice =
+        can('order.price-override') || (config.data?.price_override_approvers.length ?? 0) > 0;
 
     /** The item's list price (size price when it has sizes), before add-ons. */
     const listPrice = (line: CartLine): number | null => {
@@ -147,9 +151,11 @@ export function CartPanel({ onEditLine, onCheckout }: Props) {
                                                 <Plus className="size-4" />
                                             </Button>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="size-9 text-gray-600" aria-label={`Change price of ${line.name}`} title="Change price" onClick={() => setPriceLine(line)}>
-                                            <Tag className="size-4" />
-                                        </Button>
+                                        {canOverridePrice && (
+                                            <Button variant="ghost" size="icon" className="size-9 text-gray-600" aria-label={`Change price of ${line.name}`} title="Change price" onClick={() => setPriceLine(line)}>
+                                                <Tag className="size-4" />
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="icon"

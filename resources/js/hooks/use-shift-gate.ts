@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useCan } from '@/hooks/use-can';
 import { configQuery } from '@/lib/pos-api';
+import type { PosConfig } from '@/pages/orders/types';
 
-export type ShiftState = { required: boolean; open: boolean; opened_at: string | null };
+export type ShiftState = PosConfig['shift'];
 
 /**
  * The cashier's shift, from GET /api/v1/pos/config (shared cache with the register).
@@ -14,7 +15,7 @@ export function useShiftGate() {
     const { can } = useCan();
     const config = useQuery(configQuery);
 
-    const shift = (config.data as unknown as { shift?: ShiftState } | undefined)?.shift ?? null;
+    const shift = config.data?.shift ?? null;
     const blocked = shift !== null && shift.required && !shift.open && can('shift.open');
 
     return { shift, blocked, loaded: config.isSuccess };

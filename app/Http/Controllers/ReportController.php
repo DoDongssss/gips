@@ -33,7 +33,8 @@ class ReportController extends Controller implements HasMiddleware
         return Inertia::render('reports/index', [
             'filters' => ['type' => $type, 'from' => $from, 'to' => $to],
             'types' => collect(ReportService::TYPES)->map(fn ($label, $value) => ['value' => $value, 'label' => $label])->values(),
-            'report' => $reports->table($type, $from, $to),
+            // Optional: not sent on the first visit. The page loads data when the person clicks "Run report".
+            'report' => Inertia::optional(fn () => $reports->table($type, $from, $to)),
         ]);
     }
 

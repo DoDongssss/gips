@@ -85,7 +85,7 @@ export default function UpsellIndex({ rules, products, categories }: Props) {
 
 UpsellIndex.layout = {
     breadcrumbs: [
-        { title: 'Kiosk', href: '/kiosk/devices' },
+        { title: 'Settings', href: '/settings/devices' },
         { title: 'Upsell rules', href: index() },
     ],
 };

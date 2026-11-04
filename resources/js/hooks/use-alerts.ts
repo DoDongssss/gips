@@ -2,7 +2,7 @@ import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-quer
 
 import { useAlertChannel } from '@/hooks/use-alert-channel';
 import { useCan } from '@/hooks/use-can';
-import { refreshDashboard } from '@/lib/dashboard-refresh';
+import { refreshDashboardAlerts } from '@/lib/dashboard-refresh';
 import { posGet } from '@/lib/pos-http';
 import type { LowStock } from '@/types/inventory';
 
@@ -22,13 +22,13 @@ function scheduleRefresh(queryClient: QueryClient) {
     window.clearTimeout(timer);
     timer = window.setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ALERTS_KEY });
-        refreshDashboard();
+        refreshDashboardAlerts();
     }, 300);
 }
 
 /**
  * All alerts (offline devices, broken printers, low stock) from ONE request, shared by every bell.
- * A Pusher push refreshes it; it also polls slowly as a backup (every 30 seconds if Pusher is not set up).
+ * A Pusher push refreshes it. Polls every 30 seconds only when Pusher is not configured.
  * `select` picks the part a bell needs.
  */
 export function useAlerts<T>(select: (alerts: Alerts) => T) {
@@ -47,7 +47,7 @@ export function useAlerts<T>(select: (alerts: Alerts) => T) {
         queryFn: async () => (await posGet<{ data: Alerts }>(ALERTS_URL)).data,
         enabled: canDevices || canStock,
         staleTime: 10_000,
-        refetchInterval: live ? 120_000 : 30_000,
+        refetchInterval: live ? false : 30_000,
         select,
     });
 }

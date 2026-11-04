@@ -27,10 +27,10 @@ class KioskController extends Controller
     }
 
     /** Settings and the out-of-service flag. The kiosk polls this about every 15 seconds. */
-    // public function status(Request $request): JsonResponse
-    // {
-    //     return response()->json(['data' => $this->state($request->user())]);
-    // }
+    public function status(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->state($request->user())]);
+    }
 
     /** Every 30 seconds. Records the ping, keeps "last seen" fresh and returns the same state as status. */
     public function heartbeat(Request $request): JsonResponse
@@ -65,7 +65,8 @@ class KioskController extends Controller
     {
         $data = $request->validate(['product_ids' => ['required', 'array', 'min:1', 'max:50'], 'product_ids.*' => ['integer']]);
 
-        if (! $request->user()->freshSettings()?->upsell_enabled) {
+        $settings = $request->user()->freshSettings();
+        if ($settings !== null && ! $settings->upsell_enabled) {
             return response()->json(['data' => []]);
         }
 

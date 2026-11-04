@@ -16,10 +16,17 @@ export type ProductRow = {
     category_id: number;
     category_name: string | null;
     base_price_cents: number;
+    min_price_cents: number;
     is_active: boolean;
     is_available: boolean;
     variants_count: number;
+    modifier_groups_count: number;
     image_url: string | null;
+    has_image: boolean;
+    station_label: string;
+    recipe_status: 'none' | 'ok' | 'needs_conversion';
+    sort_order: number;
+    deleted_at?: string | null;
 };
 
 export type Paginated<T> = {
@@ -57,6 +64,12 @@ export type ProductDetail = {
     variants: Variant[];
     images: ProductImage[];
     modifier_group_ids: number[];
+    margin_preview: {
+        cost_cents: number | null;
+        margin_cents: number | null;
+        food_cost_pct: number | null;
+        needs_conversion: boolean;
+    } | null;
 };
 
 export type ModifierItem = {

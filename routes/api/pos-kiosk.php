@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\V1\KioskAlertController;
 use App\Http\Controllers\Api\V1\OrderEditController;
 use App\Http\Controllers\Api\V1\OrderStockReturnController;
 use App\Http\Controllers\Api\V1\PosKioskOrdersController;

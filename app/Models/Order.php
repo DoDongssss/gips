@@ -79,6 +79,11 @@ class Order extends Model
         return $this->belongsTo(Shift::class);
     }
 
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(Device::class);
+    }
+
     public function refunds(): HasMany
     {
         return $this->hasMany(Refund::class)->orderBy('id');

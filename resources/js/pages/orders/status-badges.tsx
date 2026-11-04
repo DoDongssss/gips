@@ -46,3 +46,13 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
     return <Badge variant="outline" className={tone[paymentTone[status] ?? 'gray']}>{humanize(status)}</Badge>;
 }
+
+export function ChannelBadge({ channel }: { channel: string }) {
+    const label = channel === 'pos' ? 'POS' : humanize(channel);
+
+    return (
+        <Badge variant="outline" className={channel === 'kiosk' ? tone.amber : tone.gray}>
+            {label}
+        </Badge>
+    );
+}

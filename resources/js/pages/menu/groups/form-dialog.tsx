@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Package, Plus, Star, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Package, Plus, Star, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useCan } from '@/hooks/use-can';
 import { centsToPesos, pesosToCents } from '@/lib/money';
+import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import ModifierStockDialog from '@/pages/menu/groups/modifier-stock-dialog';
 import { store, update } from '@/routes/menu/groups';
 
@@ -20,6 +21,7 @@ export type ModifierRecord = {
     price_delta_cents: number;
     is_default: boolean;
     is_available: boolean;
+    has_stock_rules?: boolean;
 };
 
 export type GroupRecord = {
@@ -111,6 +113,18 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
                 is_default: i === index ? !row.is_default : multiple ? row.is_default : false,
             })),
         );
+
+    function moveRow(index: number, delta: number) {
+        const rows = [...form.data.modifiers];
+        const target = index + delta;
+
+        if (target < 0 || target >= rows.length) {
+            return;
+        }
+
+        [rows[index], rows[target]] = [rows[target], rows[index]];
+        setRows(rows);
+    }
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -222,6 +236,26 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
                         {form.data.modifiers.map((row, index) => (
                             <div key={row.id ?? `new-${index}`} className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+                                    <div className="flex flex-col gap-0.5">
+                                        <IconActionTooltip label="Move up">
+                                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} aria-label="Move up" onClick={() => moveRow(index, -1)}>
+                                                <ArrowUp className="size-3.5" />
+                                            </Button>
+                                        </IconActionTooltip>
+                                        <IconActionTooltip label="Move down">
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-7"
+                                                disabled={index === form.data.modifiers.length - 1}
+                                                aria-label="Move down"
+                                                onClick={() => moveRow(index, 1)}
+                                            >
+                                                <ArrowDown className="size-3.5" />
+                                            </Button>
+                                        </IconActionTooltip>
+                                    </div>
                                     <Input
                                         className="min-w-32 flex-1"
                                         placeholder="Option name"
@@ -246,24 +280,31 @@ export default function GroupFormDialog({ open, onOpenChange, mode, group }: Pro
                                         <Star className="size-3.5" /> Default
                                     </Button>
                                     {canStock && row.id !== undefined && (
-                                        <Button type="button" size="sm" variant="outline" onClick={() => setStockFor({ id: row.id!, name: row.name })}>
-                                            <Package className="size-3.5" /> Stock
-                                        </Button>
+                                        <IconActionTooltip label="Stock effects">
+                                            <Button type="button" size="sm" variant="outline" onClick={() => setStockFor({ id: row.id!, name: row.name })}>
+                                                <Package className="size-3.5" /> Stock
+                                            </Button>
+                                        </IconActionTooltip>
+                                    )}
+                                    {canStock && row.id === undefined && (
+                                        <span className="text-muted-foreground text-xs">Save first to edit stock</span>
                                     )}
                                     <label className="flex items-center gap-2 text-sm">
                                         <Switch checked={row.is_available} onCheckedChange={(value) => patch(index, { is_available: value })} />
                                         In stock
                                     </label>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        aria-label="Remove option"
-                                        disabled={form.data.modifiers.length === 1}
-                                        onClick={() => setRows(form.data.modifiers.filter((_, i) => i !== index))}
-                                    >
-                                        <X className="size-4" />
-                                    </Button>
+                                    <IconActionTooltip label="Remove option">
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            aria-label="Remove option"
+                                            disabled={form.data.modifiers.length === 1}
+                                            onClick={() => setRows(form.data.modifiers.filter((_, i) => i !== index))}
+                                        >
+                                            <X className="size-4" />
+                                        </Button>
+                                    </IconActionTooltip>
                                 </div>
                                 {errors[`modifiers.${index}.name`] && (
                                     <p className="text-destructive text-sm">{errors[`modifiers.${index}.name`]}</p>

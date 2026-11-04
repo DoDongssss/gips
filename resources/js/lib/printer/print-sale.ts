@@ -26,6 +26,7 @@ type Queued = { id: string; orderNumber: string; content: ReceiptContent; openDr
 
 const QUEUE_KEY = 'gips.print-queue';
 const queueListeners = new Set<() => void>();
+const EMPTY_QUEUE: Queued[] = [];
 let queue: Queued[] = readQueue();
 
 function readQueue(): Queued[] {
@@ -56,7 +57,7 @@ export function usePrintQueue(): Queued[] {
             return () => queueListeners.delete(listener);
         },
         () => queue,
-        () => [],
+        () => EMPTY_QUEUE,
     );
 }
 

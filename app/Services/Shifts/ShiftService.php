@@ -12,10 +12,11 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\ConfigurationService;
 use App\Support\Audit;
 use App\Support\BusinessDate;
 use App\Support\ClosedDay;
-use App\Support\PosSettings;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -28,7 +29,7 @@ class ShiftService
 
     public function isRequired(): bool
     {
-        return (bool) PosSettings::get('shifts', 'require_open_shift', true);
+        return (bool) app(ConfigurationService::class)->get('shifts_require_open_shift');
     }
 
     /**
@@ -153,7 +154,7 @@ class ShiftService
                 throw ValidationException::withMessages(['shift' => 'This shift is already open.']);
             }
 
-            $date = \Illuminate\Support\Carbon::parse($shift->business_date)->toDateString();
+            $date = Carbon::parse($shift->business_date)->toDateString();
 
             // A shift can only be reopened while its own day is reopened (Z reports page > Reopen day).
             if (! DB::table('reopened_days')->where('business_date', $date)->exists()) {

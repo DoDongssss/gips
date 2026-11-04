@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,7 +21,11 @@ export function ReceiptDialog({ orderId, receipt, onOpenChange }: Props) {
         }
 
         printReceipt(receipt.content, receipt.receipt_number);
-        router.post(reprint.url({ order: orderId, receipt: receipt.id }), {}, { preserveScroll: true, preserveState: true });
+        router.post(reprint.url({ order: orderId, receipt: receipt.id }), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => toast.success(`Receipt ${receipt.receipt_number} print recorded.`),
+        });
     }
 
     return (
