@@ -7,9 +7,9 @@ import { effectiveSettings } from '@/lib/printer/device-choice';
 import { configure, print, restore, usePrinter } from '@/lib/printer/printer';
 import { drawerPulse } from '@/lib/printer/receipt';
 import { saleReceipt } from '@/lib/printer/sale-receipt';
-import { posGet, posPost } from '@/lib/pos-http';
+import { posGet, posPost } from '@/lib/pos/http';
 import { uuid } from '@/lib/uuid';
-import type { OrderDetail, ReceiptContent } from '@/pages/orders/types';
+import type { OrderDetail, ReceiptContent } from '@/types/orders';
 import type { PrinterSettings } from '@/types/printer';
 
 /* ---------------- settings (the register reads them once a minute at most) ---------------- */

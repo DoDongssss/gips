@@ -3,20 +3,21 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { Can } from '@/components/can';
+import { EditOrderDialog } from '@/components/pos/edit-order-dialog';
+import { Can } from '@/components/shared/can';
 import { Button } from '@/components/ui/button';
-import { useCan } from '@/hooks/use-can';
+import { useCan } from '@/hooks/shared/use-can';
 import { errorMessages } from '@/lib/api';
-import { startEditing } from '@/lib/order-edit';
+import { startEditing } from '@/lib/pos/order-edit';
 import { formatPeso } from '@/lib/money';
-import { configQuery, orderAction } from '@/lib/pos-api';
-import type { OrderAction } from '@/lib/pos-api';
+import { configQuery, orderAction } from '@/lib/pos/api';
+import type { OrderAction } from '@/lib/pos/api';
 import { ActionDialog } from '@/pages/orders/action-dialog';
 import { PaymentDialog } from '@/pages/orders/payment-dialog';
 import { RefundDialog } from '@/pages/orders/refund-dialog';
 import { ReceiptDialog } from '@/pages/orders/receipt-dialog';
 import { ChannelBadge, humanize, OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
-import type { Approver, OrderDetail, OrderPayment, OrderReceipt } from '@/pages/orders/types';
+import type { Approver, OrderDetail, OrderPayment, OrderReceipt } from '@/types/orders';
 import { index as auditLogsIndex } from '@/routes/audit-logs';
 import { index } from '@/routes/orders';
 import { index as posIndex } from '@/routes/pos';
@@ -57,6 +58,7 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
     const [refunding, setRefunding] = useState<OrderPayment | null>(null);
     const [dialog, setDialog] = useState<'cancel' | 'void' | null>(null);
     const [receipt, setReceipt] = useState<OrderReceipt | null>(null);
+    const [quantityEditOpen, setQuantityEditOpen] = useState(false);
 
     // Payment methods come from the same config call the register uses.
     const config = useQuery({ ...configQuery, enabled: can('payment.take') });
@@ -164,9 +166,14 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
                         )}
 
                         {allowed.edit_in_pos && (
-                            <Button variant="outline" onClick={() => void openInPos()}>
-                                Edit in register
-                            </Button>
+                            <>
+                                <Button variant="outline" onClick={() => setQuantityEditOpen(true)}>
+                                    Adjust quantities
+                                </Button>
+                                <Button variant="outline" onClick={() => void openInPos()}>
+                                    Edit in register
+                                </Button>
+                            </>
                         )}
 
                         <Can permission="audit.view">
@@ -405,6 +412,14 @@ export default function Show({ order, approvers, refund_approvers, can: allowed 
             />
 
             <ReceiptDialog orderId={order.id} receipt={receipt} onOpenChange={(open) => !open && setReceipt(null)} />
+
+            <EditOrderDialog
+                orderId={quantityEditOpen ? order.id : null}
+                onClose={() => {
+                    setQuantityEditOpen(false);
+                    refresh();
+                }}
+            />
         </>
     );
 }

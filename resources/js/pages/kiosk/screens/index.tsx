@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { screenTypeLabels } from '@/lib/kiosk';
+import { screenTypeLabels } from '@/lib/kiosk/helpers';
 import ScreenDialog from '@/pages/kiosk/screens/screen-dialog';
 import { index } from '@/routes/kiosk/screens';
 import type { ScreenRow } from '@/types/kiosk';

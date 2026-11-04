@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { printReceipt, ReceiptView } from '@/pages/orders/receipt';
-import type { OrderReceipt } from '@/pages/orders/types';
+import type { OrderReceipt } from '@/types/orders';
 import { reprint } from '@/routes/orders/receipts';
 
 type Props = {

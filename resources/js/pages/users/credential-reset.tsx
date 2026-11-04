@@ -4,7 +4,7 @@ import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 
 import UserController from '@/actions/App/Http/Controllers/UserController';
-import { Can } from '@/components/can';
+import { Can } from '@/components/shared/can';
 import { Button } from '@/components/ui/button';
 
 type CredentialType = 'password' | 'pin';

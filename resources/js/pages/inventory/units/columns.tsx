@@ -1,8 +1,8 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { Can } from '@/components/can';
-import type { DataTableFeatures } from '@/components/data-table';
-import { SortableHeader } from '@/components/sortable-header';
+import { Can } from '@/components/shared/can';
+import type { DataTableFeatures } from '@/components/shared/data-table';
+import { SortableHeader } from '@/components/shared/sortable-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Unit, UnitType } from '@/types/inventory';

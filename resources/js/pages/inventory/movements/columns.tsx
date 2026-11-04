@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import type { DataTableFeatures } from '@/components/data-table';
-import { SortableHeader } from '@/components/sortable-header';
+import type { DataTableFeatures } from '@/components/shared/data-table';
+import { SortableHeader } from '@/components/shared/sortable-header';
 import { Badge } from '@/components/ui/badge';
 import { formatChange, formatUnitCost, movementLabels, referenceLabel } from '@/lib/inventory';
 import { index } from '@/routes/inventory/movements';

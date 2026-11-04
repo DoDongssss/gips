@@ -2,8 +2,8 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { useDashboardRealtime } from '@/hooks/use-dashboard-realtime';
-import { usePusherStatus } from '@/hooks/use-pusher-status';
+import { useDashboardRealtime } from '@/hooks/pusher/use-dashboard-realtime';
+import { usePusherStatus } from '@/hooks/pusher/use-pusher-status';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 
@@ -16,7 +16,7 @@ import { LiveStrip, RecentOrders, ShiftsCard } from './live';
 import { Breakdown, CategoriesCard, FoodCostCard, FinanceRow, HoursCard, KpiRow, MixCard, PaymentsCard, ProductsCard } from './sales';
 import { KioskCard, PurchasingCard, StockCard } from './stock';
 import { TodayHero } from './today-hero';
-import type { DashboardProps, RangeKey } from './types';
+import type { DashboardProps, RangeKey } from '@/types/dashboard';
 
 const CLOCK_MS = 60_000;
 

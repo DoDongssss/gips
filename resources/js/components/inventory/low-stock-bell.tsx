@@ -3,8 +3,8 @@ import { Bell } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useCan } from '@/hooks/use-can';
-import { useLowStock } from '@/hooks/use-low-stock';
+import { useCan } from '@/hooks/shared/use-can';
+import { useLowStock } from '@/hooks/inventory/use-low-stock';
 import { formatQty } from '@/lib/inventory';
 import { index } from '@/routes/inventory/ingredients';
 

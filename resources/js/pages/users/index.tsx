@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import UserController from '@/actions/App/Http/Controllers/UserController';
-import { Can } from '@/components/can';
-import { DataTable } from '@/components/data-table';
+import { Can } from '@/components/shared/can';
+import { DataTable } from '@/components/shared/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { columnClassNames, getColumns } from '@/pages/users/columns';

@@ -1,0 +1,24 @@
+export function ago(iso: string | null | undefined, now = Date.now()): string {
+    if (!iso) {
+        return 'never';
+    }
+
+    const minutes = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));
+
+    if (minutes < 1) {
+        return 'just now';
+    }
+    if (minutes < 60) {
+        return `${minutes} min ago`;
+    }
+    if (minutes < 1440) {
+        return `${Math.floor(minutes / 60)} h ago`;
+    }
+
+    return `${Math.floor(minutes / 1440)} d ago`;
+}
+
+export const screenTypeLabels: Record<string, string> = { welcome: 'Welcome', promo: 'Promo', banner: 'Banner' };
+export const channelLabels: Record<string, string> = { all: 'Register and kiosk', pos: 'Register only', kiosk: 'Kiosk only' };
+
+export const orNull = (value: string): string | null => (value.trim() === '' ? null : value.trim());

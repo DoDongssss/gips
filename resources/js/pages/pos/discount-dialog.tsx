@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatPeso } from '@/lib/money';
-import type { PosDiscount } from '@/pages/orders/types';
+import type { PosDiscount } from '@/types/orders';
 import type { CartDiscount, CartLine } from '@/stores/cart-store';
 
 type Props = {

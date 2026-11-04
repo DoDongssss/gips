@@ -26,15 +26,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { usePosSince } from '@/hooks/use-pos-since';
-import { useRealtimeRefetch } from '@/hooks/use-realtime';
-import { useShiftGate } from '@/hooks/use-shift-gate';
+import { usePosSince } from '@/hooks/pos/use-pos-since';
+import { useRealtimeRefetch } from '@/hooks/pusher/use-realtime';
+import { useShiftGate } from '@/hooks/pos/use-shift-gate';
 import { readyOrdersQuery } from '@/lib/kds';
-import { kioskOrdersQuery } from '@/lib/kiosk-orders';
+import { kioskOrdersQuery } from '@/lib/kiosk/orders';
 import { formatPeso } from '@/lib/money';
-import { configQuery } from '@/lib/pos-api';
-import { setPosLive } from '@/lib/pos-live';
-import { myOrdersQuery } from '@/lib/pos-session';
+import { configQuery } from '@/lib/pos/api';
+import { setPosLive } from '@/lib/pos/live';
+import { myOrdersQuery } from '@/lib/pos/session';
 import { ShiftChip } from '@/pages/pos/shift-chip';
 import { dashboard } from '@/routes';
 import { usePosUi } from '@/stores/pos-ui-store';

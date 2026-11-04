@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { Wallet } from 'lucide-react';
 
-import { useCan } from '@/hooks/use-can';
-import { useShiftGate } from '@/hooks/use-shift-gate';
+import { useCan } from '@/hooks/shared/use-can';
+import { useShiftGate } from '@/hooks/pos/use-shift-gate';
 import { index as shiftsIndex } from '@/routes/shifts';
 
 const timeText = (value: string) => new Date(value).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });

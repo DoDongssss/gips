@@ -7,10 +7,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { errorMessages, fieldError } from '@/lib/api';
-import { orderAction } from '@/lib/pos-api';
-import type { Approval } from '@/lib/pos-api';
+import { orderAction } from '@/lib/pos/api';
+import type { Approval } from '@/lib/pos/api';
 import { ApprovalFields, isApprovalComplete } from '@/pages/orders/approval-fields';
-import type { Approver, OrderDetail } from '@/pages/orders/types';
+import type { Approver, OrderDetail } from '@/types/orders';
 
 type Props = {
     mode: 'cancel' | 'void' | null;

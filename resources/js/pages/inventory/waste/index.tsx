@@ -4,9 +4,9 @@ import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Can } from '@/components/can';
-import { DataTable } from '@/components/data-table';
-import { Pager } from '@/components/pager';
+import { Can } from '@/components/shared/can';
+import { DataTable } from '@/components/shared/data-table';
+import { Pager } from '@/components/shared/pager';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

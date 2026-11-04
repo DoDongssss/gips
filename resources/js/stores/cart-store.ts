@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { Approval, CartPayload } from '@/lib/pos-api';
+import type { Approval, CartPayload } from '@/lib/pos/api';
 import { uuid } from '@/lib/uuid';
 
 /**

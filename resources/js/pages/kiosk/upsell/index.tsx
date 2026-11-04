@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { channelLabels } from '@/lib/kiosk';
+import { channelLabels } from '@/lib/kiosk/helpers';
 import { formatPeso } from '@/lib/money';
 import RuleDialog from '@/pages/kiosk/upsell/rule-dialog';
 import { index } from '@/routes/kiosk/upsell';

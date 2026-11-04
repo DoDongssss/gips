@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { Can } from '@/components/can';
-import { ReopenDialog } from '@/components/reopen-dialog';
+import { Can } from '@/components/shared/can';
+import { ReopenDialog } from '@/components/shared/reopen-dialog';
 import { printShift, ShiftPaper } from '@/components/reports/shift-paper';
 import { XReportButton } from '@/components/reports/x-report-button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { CloseShiftDialog } from '@/pages/shifts/close-dialog';
 import { MovementDialog } from '@/pages/shifts/movement-dialog';
 import { ShiftCashRows } from '@/pages/shifts/shift-cash-rows';
-import type { ShiftRecord } from '@/pages/shifts/types';
+import type { ShiftRecord } from '@/types/shifts';
 import { formatPeso } from '@/lib/money';
 import { index, show } from '@/routes/shifts';
 import { index as auditLogsIndex } from '@/routes/audit-logs';

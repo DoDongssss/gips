@@ -3,17 +3,17 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import KioskLayout from '@/layouts/kiosk-layout';
-import { useIdle, useKioskSync } from '@/kiosk/hooks';
-import CartScreen from '@/kiosk/screens/cart';
-import ClosedScreen from '@/kiosk/screens/closed';
-import DoneScreen from '@/kiosk/screens/done';
-import MenuScreen from '@/kiosk/screens/menu';
-import OrderTypeScreen from '@/kiosk/screens/order-type';
-import { IdleWarning, NoticeDialog } from '@/kiosk/screens/overlays';
-import PairingScreen from '@/kiosk/screens/pairing';
-import UpsellScreen from '@/kiosk/screens/upsell';
-import WelcomeScreen from '@/kiosk/screens/welcome';
-import { useKiosk } from '@/kiosk/store';
+import { useKioskIdle, useKioskSync } from '@/hooks/kiosk/use-kiosk';
+import CartScreen from '@/pages/kiosk/cart';
+import ClosedScreen from '@/pages/kiosk/closed';
+import DoneScreen from '@/pages/kiosk/done';
+import MenuScreen from '@/pages/kiosk/menu';
+import OrderTypeScreen from '@/pages/kiosk/order-type';
+import { IdleWarning, NoticeDialog } from '@/components/kiosk/overlays';
+import PairingScreen from '@/pages/kiosk/pairing';
+import UpsellScreen from '@/pages/kiosk/upsell-screen';
+import WelcomeScreen from '@/pages/kiosk/welcome';
+import { useKiosk } from '@/stores/kiosk-store';
 
 const ACTIVE = ['type', 'menu', 'cart', 'upsell'];
 
@@ -32,7 +32,7 @@ export default function KioskApp() {
 
     const settings = status?.settings ?? null;
     const closed = settings?.is_out_of_service === true && step !== 'done';
-    const idleLeft = useIdle(paired && !closed && ACTIVE.includes(step), settings?.idle_timeout_seconds ?? 90, () => reset('timed_out'));
+    const idleLeft = useKioskIdle(paired && !closed && ACTIVE.includes(step), settings?.idle_timeout_seconds ?? 90, () => reset('timed_out'));
 
     // Going out of service mid-order drops the order, so nothing is left half-built.
     useEffect(() => {

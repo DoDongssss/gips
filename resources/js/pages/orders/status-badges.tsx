@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import type { OrderStatus, OrderType, PaymentStatus } from '@/pages/orders/types';
+import type { OrderStatus, OrderType, PaymentStatus } from '@/types/orders';
 
 /** One tone per meaning: green = done/paid, amber = needs attention, red = lost/returned, blue = in progress. */
 const tone = {

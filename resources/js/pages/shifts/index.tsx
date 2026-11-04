@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 
-import { Can } from '@/components/can';
-import { Pager } from '@/components/pager';
-import { ReopenDialog } from '@/components/reopen-dialog';
+import { Can } from '@/components/shared/can';
+import { Pager } from '@/components/shared/pager';
+import { ReopenDialog } from '@/components/shared/reopen-dialog';
 import { printShift, ShiftPaper } from '@/components/reports/shift-paper';
 import { XReportButton } from '@/components/reports/x-report-button';
 import { Badge } from '@/components/ui/badge';
@@ -13,13 +13,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useShiftRealtime } from '@/hooks/use-shift-realtime';
+import { useShiftRealtime } from '@/hooks/pusher/use-shift-realtime';
 import { formatPeso } from '@/lib/money';
 import { CloseShiftDialog } from '@/pages/shifts/close-dialog';
 import { MovementDialog } from '@/pages/shifts/movement-dialog';
 import OpenShiftDialog from '@/pages/shifts/open-shift-dialog';
 import { ShiftCashRows } from '@/pages/shifts/shift-cash-rows';
-import type { ShiftFilters, ShiftRecord } from '@/pages/shifts/types';
+import type { ShiftFilters, ShiftRecord } from '@/types/shifts';
 import { exportMethod, index, show } from '@/routes/shifts';
 import { index as posIndex } from '@/routes/pos';
 

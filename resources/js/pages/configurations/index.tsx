@@ -1,6 +1,6 @@
 import ConfigurationGroupForm from '@/pages/configurations/group-form';
 import type { SettingGroup } from '@/pages/configurations/group-form';
-import { useCan } from '@/hooks/use-can';
+import { useCan } from '@/hooks/shared/use-can';
 
 import { index } from '@/routes/configurations'
 

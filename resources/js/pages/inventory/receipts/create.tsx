@@ -7,7 +7,7 @@ import { IngredientSelect, UnitSelect } from '@/components/inventory/pickers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { unitsFor, useIngredientOptions } from '@/hooks/use-ingredient-options';
+import { unitsFor, useIngredientOptions } from '@/hooks/inventory/use-ingredient-options';
 import { formatQty } from '@/lib/inventory';
 import { centsToPesos, formatPeso, pesosToCents } from '@/lib/money';
 import { index, store } from '@/routes/inventory/receipts';

@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatPeso } from '@/lib/money';
-import { loadEditableOrder, saveOrderLines } from '@/lib/order-edit';
-import { errorList } from '@/lib/pos-http';
+import { loadEditableOrder, saveOrderLines, type EditableOrderLine } from '@/lib/pos/order-edit';
+import { errorList } from '@/lib/pos/http';
 
 /** Remove items or change quantities on an unpaid order. Saving prices the order again on the server. */
 export function EditOrderDialog({ orderId, onClose }: { orderId: number | null; onClose: () => void }) {
@@ -22,7 +22,9 @@ export function EditOrderDialog({ orderId, onClose }: { orderId: number | null; 
     });
 
     useEffect(() => {
-        if (data) setQuantities(Object.fromEntries(data.lines.map((line) => [line.id, line.quantity])));
+        if (data) {
+            setQuantities(Object.fromEntries(data.lines.map((line: EditableOrderLine) => [line.id, line.quantity])));
+        }
     }, [data]);
 
     const save = useMutation({

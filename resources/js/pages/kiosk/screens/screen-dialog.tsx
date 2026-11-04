@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { orNull, screenTypeLabels } from '@/lib/kiosk';
+import { orNull, screenTypeLabels } from '@/lib/kiosk/helpers';
 import { destroy, store, update } from '@/routes/kiosk/screens';
 import type { ScreenRow } from '@/types/kiosk';
 

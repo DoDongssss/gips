@@ -14,7 +14,7 @@ import {
 } from './sales';
 import { KioskCard, PurchasingCard, StockCard } from './stock';
 import { TodayHero } from './today-hero';
-import type { DashboardMeta, InventoryStats, Kiosk, Live, Purchasing, Range, Sales, Shifts } from './types';
+import type { DashboardMeta, InventoryStats, Kiosk, Live, Purchasing, Range, Sales, Shifts } from '@/types/dashboard';
 
 type Props = {
     meta: DashboardMeta;

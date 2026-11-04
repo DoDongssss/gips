@@ -5,14 +5,14 @@ import { toast } from 'sonner';
 
 import { PrinterBanner } from '@/components/printer/printer-banner';
 import { Button } from '@/components/ui/button';
-import { configQuery, menuQuery } from '@/lib/pos-api';
+import { configQuery, menuQuery } from '@/lib/pos/api';
 import { CartPanel } from '@/pages/pos/cart-panel';
 import { CheckoutDialog } from '@/pages/pos/checkout-dialog';
 import { ItemDialog } from '@/pages/pos/item-dialog';
 import { MenuPanel } from '@/pages/pos/menu-panel';
-import type { MenuProduct } from '@/pages/pos/types';
+import type { MenuProduct } from '@/types/pos';
 import type { CartLine } from '@/stores/cart-store';
-import { startEditing } from '@/lib/order-edit';
+import { startEditing } from '@/lib/pos/order-edit';
 import { useCartStore } from '@/stores/cart-store';
 import { readPersistedEditingOrder, useOrderEdit } from '@/stores/order-edit-store';
 import { usePosUi } from '@/stores/pos-ui-store';

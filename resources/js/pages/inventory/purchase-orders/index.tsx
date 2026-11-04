@@ -2,8 +2,8 @@ import { Head, Link, router } from '@inertiajs/react';
 import type { SortingState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 
-import { DataTable } from '@/components/data-table';
-import { Pager } from '@/components/pager';
+import { DataTable } from '@/components/shared/data-table';
+import { Pager } from '@/components/shared/pager';
 import { Button } from '@/components/ui/button';
 import { cleanQuery, poStatusLabels } from '@/lib/inventory';
 import { columnClassNames, getColumns } from '@/pages/inventory/purchase-orders/columns';

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { centsToPesos, pesosToCents } from '@/lib/money';
-import { FieldError } from '@/components/fieldError';
+import { FieldError } from '@/components/shared/fieldError';
 import { update } from '@/routes/menu/products';
 import type { Option, ProductDetail } from '@/types/menu';
 
