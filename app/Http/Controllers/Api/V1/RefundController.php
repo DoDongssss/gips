@@ -8,7 +8,7 @@ use App\Http\Requests\Orders\RefundRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\Payment;
-use App\Services\IdempotencyService;
+use App\Services\Orders\IdempotencyService;
 use App\Services\Orders\OrderService;
 use App\Services\Payments\RefundService;
 use Illuminate\Http\JsonResponse;

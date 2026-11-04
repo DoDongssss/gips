@@ -2,7 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { Delete } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import PinLoginController from '@/actions/App/Http/Controllers/PinLoginController';
+import PinLoginController from '@/actions/App/Http/Controllers/Auth/PinLoginController';
 import { Button } from '@/components/ui/button';
 import { login } from '@/routes';
 

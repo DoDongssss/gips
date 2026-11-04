@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AuditLogs\AuditLogController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {

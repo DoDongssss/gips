@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\PinLoginController;
+use App\Http\Controllers\Auth\PinLoginController;
 use Illuminate\Support\Facades\Route;
 
 // Public Inertia pages (the kiosk and kitchen apps authenticate via device token, not session).

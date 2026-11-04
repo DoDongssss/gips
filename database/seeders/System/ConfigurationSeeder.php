@@ -3,7 +3,7 @@
 namespace Database\Seeders\System;
 
 use App\Models\Configuration;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use App\Support\ConfigValue;
 use Illuminate\Database\Seeder;
 

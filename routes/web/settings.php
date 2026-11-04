@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\Settings\DeviceController;
 use App\Http\Controllers\Settings\PrinterController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\RoleController;

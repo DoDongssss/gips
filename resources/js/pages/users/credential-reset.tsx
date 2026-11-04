@@ -3,7 +3,7 @@ import { route } from 'ziggy-js';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 
-import UserController from '@/actions/App/Http/Controllers/UserController';
+import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { Can } from '@/components/shared/can';
 import { Button } from '@/components/ui/button';
 

@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 
-import ConfigurationController from '@/actions/App/Http/Controllers/ConfigurationController';
+import ConfigurationController from '@/actions/App/Http/Controllers/Settings/ConfigurationController';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -3,7 +3,7 @@ import type { SortingState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import UserController from '@/actions/App/Http/Controllers/UserController';
+import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { Can } from '@/components/shared/can';
 import { DataTable } from '@/components/shared/data-table';
 import { Button } from '@/components/ui/button';

@@ -4,7 +4,7 @@ namespace App\Services\Alerts;
 
 use App\Events\AlertsChanged;
 use App\Services\Devices\DeviceAlerts;
-use App\Services\PrinterStatusService;
+use App\Services\Printer\PrinterStatusService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 

@@ -8,7 +8,7 @@ use App\Models\Order;
 use App\Models\Receipt;
 use App\Models\Refund;
 use App\Models\User;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 

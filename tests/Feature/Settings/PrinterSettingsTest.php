@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Services\PrinterSettingsService;
+use App\Services\Printer\PrinterSettingsService;
 use Database\Seeders\System\PermissionSeeder;
 use Database\Seeders\System\RoleSeeder;
 

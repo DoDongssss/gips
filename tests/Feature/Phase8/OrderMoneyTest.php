@@ -1,16 +1,14 @@
 <?php
 
 use App\Models\Order;
-use App\Services\ConfigurationService;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\Product;
 use App\Models\Refund;
 use App\Models\User;
-use Illuminate\Support\Str;
-
+use App\Services\Configuration\ConfigurationService;
 // Whole-order money: cart -> pay (exact, change, split, partial) -> refund (partial, full, too much, approval) -> receipts.
 
-use App\Models\Product;
 use Database\Seeders\DiscountSeeder;
 use Database\Seeders\PaymentMethodSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -18,6 +16,7 @@ use Database\Seeders\RoleSeeder;
 use Database\Seeders\TaxSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 // Self-contained: seeds roles, 12% inclusive VAT, payment methods and discounts itself (om* helpers below).
