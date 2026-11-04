@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, api, onAuthLost } from '@/kiosk/api';
 import { useKiosk } from '@/kiosk/store';
 
-/** Poll cadence. The plan: remote changes (out of service, sold out) apply within about 15 seconds. */
-const STATUS_MS = 15_000;
+/** Poll cadence. Remote changes (out of service, sold out) apply within about 15–30 seconds. */
+const MENU_MS = 15_000;
 const HEARTBEAT_MS = 30_000;
 const BANNER_MS = 60_000;
 
@@ -50,11 +50,24 @@ export function useKioskSync(): void {
         }
     };
 
-    useEvery(() => guard(async () => useKiosk.getState().setStatus(await api.status())), STATUS_MS, paired);
-    useEvery(() => guard(async () => useKiosk.getState().setMenu(await api.menu())), STATUS_MS, paired);
+    // Reload with a saved token: pull state and menu immediately (upsell needs settings from status).
+    useEffect(() => {
+        if (!paired) return;
+
+        void guard(async () => {
+            useKiosk.getState().setStatus(await api.status());
+            useKiosk.getState().setMenu(await api.menu());
+        });
+    }, [paired]);
+
+    useEvery(() => guard(async () => useKiosk.getState().setMenu(await api.menu())), MENU_MS, paired);
     useEvery(() => guard(async () => useKiosk.getState().setBanners(await api.banners())), BANNER_MS, paired);
     useEvery(
-        () => guard(async () => void (await api.heartbeat(useKiosk.getState().sessionUuid ? 'busy' : 'online'))),
+        () =>
+            guard(async () => {
+                const status = await api.heartbeat(useKiosk.getState().sessionUuid ? 'busy' : 'online');
+                useKiosk.getState().setStatus(status);
+            }),
         HEARTBEAT_MS,
         paired,
     );

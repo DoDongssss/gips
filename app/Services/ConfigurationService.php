@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Configuration;
 use App\Models\User;
+use App\Support\ConfigValue;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -65,7 +66,7 @@ class ConfigurationService
                 Configuration::updateOrCreate(
                     ['key' => $key],
                     [
-                        'value' => $this->stringify($values[$key]),
+                        'value' => ConfigValue::stringify($values[$key]),
                         'group' => $group,
                         'type' => $field['type'],
                         'updated_by' => $by?->id,
@@ -94,18 +95,5 @@ class ConfigurationService
             'decimal' => (float) $value,
             default => (string) $value,
         };
-    }
-
-    private function stringify(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-
-        return (string) $value;
     }
 }

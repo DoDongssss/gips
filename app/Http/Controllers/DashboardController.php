@@ -2,23 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Dashboard\DashboardAttentionBuilder;
 use App\Services\Dashboard\DashboardService;
+use App\Support\BusinessDate;
+use App\Support\ClosedDay;
 use Closure;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The dashboard is open to every signed-in user; each section is only built (and sent) when the
- * user holds the permission behind it. Sections are closures, so a partial reload such as
- * router.reload({ only: ['live'] }) runs only that section's queries.
+ * The dashboard is open to every signed-in user; each section is built only when the user
+ * holds the permission behind it.
  */
 class DashboardController extends Controller
 {
     /** @var array<string, mixed> */
     private array $memo = [];
 
-    public function __invoke(Request $request, DashboardService $svc): Response
+    public function __invoke(Request $request, DashboardService $svc, DashboardAttentionBuilder $attention): Response
     {
         $user = $request->user();
         $r = $svc->range($request->query('range'));
@@ -36,18 +38,38 @@ class DashboardController extends Controller
             return $this->memo[$key] ??= $build();
         };
 
-        $live = fn () => $once('live', fn () => $svc->live());
-        $shifts = fn () => $once('shifts', fn () => $svc->shifts($user->can('shift.view-all') ? null : $user->id));
-        $inventory = fn () => $once('inventory', fn () => $svc->inventory($r));
-        $purchasing = fn () => $once('purchasing', function () use ($svc) {
+        $liveData = $access['live'] ? $once('live', fn () => $svc->live()) : null;
+        $shiftsData = $access['shifts'] ? $once('shifts', fn () => $svc->shifts($user->can('shift.view-all') ? null : $user->id)) : null;
+        $inventoryData = $access['inventory'] ? $once('inventory', fn () => $svc->inventory($r)) : null;
+        $purchasingData = $access['purchasing'] ? $once('purchasing', function () use ($svc) {
             $p = $svc->purchasing();
             $p['due'] = array_map(fn ($d) => $d + ['href' => route('inventory.purchase-orders.show', $d['id'])], $p['due']);
 
             return $p;
-        });
-        $kiosk = fn () => $once('kiosk', fn () => $svc->kiosk($r));
+        }) : null;
+        $kioskData = $access['kiosk'] ? $once('kiosk', fn () => $svc->kiosk($r)) : null;
+        $salesData = $access['sales'] ? $once('sales', fn () => [
+            'summary' => $svc->summary($r['from'], $r['to']),
+            'previous' => $svc->summary($r['prev_from'], $r['prev_to']),
+            'as_of' => now()->toIso8601String(),
+            'trend' => $svc->trend($r),
+            'hours' => $svc->busyHours($r),
+            'payments' => $svc->paymentMethods($r),
+            'channels' => $svc->split($r, 'channel'),
+            'types' => $svc->split($r, 'type'),
+            'products' => $svc->topProducts($r),
+            'categories' => $svc->categories($r),
+            'staff' => $svc->staff($r),
+        ]) : null;
+
+        $hasData = $access['live'] || $access['sales'] || $access['shifts'] || $access['inventory'] || $access['purchasing'] || $access['kiosk'];
 
         return Inertia::render('dashboard/index', [
+            'meta' => [
+                'business_date' => BusinessDate::current(),
+                'layout' => $this->layoutPreset($access),
+                'day_closed' => ClosedDay::isClosed(BusinessDate::current()),
+            ],
             'range' => [
                 'key' => $r['key'], 'label' => $r['label'], 'days' => $r['days'],
                 'from' => $r['from']->toDateString(), 'to' => $r['to']->toDateString(),
@@ -57,75 +79,40 @@ class DashboardController extends Controller
                 ],
             ],
             'access' => $access,
+            'can_load' => $hasData,
 
-            // Live (today). Refreshed on a timer by the page.
-            'live' => $access['live'] ? $live : null,
-            'shifts' => $access['shifts'] ? $shifts : null,
+            'live' => $liveData,
+            'shifts' => $shiftsData,
+            'sales' => $salesData,
+            'inventory' => $inventoryData,
+            'purchasing' => $purchasingData,
+            'kiosk' => $kioskData,
 
-            // Range based.
-            'sales' => $access['sales'] ? fn () => $once('sales', fn () => [
-                'summary' => $svc->summary($r['from'], $r['to']),
-                'previous' => $svc->summary($r['prev_from'], $r['prev_to']),
-                'trend' => $svc->trend($r),
-                'hours' => $svc->busyHours($r),
-                'payments' => $svc->paymentMethods($r),
-                'channels' => $svc->split($r, 'channel'),
-                'types' => $svc->split($r, 'type'),
-                'products' => $svc->topProducts($r),
-                'categories' => $svc->categories($r),
-                'staff' => $svc->staff($r),
-            ]) : null,
-
-            'inventory' => $access['inventory'] ? $inventory : null,
-            'purchasing' => $access['purchasing'] ? $purchasing : null,
-            'kiosk' => $access['kiosk'] ? $kiosk : null,
-
-            'alerts' => fn () => $this->alerts($access, $live, $shifts, $inventory, $purchasing, $kiosk),
+            'attention' => $hasData
+                ? $attention->build($access, $liveData, $shiftsData, $inventoryData, $purchasingData, $kioskData)
+                : [],
         ]);
     }
 
-    /** One line per thing that needs a person. Built from the same sections, so it costs no extra queries. */
-    private function alerts(array $access, Closure $live, Closure $shifts, Closure $inventory, Closure $purchasing, Closure $kiosk): array
+    /** @param  array<string, bool>  $access */
+    private function layoutPreset(array $access): string
     {
-        $out = [];
-
-        if ($access['live'] && ($mins = $live()['kitchen']['oldest_minutes']) !== null && $mins >= 15) {
-            $out[] = ['level' => 'danger', 'text' => "The oldest kitchen ticket has waited {$mins} minutes."];
+        if ($access['sales']) {
+            return 'owner';
         }
 
-        if ($access['live'] && ($u = $live()['unpaid'])['count'] > 0) {
-            $out[] = ['level' => 'info', 'text' => "{$u['count']} order(s) from today are not fully paid."];
+        if ($access['live'] && $access['shifts']) {
+            return 'operations';
         }
 
         if ($access['shifts']) {
-            foreach ($shifts()['open'] as $s) {
-                if (\Carbon\Carbon::parse($s["opened_at"])->diffInHours(now()) >= 12) {
-                    $out[] = ['level' => 'warning', 'text' => "{$s['cashier']}'s shift has been open for over 12 hours."];
-                }
-            }
+            return 'cashier';
         }
 
-        if ($access['inventory']) {
-            $i = $inventory();
-            if ($i['negative_count'] > 0) {
-                $out[] = ['level' => 'danger', 'text' => "{$i['negative_count']} ingredient(s) have negative stock.", 'href' => route('inventory.ingredients.index', ['filter' => 'negative'])];
-            }
-            if ($i['low']['count'] > 0) {
-                $out[] = ['level' => 'warning', 'text' => "{$i['low']['count']} ingredient(s) are at or under the reorder level.", 'href' => route('inventory.ingredients.index', ['filter' => 'low'])];
-            }
+        if ($access['live']) {
+            return 'kitchen';
         }
 
-        if ($access['purchasing'] && ($n = $purchasing()['overdue']) > 0) {
-            $out[] = ['level' => 'warning', 'text' => "{$n} purchase order(s) are past their expected date.", 'href' => route('inventory.purchase-orders.index')];
-        }
-
-        if ($access['kiosk'] && ! ($kiosk()['demo'] ?? false)) {
-            $offline = count(array_filter($kiosk()['devices'], fn ($d) => ! $d['online'] && ! $d['out_of_service']));
-            if ($offline > 0) {
-                $out[] = ['level' => 'danger', 'text' => "{$offline} kiosk(s) are offline."];
-            }
-        }
-
-        return $out;
+        return 'default';
     }
 }

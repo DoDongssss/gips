@@ -76,6 +76,7 @@ class ReportService
             'gross_sales_cents' => $gross,
             'discounts_cents' => $discounts,
             'refunds_cents' => $refundTotal,
+            'refunds_count' => $refunds->count(),
             'net_sales_cents' => $gross - $discounts - $refundTotal,
             'tax_cents' => (int) $orders->sum('tax_cents'),
             'tips_cents' => (int) $orders->sum('tip_cents'),

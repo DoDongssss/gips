@@ -44,7 +44,7 @@ class AvailabilityController extends Controller implements HasMiddleware
     private function respond(Request $request, int $id, bool $available, string $name): RedirectResponse|JsonResponse
     {
         if ($request->expectsJson()) {
-            return response()->json(['id' => $id, 'is_available' => $available]);
+            return response()->json(['data' => ['id' => $id, 'is_available' => $available]]);
         }
 
         return back()->with('success', $available ? "{$name} is available again." : "{$name} marked as sold out.");

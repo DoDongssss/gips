@@ -1,12 +1,12 @@
 import { useForm } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
+import { DenominationCounter } from '@/components/shifts/denomination-counter';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { pesosToCents } from '@/lib/money';
+import { formatPeso } from '@/lib/money';
 import { store } from '@/routes/shifts';
 
 type Props = {
@@ -16,11 +16,11 @@ type Props = {
 
 /** Opening a shift starts the drawer with the cash (the "float") the cashier was handed. */
 export default function OpenShiftDialog({ open, onOpenChange }: Props) {
-    const form = useForm({ opening_cash: '' });
+    const [counted, setCounted] = useState(0);
+    const form = useForm({ device_id: null as number | null });
 
     useEffect(() => {
         if (open) {
-            form.reset();
             form.clearErrors();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -30,7 +30,8 @@ export default function OpenShiftDialog({ open, onOpenChange }: Props) {
         event.preventDefault();
 
         form.transform((data) => ({
-            opening_cash_cents: data.opening_cash.trim() === '' ? 0 : pesosToCents(data.opening_cash),
+            opening_cash_cents: counted,
+            device_id: data.device_id,
         }));
 
         form.post(store.url(), {
@@ -39,29 +40,23 @@ export default function OpenShiftDialog({ open, onOpenChange }: Props) {
         });
     }
 
-    const error = (form.errors as Record<string, string>).opening_cash_cents;
+    const errors = form.errors as Record<string, string | undefined>;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                 <form onSubmit={submit} className="space-y-4">
                     <DialogHeader>
                         <DialogTitle>Open shift</DialogTitle>
-                        <DialogDescription>Count the cash in the drawer and enter it as the opening float.</DialogDescription>
+                        <DialogDescription>Count the cash in the drawer. This becomes your opening float.</DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="opening-cash">Opening cash (₱)</Label>
-                        <Input
-                            id="opening-cash"
-                            inputMode="decimal"
-                            placeholder="0.00"
-                            autoFocus
-                            value={form.data.opening_cash}
-                            onChange={(event) => form.setData('opening_cash', event.target.value)}
-                        />
-                        {error && <p className="text-destructive text-sm">{error}</p>}
-                    </div>
+                    <DenominationCounter onChange={setCounted} resetKey={open} />
+
+                    <p className="text-sm font-medium">Opening total: {formatPeso(counted)}</p>
+
+                    {errors.opening_cash_cents && <p className="text-destructive text-sm">{errors.opening_cash_cents}</p>}
+                    {errors.shift && <p className="text-destructive text-sm">{errors.shift}</p>}
 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -26,12 +26,39 @@ class SupplierController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         $search = $request->string('search')->toString();
+        $filter = $request->string('filter')->toString(); // active | inactive | all
+
+        $sortable = ['name', 'contact_person', 'phone', 'ingredients_count', 'is_active'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
 
         return Inertia::render('inventory/suppliers/index', [
-            'suppliers' => Supplier::query()->withCount('ingredients')
-                ->when($search !== '', fn ($q) => $q->where('name', 'like', "%{$search}%"))
-                ->orderBy('name')->paginate(20)->withQueryString(),
-            'filters' => ['search' => $search],
+            // Optional: not sent on the first visit. The page asks for it with the "Load suppliers" button.
+            'suppliers' => Inertia::optional(fn () => Supplier::query()
+                ->withCount('ingredients')
+                ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('contact_person', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")))
+                ->when($filter === 'inactive', fn ($q) => $q->where('is_active', false))
+                ->when($filter === 'all', fn ($q) => $q)
+                ->when($filter !== 'inactive' && $filter !== 'all', fn ($q) => $q->where('is_active', true)) // default: active
+                ->when(
+                    in_array($sort, ['name', 'contact_person', 'phone', 'ingredients_count', 'is_active'], true),
+                    fn ($q) => $q->orderBy($sort, $direction),
+                )
+                ->when($sort !== 'name', fn ($q) => $q->orderBy('name'))
+                ->orderBy('id')
+                ->paginate(20)
+                ->withQueryString()
+            ),
+            'filters' => [
+                'search' => $search,
+                'filter' => $filter,
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 

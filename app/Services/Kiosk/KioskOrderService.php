@@ -3,9 +3,9 @@
 namespace App\Services\Kiosk;
 
 use App\Enums\OrderChannel;
+use App\Events\PosOrdersChanged;
 use App\Models\Device;
 use App\Models\KioskSession;
-use App\Events\PosOrdersChanged;
 use App\Models\Order;
 use App\Services\Orders\OrderService;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -23,7 +23,7 @@ class KioskOrderService
      * gets the same order back instead of a second one.
      *
      * @param  array<string, mixed>  $cart  validated cart (type, items, customer_name, notes)
-     * @return array{0: Order, 1: bool}  the order, and whether it was just created
+     * @return array{0: Order, 1: bool} the order, and whether it was just created
      */
     public function place(Device $device, string $sessionUuid, array $cart, bool $seniorPwd): array
     {
@@ -73,6 +73,10 @@ class KioskOrderService
 
     private function refuse(string $code, string $message, int $status): never
     {
-        throw new HttpResponseException(response()->json(['code' => $code, 'message' => $message], $status));
+        throw new HttpResponseException(response()->json([
+            'message' => $message,
+            'code' => $code,
+            'errors' => ['error' => [$message]],
+        ], $status));
     }
 }

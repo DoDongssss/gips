@@ -3,6 +3,7 @@ import type { PropsWithChildren } from 'react';
 
 import { OrdersDrawer } from '@/components/pos/orders-drawer';
 import { PosHeader } from '@/components/pos/pos-header';
+import { ShiftRequiredGate } from '@/components/pos/shift-required-gate';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 
 /** Full-screen layout for the register: a slim header and the rest of the screen for the page. */
@@ -24,7 +25,9 @@ export default function PosLayout({ children }: PropsWithChildren) {
                     You are offline. Orders and payments cannot be saved until the connection returns.
                 </div>
             )}
-            <main className="relative min-h-0 flex-1">{children}</main>
+            <main className="relative min-h-0 flex-1">
+                <ShiftRequiredGate>{children}</ShiftRequiredGate>
+            </main>
             <OrdersDrawer />
         </div>
     );

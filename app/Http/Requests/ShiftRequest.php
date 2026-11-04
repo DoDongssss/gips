@@ -20,6 +20,7 @@ class ShiftRequest extends FormRequest
         return match ($this->route()->getName()) {
             'shifts.store' => [
                 'opening_cash_cents' => ['required', 'integer', 'min:0', 'max:1000000000'],
+                'device_id' => ['nullable', 'integer', 'exists:devices,id'],
             ],
             'shifts.movements.store' => [
                 'type' => ['required', Rule::enum(CashMovementType::class)],

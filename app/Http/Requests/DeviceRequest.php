@@ -19,7 +19,7 @@ class DeviceRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:100'],
-            'type' => [$creating ? 'required' : 'prohibited', Rule::in([Device::KIOSK, 'pos', 'kds'])],
+            'type' => [$creating ? 'required' : 'prohibited', Rule::in([Device::KIOSK, 'kds'])],
             // Empty on a kitchen screen means "all stations".
             'station_id' => ['nullable', 'integer', 'exists:stations,id'],
             'is_active' => [$creating ? 'prohibited' : 'required', 'boolean'],

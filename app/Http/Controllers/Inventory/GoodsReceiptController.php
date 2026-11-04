@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,15 +33,72 @@ class GoodsReceiptController extends Controller implements HasMiddleware
 
     public function index(Request $request): Response
     {
+        $search = $request->string('search')->toString();
+        $supplierId = $request->integer('supplier') ?: null;
+
+        $sortable = ['receipt_number', 'supplier', 'po_number', 'invoice_no', 'items_count', 'received_at', 'received_by'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+
         return Inertia::render('inventory/receipts/index', [
-            'receipts' => GoodsReceipt::query()->with(['supplier:id,name', 'purchaseOrder:id,po_number', 'receiver:id,name'])->withCount('items')
-                ->latest('id')->paginate(20)->withQueryString()
+            // Optional: not sent on the first visit. The page asks for it with the "Load receipts" button.
+            'receipts' => Inertia::optional(fn () => GoodsReceipt::query()
+                ->with(['supplier:id,name', 'purchaseOrder:id,po_number', 'receiver:id,name'])
+                ->withCount('items')
+                ->when($supplierId, fn ($q, $id) => $q->where('supplier_id', $id))
+                ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                    ->where('receipt_number', 'like', "%{$search}%")
+                    ->orWhere('invoice_no', 'like', "%{$search}%")
+                    ->orWhereHas('supplier', fn ($s) => $s->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('purchaseOrder', fn ($p) => $p->where('po_number', 'like', "%{$search}%"))))
+                ->when($sort === 'supplier', fn ($q) => $q->orderBy(
+                    DB::table('suppliers')
+                        ->select('name')
+                        ->whereColumn('suppliers.id', 'goods_receipts.supplier_id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when($sort === 'po_number', fn ($q) => $q->orderBy(
+                    DB::table('purchase_orders')
+                        ->select('po_number')
+                        ->whereColumn('purchase_orders.id', 'goods_receipts.purchase_order_id')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when($sort === 'received_by', fn ($q) => $q->orderBy(
+                    DB::table('users')
+                        ->select('name')
+                        ->whereColumn('users.id', 'goods_receipts.received_by')
+                        ->limit(1),
+                    $direction,
+                ))
+                ->when(
+                    in_array($sort, ['receipt_number', 'invoice_no', 'items_count', 'received_at'], true),
+                    fn ($q) => $q->orderBy($sort, $direction),
+                )
+                ->orderByDesc('id')
+                ->paginate(20)
+                ->withQueryString()
                 ->through(fn (GoodsReceipt $r) => [
-                    'id' => $r->id, 'receipt_number' => $r->receipt_number, 'supplier' => $r->supplier?->name,
-                    'po_number' => $r->purchaseOrder?->po_number, 'invoice_no' => $r->invoice_no,
-                    'items_count' => $r->items_count, 'received_by' => $r->receiver?->name,
+                    'id' => $r->id,
+                    'receipt_number' => $r->receipt_number,
+                    'supplier' => ['id' => $r->supplier->id, 'name' => $r->supplier->name],
+                    'purchase_order_id' => $r->purchase_order_id,
+                    'po_number' => $r->purchaseOrder?->po_number,
+                    'invoice_no' => $r->invoice_no,
+                    'items_count' => $r->items_count,
+                    'received_by' => $r->receiver?->name,
                     'received_at' => $r->received_at?->toIso8601String(),
-                ]),
+                ])
+            ),
+            'supplier' => $supplierId ? Supplier::withTrashed()->find($supplierId, ['id', 'name']) : null,
+            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => [
+                'search' => $search,
+                'supplier' => $supplierId,
+                'sort' => $sort,
+                'direction' => $sort ? $direction : null,
+            ],
         ]);
     }
 

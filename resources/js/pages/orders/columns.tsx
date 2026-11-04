@@ -3,37 +3,66 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import type { DataTableFeatures } from '@/components/data-table';
 import { SortableHeader } from '@/components/sortable-header';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPeso } from '@/lib/money';
-import { OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
+import { ChannelBadge, OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
 import type { OrderRow } from '@/pages/orders/types';
 import { show } from '@/routes/orders';
 
-// Column widths. Customer takes the remaining space; the rest are fixed.
 export const columnClassNames: Record<string, string> = {
     order_number: 'w-28',
+    channel: 'w-24',
     type: 'w-28',
     status: 'w-32',
     payment_status: 'w-32',
-    customer_name: 'w-[18%]',
+    customer_name: 'w-[14%]',
     total_cents: 'w-32 text-right',
     paid: 'w-32 text-right',
-    cashier: 'w-36',
-    created_at: 'w-40',
+    cashier: 'w-32',
+    created_at: 'w-36',
     actions: 'w-24 text-right',
 };
 
 const formatTime = (value: string | null): string =>
     value ? new Date(value).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '—';
 
-export function getColumns(): ColumnDef<DataTableFeatures, OrderRow>[] {
+type ColumnOptions = {
+    highlightId?: number | null;
+};
+
+export function getColumns(options: ColumnOptions = {}): ColumnDef<DataTableFeatures, OrderRow>[] {
+    const highlightId = options.highlightId ?? null;
+
     return [
         {
             accessorKey: 'order_number',
             header: ({ column }) => (
                 <SortableHeader title="Order" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />
             ),
-            cell: ({ row }) => <span className="font-medium">{row.original.order_number}</span>,
+            cell: ({ row }) => {
+                const order = row.original;
+                const highlighted = highlightId === order.id;
+
+                return (
+                    <div className={highlighted ? 'rounded-md bg-amber-100/80 px-1 dark:bg-amber-950/40' : undefined}>
+                        <Link href={show.url(order.id)} className="font-medium hover:underline">
+                            {order.order_number}
+                        </Link>
+                        {order.channel === 'kiosk' && order.requires_verification && (
+                            <Badge variant="outline" className="ml-1 text-xs">
+                                ID
+                            </Badge>
+                        )}
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'channel',
+            header: 'Channel',
+            enableSorting: false,
+            cell: ({ row }) => <ChannelBadge channel={row.original.channel} />,
         },
         {
             accessorKey: 'type',
@@ -53,7 +82,11 @@ export function getColumns(): ColumnDef<DataTableFeatures, OrderRow>[] {
             header: ({ column }) => (
                 <SortableHeader title="Payment" sorted={column.getIsSorted()} onToggle={column.getToggleSortingHandler()} />
             ),
-            cell: ({ row }) => <PaymentStatusBadge status={row.original.payment_status} />,
+            cell: ({ row }) => (
+                <PaymentStatusBadge
+                    status={row.original.payment_status}
+                />
+            ),
         },
         {
             accessorKey: 'customer_name',
@@ -72,7 +105,15 @@ export function getColumns(): ColumnDef<DataTableFeatures, OrderRow>[] {
             id: 'paid',
             header: 'Paid',
             enableSorting: false,
-            cell: ({ row }) => formatPeso(row.original.paid_cents),
+            cell: ({ row }) => {
+                const order = row.original;
+
+                return (
+                    <span className={order.payment_status === 'partial' ? 'font-medium text-amber-700 dark:text-amber-300' : ''}>
+                        {formatPeso(order.paid_cents)}
+                    </span>
+                );
+            },
         },
         {
             accessorKey: 'cashier',

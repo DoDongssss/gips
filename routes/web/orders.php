@@ -10,6 +10,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pos', PosController::class)->name('pos.index');
 
     // Orders
+    Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
     Route::resource('orders', OrderController::class)->only(['index', 'show']);
     Route::post('orders/{order}/receipts/{receipt}/reprint', [OrderController::class, 'reprint'])->name('orders.receipts.reprint');
 

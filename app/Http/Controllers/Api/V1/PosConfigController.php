@@ -27,7 +27,12 @@ class PosConfigController extends Controller implements HasMiddleware
         $tax = Tax::where('is_active', true)->where('is_default', true)->first();
 
         return response()->json(['data' => [
-            'shift' => ['required' => $shifts->isRequired(), 'open' => $shift !== null, 'opened_at' => $shift?->opened_at->toIso8601String()],
+            'shift' => [
+                'required' => $shifts->isRequired(),
+                'open' => $shift !== null,
+                'opened_at' => $shift?->opened_at->toIso8601String(),
+                'id' => $shift?->id,
+            ],
             'discounts' => Discount::usable()->orderBy('name')->get()->map(fn (Discount $d) => [
                 'id' => $d->id,
                 'name' => $d->name,

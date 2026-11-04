@@ -5,8 +5,8 @@ use App\Models\KioskScreen;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Devices\DevicePairingService;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
+use Database\Seeders\System\PermissionSeeder;
+use Database\Seeders\System\RoleSeeder;
 use Illuminate\Support\Facades\DB;
 
 // Product fixture follows the DB Structure doc; add NOT NULL columns of your own table in kioskProduct() only.
@@ -139,7 +139,8 @@ it('suggests upsell products for the cart and skips sold-out ones', function () 
     }
 
     $this->withToken($token)->postJson('/api/v1/kiosk/upsell', ['product_ids' => [$latte]])->assertOk()
-        ->assertJsonCount(1, 'data')->assertJsonPath('data.0.product_id', $croissant);
+        ->assertJsonCount(1, 'data')->assertJsonPath('data.0.product_id', $croissant)
+        ->assertJsonPath('data.0.product.id', $croissant);
 
     $this->withToken($token)->postJson('/api/v1/kiosk/upsell', ['product_ids' => [$latte, $croissant]])->assertJsonCount(0, 'data');
 });
@@ -172,6 +173,8 @@ it('records heartbeats and notifies managers once when a kiosk goes quiet', func
 it('lets only device managers use the admin pages', function () {
     $this->withoutVite();
 
-    $this->actingAs(User::factory()->create()->assignRole('manager'))->get('/kiosk/devices')->assertForbidden();
-    $this->actingAs(User::factory()->create()->assignRole('owner'))->get('/kiosk/devices')->assertOk();
+    $this->actingAs(User::factory()->create()->assignRole('manager'))->get('/settings/devices')->assertForbidden();
+    $this->actingAs(User::factory()->create()->assignRole('owner'))->get('/settings/devices')->assertOk();
+    $this->actingAs(User::factory()->create()->assignRole('manager'))->get('/kiosk/upsell')->assertForbidden();
+    $this->actingAs(User::factory()->create()->assignRole('owner'))->get('/kiosk/upsell')->assertOk();
 });

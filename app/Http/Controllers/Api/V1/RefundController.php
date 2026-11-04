@@ -33,6 +33,8 @@ class RefundController extends Controller implements HasMiddleware
         OrderService $orders,
         IdempotencyService $idempotency,
     ): JsonResponse {
+        $this->authorize('refund', $order);
+
         $result = $idempotency->execute(
             $request->attributes->get('idempotency_key'),
             $request->user(),

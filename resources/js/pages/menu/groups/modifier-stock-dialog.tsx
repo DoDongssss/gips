@@ -116,6 +116,10 @@ export default function ModifierStockDialog({ open, onOpenChange, modifier }: Pr
                         </DialogDescription>
                     </DialogHeader>
 
+                    {!canEdit && (
+                        <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">You can view these rules. Saving changes requires recipe manage permission.</p>
+                    )}
+
                     {(effects.isLoading || !options) && <p className="text-muted-foreground text-sm">Loading…</p>}
 
                     {options && (

@@ -7,16 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { formatPeso } from '@/lib/money';
 import { close } from '@/routes/shifts';
 
 type Props = {
     shiftId: number;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** Shown to managers closing their own shift (cashiers stay blind). */
+    closePreviewCents?: number | null;
 };
 
 /** Count the drawer by bills and coins. The server works out the expected cash and the difference. */
-export function CloseShiftDialog({ shiftId, open, onOpenChange }: Props) {
+export function CloseShiftDialog({ shiftId, open, onOpenChange, closePreviewCents }: Props) {
     const [counted, setCounted] = useState(0);
     const form = useForm({ notes: '' });
 
@@ -44,7 +47,15 @@ export function CloseShiftDialog({ shiftId, open, onOpenChange }: Props) {
                         <DialogDescription>Count all the cash in the drawer, including the opening cash.</DialogDescription>
                     </DialogHeader>
 
+                    {closePreviewCents != null && (
+                        <p className="bg-muted rounded-md p-3 text-sm">
+                            Expected in drawer (manager preview): <span className="font-semibold">{formatPeso(closePreviewCents)}</span>
+                        </p>
+                    )}
+
                     <DenominationCounter onChange={setCounted} resetKey={open} />
+
+                    <p className="text-sm font-medium">Counted: {formatPeso(counted)}</p>
 
                     <div className="space-y-2">
                         <Label htmlFor="close-notes">Notes (optional)</Label>

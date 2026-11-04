@@ -19,7 +19,7 @@ export type ReadyOrder = {
 export const readyOrdersQuery = {
     queryKey: ['pos', 'ready-orders'] as const,
     queryFn: async (): Promise<ReadyOrder[]> => (await api<{ data: ReadyOrder[] }>(`${BASE}/pos/ready-orders`)).data,
-    refetchInterval: 30_000,
+    refetchInterval: false,
 };
 
 export async function fetchOrder(id: number): Promise<OrderDetail> {

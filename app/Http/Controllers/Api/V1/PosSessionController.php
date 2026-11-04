@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 
 /**
  * What the register header and the "My orders" drawer show for the signed-in cashier.
@@ -21,7 +22,7 @@ class PosSessionController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
-        return [new Middleware('permission:order.view')];
+        return [new Middleware('permission:order.view|order.create')];
     }
 
     public function __invoke(Request $request): JsonResponse
@@ -62,7 +63,7 @@ class PosSessionController extends Controller implements HasMiddleware
             'summary' => [
                 'since' => $since?->toIso8601String(),
                 'sales_count' => (clone $sales)->distinct()->count('order_id'),
-                'sales_cents' => (int) (clone $sales)->sum('amount_cents'),
+                'sales_cents' => (int) (clone $sales)->sum(DB::raw('amount_cents + tip_cents')),
                 'unpaid_count' => $unpaid->count(),
                 'unpaid_cents' => (int) $unpaid->sum(fn (Order $o) => $o->balanceCents()),
             ],

@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { PrinterBanner } from '@/components/printer/printer-banner';
@@ -12,15 +12,19 @@ import { ItemDialog } from '@/pages/pos/item-dialog';
 import { MenuPanel } from '@/pages/pos/menu-panel';
 import type { MenuProduct } from '@/pages/pos/types';
 import type { CartLine } from '@/stores/cart-store';
+import { startEditing } from '@/lib/order-edit';
 import { useCartStore } from '@/stores/cart-store';
+import { readPersistedEditingOrder, useOrderEdit } from '@/stores/order-edit-store';
 import { usePosUi } from '@/stores/pos-ui-store';
 
 type Picker = { product: MenuProduct; line: CartLine | null };
 
 export default function Index() {
+    const queryClient = useQueryClient();
     const menu = useQuery(menuQuery);
     const config = useQuery(configQuery);
     const cart = useCartStore();
+    const editing = useOrderEdit((state) => state.editing);
 
     const payingOrder = usePosUi((state) => state.payingOrder);
     const clearPaying = usePosUi((state) => state.clearPaying);
@@ -28,6 +32,35 @@ export default function Index() {
 
     const [picker, setPicker] = useState<Picker | null>(null);
     const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+    useEffect(() => {
+        const onFocus = () => {
+            void queryClient.invalidateQueries({ queryKey: configQuery.queryKey });
+            void queryClient.invalidateQueries({ queryKey: menuQuery.queryKey });
+        };
+
+        window.addEventListener('focus', onFocus);
+
+        return () => window.removeEventListener('focus', onFocus);
+    }, [queryClient]);
+
+    useEffect(() => {
+        if (editing) {
+            return;
+        }
+
+        const persisted = readPersistedEditingOrder();
+
+        if (!persisted) {
+            return;
+        }
+
+        void startEditing(persisted.id).catch(() => {
+            useOrderEdit.getState().stop();
+            toast.error('Could not restore the order you were editing.');
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const products = new Map((menu.data ?? []).flatMap((category) => category.products).map((product) => [product.id, product]));
     const showCheckout = checkoutOpen || payingOrder !== null;

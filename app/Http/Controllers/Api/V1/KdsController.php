@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\KdsTicketStatus;
 use App\Http\Controllers\Controller;
 use App\Models\KdsTicket;
 use App\Models\KdsTicketItem;
@@ -27,7 +28,7 @@ class KdsController extends Controller implements HasMiddleware
 
     public function stations(): JsonResponse
     {
-        $open = ['new', 'preparing', 'ready'];
+        $open = KdsTicketStatus::openValues();
 
         return response()->json(['data' => Station::active()->ordered()->get()->map(fn (Station $s) => [
             'id' => $s->id,

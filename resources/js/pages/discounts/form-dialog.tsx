@@ -32,6 +32,8 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     mode: 'create' | 'edit';
     discount?: DiscountRecord;
+    /** POST redirects drop lazy list props; reload after save. */
+    onSaved?: () => void;
 };
 
 type FormData = {
@@ -103,7 +105,7 @@ const toggles: { key: 'requires_id' | 'requires_approval' | 'is_vat_exempt' | 'i
     { key: 'is_active', title: 'Available at the register', hint: 'Turn off instead of deleting, so old orders keep their link.' },
 ];
 
-export default function DiscountFormDialog({ open, onOpenChange, mode, discount }: Props) {
+export default function DiscountFormDialog({ open, onOpenChange, mode, discount, onSaved }: Props) {
     const isEdit = mode === 'edit' && discount !== undefined;
     const form = useForm<FormData>(blank);
 
@@ -129,7 +131,13 @@ export default function DiscountFormDialog({ open, onOpenChange, mode, discount 
             ends_at: data.ends_at || null,
         }));
 
-        const options = { preserveScroll: true, onSuccess: () => onOpenChange(false) };
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => {
+                onOpenChange(false);
+                onSaved?.();
+            },
+        };
 
         if (isEdit) {
             form.put(update.url(discount.id), options);

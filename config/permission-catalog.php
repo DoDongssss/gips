@@ -64,6 +64,6 @@ return [
         'recipe.manage' => 'Edit recipes.',
         'supplier.manage' => 'Manage suppliers and their prices.',
         'purchase.manage' => 'Create and send purchase orders.',
-        'device.manage' => 'Add, pair and switch off kiosks, registers and kitchen screens.',
+        'device.manage' => 'Add, pair and switch off kiosks and kitchen screens.',
     ],
 ];

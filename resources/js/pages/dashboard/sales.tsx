@@ -27,6 +27,30 @@ function Delta({ current, previous, inverse = false }: { current: number; previo
     );
 }
 
+/** Discounts, tax, refunds, voids — second band for the admin dashboard. */
+export function FinanceRow({ s }: { s: Summary }) {
+    const tiles = [
+        { label: 'Discounts', value: peso(s.discount_cents) },
+        { label: 'Tax', value: peso(s.tax_cents) },
+        { label: 'Tips', value: peso(s.tip_cents) },
+        { label: 'Refunds', value: peso(s.refund_cents), sub: s.refund_count > 0 ? `${int(s.refund_count)} refund${s.refund_count === 1 ? '' : 's'}` : undefined },
+        { label: 'Voided', value: int(s.voided) },
+        { label: 'Cancelled', value: int(s.cancelled) },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {tiles.map((t) => (
+                <Card key={t.label}>
+                    <p className="text-muted-foreground text-xs">{t.label}</p>
+                    <p className="mt-0.5 text-lg font-semibold tabular-nums">{t.value}</p>
+                    {t.sub && <p className="text-muted-foreground mt-0.5 text-xs">{t.sub}</p>}
+                </Card>
+            ))}
+        </div>
+    );
+}
+
 /** Net sales, orders, average order, items, with the change against the period before. */
 export function KpiRow({ cur, prev, range }: { cur: Summary; prev: Summary; range: Range }) {
     const vs = range.days === 1 ? (range.key === 'today' ? 'vs yesterday' : 'vs the day before') : `vs previous ${range.days} days`;
@@ -152,13 +176,46 @@ export function CategoriesCard({ sales }: { sales: Sales }) {
     );
 }
 
-export function ChannelsCard({ sales }: { sales: Sales }) {
+export function MixCard({ sales }: { sales: Sales }) {
+    const [tab, setTab] = useState<'channel' | 'type' | 'staff'>('channel');
+
     return (
-        <Card title="How customers order">
-            <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">Channel</p>
-            <ShareBar parts={sales.channels.map((c) => ({ label: words(c.key), value: c.cents, display: peso(c.cents, false) }))} />
-            <p className="text-muted-foreground mt-5 mb-2 text-xs font-medium tracking-wide uppercase">Order type</p>
-            <ShareBar parts={sales.types.map((c) => ({ label: words(c.key), value: c.cents, display: peso(c.cents, false) }))} />
+        <Card
+            title="Sales mix"
+            hint="Channel, order type, and staff"
+            action={
+                <div className="bg-muted flex rounded-md p-0.5 text-xs">
+                    {(
+                        [
+                            ['channel', 'Channel'],
+                            ['type', 'Type'],
+                            ['staff', 'Staff'],
+                        ] as const
+                    ).map(([key, label]) => (
+                        <button
+                            key={key}
+                            type="button"
+                            onClick={() => setTab(key)}
+                            className={cn('rounded px-2 py-1 transition-colors', tab === key ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground')}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            }
+        >
+            {tab === 'channel' && (
+                <ShareBar parts={sales.channels.map((c) => ({ label: words(c.key), value: c.cents, display: peso(c.cents, false) }))} />
+            )}
+            {tab === 'type' && (
+                <ShareBar parts={sales.types.map((c) => ({ label: words(c.key), value: c.cents, display: peso(c.cents, false) }))} />
+            )}
+            {tab === 'staff' && (
+                <BarList
+                    empty="No sales yet."
+                    rows={sales.staff.map((s) => ({ label: s.name, value: s.cents, display: peso(s.cents), sub: `${int(s.orders)} order${s.orders === 1 ? '' : 's'}` }))}
+                />
+            )}
         </Card>
     );
 }

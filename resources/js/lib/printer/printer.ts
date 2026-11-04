@@ -16,7 +16,8 @@ export type PrinterState = {
  * Direct connections (USB, Bluetooth, Serial) report when the printer goes away; browser print cannot.
  */
 let transport: Transport | null = null;
-let state: PrinterState = { status: 'idle', label: null, error: null };
+const SERVER_PRINTER_STATE: PrinterState = { status: 'idle', label: null, error: null };
+let state: PrinterState = { ...SERVER_PRINTER_STATE };
 let signature = '';
 const listeners = new Set<() => void>();
 
@@ -102,6 +103,6 @@ export function usePrinter(): PrinterState {
             return () => listeners.delete(listener);
         },
         () => state,
-        () => state,
+        () => SERVER_PRINTER_STATE,
     );
 }

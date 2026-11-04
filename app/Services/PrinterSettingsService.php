@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Configuration;
 use App\Models\User;
+use App\Support\ConfigValue;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -43,10 +44,10 @@ class PrinterSettingsService
 
                 Configuration::updateOrCreate(
                     ['key' => $key],
-                    ['value' => $this->stringify($values[$key]), 'group' => 'printer', 'type' => $field['type'], 'updated_by' => $by?->id],
+                    ['value' => ConfigValue::stringify($values[$key]), 'group' => 'printer', 'type' => $field['type'], 'updated_by' => $by?->id],
                 );
 
-                $now = $this->cast($field['type'], $this->stringify($values[$key]));
+                $now = $this->cast($field['type'], ConfigValue::stringify($values[$key]));
 
                 if ($now !== $before[$key]) {
                     $changes[$key] = ['from' => $before[$key], 'to' => $now];
@@ -70,14 +71,5 @@ class PrinterSettingsService
             'int' => (int) $value,
             default => (string) $value,
         };
-    }
-
-    private function stringify(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return is_bool($value) ? ($value ? '1' : '0') : (string) $value;
     }
 }

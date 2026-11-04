@@ -66,7 +66,7 @@ class RefundService
                 $this->fail('amount_cents', 'A refund cannot be more than what is left of the payment.');
             }
 
-            $approver = $this->approvals->resolve($actor, $approval, 'payment.refund');
+            $approver = $this->approvals->resolve($actor, $approval, 'payment.refund', $order);
             $shift = $this->shiftFor($payment, $actor);
 
             $refund = $this->create($order, $payment, $amountCents, $reason, $actor, $approver, $shift);

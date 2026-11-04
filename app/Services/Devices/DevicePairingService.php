@@ -19,6 +19,12 @@ class DevicePairingService
 
     public function register(string $name, string $type, ?int $stationId, ?User $by): array
     {
+        if ($type === Device::POS) {
+            throw ValidationException::withMessages([
+                'type' => 'Register terminals use staff sign-in. Add a kiosk or kitchen screen instead.',
+            ]);
+        }
+
         $device = Device::create([
             'name' => $name, 'type' => $type, 'identifier' => (string) Str::uuid(),
             'station_id' => $stationId, 'is_active' => true, 'registered_by' => $by?->id,
@@ -60,6 +66,10 @@ class DevicePairingService
             ->first();
 
         if (! $device) {
+            throw ValidationException::withMessages(['code' => 'That code is not valid or has expired.']);
+        }
+
+        if ($device->type === Device::POS) {
             throw ValidationException::withMessages(['code' => 'That code is not valid or has expired.']);
         }
 

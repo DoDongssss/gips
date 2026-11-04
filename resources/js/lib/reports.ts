@@ -45,6 +45,31 @@ export type XReport = {
     cash: CashBreakdown | null;
 };
 
+export type ZReportDayShift = {
+    cashier: string;
+    opened_at: string;
+    closed_at: string | null;
+    opening_cash_cents: number;
+    expected_cash_cents: number | null;
+    counted_cash_cents: number | null;
+    variance_cents: number | null;
+};
+
+export type ZReportDayCash = {
+    opening_cents: number;
+    expected_cents: number;
+    counted_cents: number;
+    variance_cents: number;
+};
+
+/** Live figures for an open business day before the Z report is issued. */
+export type ZReportPreview = {
+    summary: ReportSummary;
+    cash: ZReportDayCash;
+    unpaid_orders: number;
+    shifts: ZReportDayShift[];
+};
+
 export type ZReportRecord = {
     id: number;
     report_number: string;

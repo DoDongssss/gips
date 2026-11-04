@@ -115,8 +115,10 @@ class OrderController extends Controller implements HasMiddleware
         RefundService $refunds,
         OrderService $orders,
     ): JsonResponse {
+        $this->authorize('void', $order);
+
         $user = $request->user();
-        $approver = $approvals->resolve($user, $request->validated('approval'), 'order.void');
+        $approver = $approvals->resolve($user, $request->validated('approval'), 'order.void', $order);
         $reason = $request->validated('reason');
 
         $order = DB::transaction(function () use ($order, $user, $approver, $reason, $statuses, $refunds, $approvals) {

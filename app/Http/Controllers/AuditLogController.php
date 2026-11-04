@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Services\AuditLogs\AuditLogIndexQuery;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -23,6 +23,8 @@ class AuditLogController extends Controller implements HasMiddleware
         'two_factor_recovery_codes',
     ];
 
+    public function __construct(private AuditLogIndexQuery $query) {}
+
     public static function middleware(): array
     {
         return [
@@ -30,79 +32,25 @@ class AuditLogController extends Controller implements HasMiddleware
         ];
     }
 
-    /** Columns the table may sort by: query name => database column. */
-    private const SORTABLE = ['created_at' => 'created_at', 'log' => 'log_name', 'event' => 'event'];
-
-    private const PER_PAGE = 20;
-
     public function index(Request $request): Response
     {
         $actor = $request->user();
-
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'log' => ['nullable', 'string', 'max:100'],
-            'event' => ['nullable', 'string', 'max:100'],
-            'user' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date'],
-            'sort' => ['nullable', 'string', 'in:'.implode(',', array_keys(self::SORTABLE))],
-            'direction' => ['nullable', 'in:asc,desc'],
-        ]);
-
-        $sort = $filters['sort'] ?? null;
-        $direction = ($filters['direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
-
-        // Only a superadmin can see what other superadmins did or what was done to them.
-        $hiddenIds = $actor->hasRole('superadmin')
-            ? collect()
-            : User::role('superadmin')->pluck('id');
+        $filters = $this->query->filters($request);
+        $hiddenIds = $this->query->hiddenSuperadminUserIds($actor);
 
         return Inertia::render('audit-logs/index', [
-            // Optional: not queried on the first render. The page asks for it
-            // with a partial reload (only: ['logs', 'options', 'filters']).
-            'logs' => Inertia::optional(fn () => Activity::query()
-                ->with(['causer', 'subject'])
-                ->when($hiddenIds->isNotEmpty(), function ($query) use ($hiddenIds) {
-                    $query
-                        ->where(fn ($q) => $q->whereNull('causer_id')
-                            ->orWhere('causer_type', '!=', User::class)
-                            ->orWhereNotIn('causer_id', $hiddenIds))
-                        ->where(fn ($q) => $q->whereNull('subject_id')
-                            ->orWhere('subject_type', '!=', User::class)
-                            ->orWhereNotIn('subject_id', $hiddenIds));
-                })
-                ->when($filters['search'] ?? null, fn ($q, $value) => $q->where('description', 'like', "%{$value}%"))
-                ->when($filters['log'] ?? null, fn ($q, $value) => $q->where('log_name', $value))
-                ->when($filters['event'] ?? null, fn ($q, $value) => $q->where('event', $value))
-                ->when($filters['user'] ?? null, fn ($q, $value) => $q->where('causer_type', User::class)->where('causer_id', $value))
-                ->when($filters['from'] ?? null, fn ($q, $value) => $q->whereDate('created_at', '>=', $value))
-                ->when($filters['to'] ?? null, fn ($q, $value) => $q->whereDate('created_at', '<=', $value))
-                ->when(
-                    $sort,
-                    fn ($q) => $q->orderBy(self::SORTABLE[$sort], $direction)->orderBy('id', $direction),
-                    fn ($q) => $q->latest('id'),
-                )
-                ->paginate(self::PER_PAGE)
-                ->withQueryString()
-                ->through(fn (Activity $activity) => $this->present($activity))),
+            'logs' => Inertia::optional(function () use ($filters, $hiddenIds) {
+                $builder = $this->query->sorted($this->query->baseQuery($filters, $hiddenIds), $filters);
 
-            // Dropdown choices need distinct() scans of the log, so they load with the table.
-            'options' => Inertia::optional(fn () => [
-                'logs' => Activity::query()->whereNotNull('log_name')->distinct()->orderBy('log_name')->pluck('log_name'),
-                'events' => Activity::query()->whereNotNull('event')->distinct()->orderBy('event')->pluck('event'),
-                'users' => User::query()
-                    ->whereIn('id', Activity::query()->where('causer_type', User::class)->select('causer_id'))
-                    ->when($hiddenIds->isNotEmpty(), fn ($q) => $q->whereNotIn('id', $hiddenIds))
-                    ->orderBy('name')
-                    ->get(['id', 'name']),
-            ]),
+                return $builder
+                    ->paginate(AuditLogIndexQuery::PER_PAGE)
+                    ->withQueryString()
+                    ->through(fn (Activity $activity) => $this->present($activity));
+            }),
 
-            'filters' => array_merge(
-                ['search' => '', 'log' => '', 'event' => '', 'user' => '', 'from' => '', 'to' => ''],
-                collect($filters)->except(['sort', 'direction'])->map(fn ($value) => (string) $value)->all(),
-                ['sort' => $sort, 'direction' => $sort ? $direction : null],
-            ),
+            'options' => Inertia::optional(fn () => $this->query->filterOptions($hiddenIds)),
+
+            'filters' => $filters,
         ]);
     }
 
@@ -150,6 +98,6 @@ class AuditLogController extends Controller implements HasMiddleware
 
         $attributes = $subject->getAttributes();
 
-        return $attributes['name'] ?? $attributes['key'] ?? null;
+        return $attributes['name'] ?? $attributes['key'] ?? $attributes['order_number'] ?? null;
     }
 }

@@ -17,6 +17,7 @@ type Props = { devices: DeviceRow[]; pairing: PairingInfo | null; stations: Stat
 const REFRESH_MS = 20_000;
 
 function Status({ d }: { d: DeviceRow }) {
+    if (d.type === 'pos') return <Badge variant="outline">Staff login</Badge>;
     if (!d.is_active) return <Badge variant="secondary">Off</Badge>;
     if (!d.paired) return <Badge variant="outline">{d.has_pending_code ? 'Waiting for pairing' : 'Not paired'}</Badge>;
     if (d.settings?.is_out_of_service) return <Badge variant="secondary">Out of service</Badge>;
@@ -68,7 +69,7 @@ export default function DevicesIndex({ devices, pairing, stations }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-xl font-semibold tracking-tight">Devices</h1>
-                        <p className="text-muted-foreground text-sm">Kiosk tablets and other registered screens. Status updates by itself.</p>
+                        <p className="text-muted-foreground text-sm">Kiosk tablets and kitchen screens. The register uses staff sign-in, not device pairing.</p>
                     </div>
                     <Button onClick={() => setDialog({ open: true })}>Add device</Button>
                 </div>
@@ -113,12 +114,12 @@ export default function DevicesIndex({ devices, pairing, stations }: Props) {
                                             <Button variant="outline" size="sm" onClick={() => setDialog({ open: true, device: d })}>
                                                 Edit
                                             </Button>
-                                            {d.is_active && (
+                                            {d.type !== 'pos' && d.is_active && (
                                                 <Button variant="outline" size="sm" onClick={() => newCode(d)}>
                                                     {d.paired ? 'New code' : 'Get code'}
                                                 </Button>
                                             )}
-                                            {d.paired && (
+                                            {d.type !== 'pos' && d.paired && (
                                                 <Button variant="ghost" size="sm" onClick={() => signOut(d)}>
                                                     Sign out
                                                 </Button>

@@ -10,9 +10,19 @@ enum KdsTicketStatus: string
     case Bumped = 'bumped';
     case Cancelled = 'cancelled';
 
+    /**
+     * Statuses still shown on a kitchen screen.
+     *
+     * @return list<string>
+     */
+    public static function openValues(): array
+    {
+        return [self::New->value, self::Preparing->value, self::Ready->value];
+    }
+
     /** Tickets still on a kitchen screen. */
     public function isOpen(): bool
     {
-        return in_array($this, [self::New, self::Preparing, self::Ready], true);
+        return in_array($this->value, self::openValues(), true);
     }
 }

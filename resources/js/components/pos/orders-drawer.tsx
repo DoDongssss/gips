@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Tablet } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
+import { cn } from '@/lib/utils';
 
 import { ReprintButton } from '@/components/printer/reprint-button';
 import { Button } from '@/components/ui/button';
@@ -89,10 +92,10 @@ function ReadyList({ orders, onPay }: { orders: ReadyOrder[]; onPay: (orderId: n
     return (
         <div className="divide-y">
             {orders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between gap-2 py-2">
-                    <div className="min-w-0">
+                <div key={order.id} className="flex flex-col gap-2 border-b py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
                         <p className="text-lg leading-tight font-semibold">{order.order_number}</p>
-                        <p className="text-muted-foreground truncate text-sm">
+                        <p className="text-muted-foreground text-sm">
                             {order.items_count} {order.items_count === 1 ? 'item' : 'items'} ·{' '}
                             {order.type === 'dine_in' ? 'Dine in' : 'Takeout'}
                             {order.customer_name && ` · ${order.customer_name}`}
@@ -170,20 +173,22 @@ export function OrdersDrawer() {
 
     // Kiosk orders belong to the kiosk, not to one cashier, so they are added to this cashier's list.
     const mine = data?.orders ?? [];
-    const kioskOrders = (kiosk.data ?? []).filter((order) => !mine.some((row) => row.id === order.id));
-    const all: PosOrderRow[] = [...kioskOrders, ...mine];
+    const kioskOnly = (kiosk.data ?? []).filter((order) => !mine.some((row) => row.id === order.id));
+    const all: PosOrderRow[] = [...kioskOnly, ...mine];
     const unpaid = all.filter(canPay);
     const term = search.trim().toLowerCase();
     const matches = (order: PosOrderRow) => term === '' || order.order_number.toLowerCase().includes(term);
-    const rows = (drawer === 'unpaid' ? unpaid : drawer === 'all' ? all : []).filter(matches);
+    const rows = (drawer === 'unpaid' ? unpaid : drawer === 'kiosk' ? kioskOnly : drawer === 'all' ? all : []).filter(matches);
     const readyOrders = ready.data ?? [];
 
     return (
         <Sheet open={drawer !== null} onOpenChange={(open) => !open && closeDrawer()}>
-            <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
-                <SheetHeader className="border-b px-3 py-2.5">
+            <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-2xl">
+                <SheetHeader className="border-b px-4 py-3">
                     <SheetTitle className="text-lg">Orders</SheetTitle>
-                    <SheetDescription className="text-sm">Orders you took today.</SheetDescription>
+                    <SheetDescription className="text-sm">
+                        Pay-later and kiosk orders for today{kioskOnly.length > 0 ? ` · ${kioskOnly.length} from kiosk` : ''}.
+                    </SheetDescription>
                 </SheetHeader>
 
                 <Tabs
@@ -191,9 +196,13 @@ export function OrdersDrawer() {
                     onValueChange={(value) => openDrawer(value as DrawerTab)}
                     className="flex min-h-0 flex-1 flex-col gap-0"
                 >
-                    <TabsList className="mx-3 mt-2 grid h-10 grid-cols-3">
+                    <TabsList className="mx-4 mt-2 grid h-auto min-h-10 grid-cols-2 gap-1 sm:grid-cols-4">
                         <TabsTrigger value="unpaid" className="text-sm">
                             Pay later ({unpaid.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="kiosk" className="gap-1 text-sm data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900">
+                            <Tablet className="size-3.5 shrink-0" />
+                            Kiosk ({kioskOnly.length})
                         </TabsTrigger>
                         <TabsTrigger value="all" className="text-sm">
                             All today ({all.length})
@@ -203,7 +212,19 @@ export function OrdersDrawer() {
                         </TabsTrigger>
                     </TabsList>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                    {kioskOnly.length > 0 && drawer !== 'kiosk' && drawer !== 'ready' && (
+                        <div className="mx-4 mt-2 flex items-center gap-2 rounded-md border border-purple-200 bg-purple-50 px-3 py-2 text-sm text-purple-900">
+                            <Tablet className="size-4 shrink-0" />
+                            <span className="min-w-0 flex-1">
+                                {kioskOnly.length} kiosk {kioskOnly.length === 1 ? 'order needs' : 'orders need'} payment at the counter.
+                            </span>
+                            <Button size="sm" variant="outline" className="h-9 shrink-0 border-purple-300 bg-white" onClick={() => openDrawer('kiosk')}>
+                                View
+                            </Button>
+                        </div>
+                    )}
+
+                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
                         {drawer !== 'ready' && (
                             <Input
                                 value={search}
@@ -232,9 +253,30 @@ export function OrdersDrawer() {
                                     const row = all.find((order) => order.id === orderId);
                                     if (row) {
                                         startPaying(row);
-                                    } else {
-                                        toast.error('Open the order from All today to take payment.');
+
+                                        return;
                                     }
+
+                                    const readyRow = readyOrders.find((order) => order.id === orderId);
+                                    if (readyRow) {
+                                        startPaying({
+                                            id: readyRow.id,
+                                            order_number: readyRow.order_number,
+                                            status: 'ready',
+                                            payment_status: readyRow.payment_status,
+                                            type: readyRow.type,
+                                            customer_name: readyRow.customer_name,
+                                            total_cents: readyRow.balance_cents,
+                                            paid_cents: 0,
+                                            balance_cents: readyRow.balance_cents,
+                                            items_count: readyRow.items_count,
+                                            created_at: readyRow.ready_at ?? new Date().toISOString(),
+                                        });
+
+                                        return;
+                                    }
+
+                                    toast.error('Open the order from All today to take payment.');
                                 }}
                             />
                         )}
@@ -244,20 +286,28 @@ export function OrdersDrawer() {
                                 {term !== ''
                                     ? 'No order matches that number.'
                                     : drawer === 'unpaid'
-                                    ? 'No saved orders waiting for payment.'
-                                    : 'No orders taken yet today.'}
+                                      ? 'No saved orders waiting for payment.'
+                                      : drawer === 'kiosk'
+                                        ? 'No kiosk orders waiting for payment.'
+                                        : 'No orders taken yet today.'}
                             </p>
                         )}
 
                         <div className="divide-y">
                             {rows.map((order) => (
-                                <div key={order.id} className="flex items-center justify-between gap-2 py-2">
-                                    <div className="min-w-0">
+                                <div
+                                    key={order.id}
+                                    className={cn(
+                                        'flex flex-col gap-3 border-b py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between',
+                                        isKioskOrder(order) && 'rounded-md bg-purple-50/80 px-2 sm:px-3',
+                                    )}
+                                >
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-base leading-tight font-medium">
                                             {order.order_number} <StatusText order={order} />
                                             <KioskTags order={order} />
                                         </p>
-                                        <p className="text-muted-foreground truncate text-sm">
+                                        <p className="text-muted-foreground text-sm">
                                             {new Date(order.created_at).toLocaleTimeString('en-PH', {
                                                 hour: 'numeric',
                                                 minute: '2-digit',
@@ -267,7 +317,7 @@ export function OrdersDrawer() {
                                             {order.customer_name && ` · ${order.customer_name}`}
                                         </p>
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-2">
+                                    <div className="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
                                         <div className="text-right text-base tabular-nums">
                                             <p className="font-medium">{formatPeso(order.total_cents)}</p>
                                             {canPay(order) && order.paid_cents > 0 && (

@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Can } from '@/components/can';
@@ -9,45 +9,88 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatPeso } from '@/lib/money';
-import type { PaymentBreakdownRow, ReportSummary, ZReportRecord } from '@/lib/reports';
+import type { ZReportPreview, ZReportRecord } from '@/lib/reports';
+import { CashVarianceBadge, ZReportIssuedPanel, ZReportPreviewPanel } from '@/pages/reports/z-report-day-panel';
+import { index as shiftsIndex } from '@/routes/shifts';
 import { index, store } from '@/routes/z-reports';
 
+type OpenShift = { id: number; cashier: string; business_date: string };
+
 type Props = {
-    today: {
+    day: {
         business_date: string;
-        /** Reasons the day cannot be closed yet (open shifts, unpaid orders, and so on). */
         blockers: string[];
-        preview: ReportSummary;
+        open_shifts: OpenShift[];
     };
-    reports: ZReportRecord[];
-    /** Past days with orders or shifts and no Z report. */
+    issued: ZReportRecord | null;
+    preview?: ZReportPreview;
+    reports?: ZReportRecord[];
     pending_days: string[];
+    reopened_days: string[];
     current_date: string;
 };
 
-function Stat({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs">{label}</p>
-            <p className="text-lg font-semibold tabular-nums">{value}</p>
-        </div>
-    );
-}
+const DAY_ONLY = ['day', 'issued', 'preview'];
+const REPORTS_ONLY = ['reports'];
 
-export default function ZReports({ today, reports, pending_days, current_date }: Props) {
+export default function ZReports({ day, issued, preview, reports, pending_days, reopened_days, current_date }: Props) {
     const [confirming, setConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [loadingPreview, setLoadingPreview] = useState(false);
+    const [loadingReports, setLoadingReports] = useState(false);
     const [viewing, setViewing] = useState<ZReportRecord | null>(null);
     const [reopening, setReopening] = useState<ZReportRecord | null>(null);
 
-    const { preview, blockers } = today;
-    const alreadyClosed = reports.some((r) => r.business_date === today.business_date);
-    const blocked = blockers.length > 0;
+    const [loadedPreview, setLoadedPreview] = useState<ZReportPreview | undefined>(preview);
+    const [loadedReports, setLoadedReports] = useState<ZReportRecord[] | undefined>(reports);
+
+    const previewData = preview ?? loadedPreview;
+    const reportsData = reports ?? loadedReports;
+    const isClosed = issued !== null;
+    const blocked = !isClosed && day.blockers.length > 0;
+
+    useEffect(() => {
+        if (preview) {
+            setLoadedPreview(preview);
+        } else if (loadedPreview && !isClosed) {
+            loadPreview();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [preview]);
+
+    useEffect(() => {
+        if (reports) {
+            setLoadedReports(reports);
+        } else if (loadedReports) {
+            loadReports();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reports]);
+
+    function pickDate(date: string) {
+        router.get(index.url(), { date }, { preserveScroll: true, preserveState: true, only: DAY_ONLY });
+    }
+
+    function loadPreview() {
+        router.reload({
+            only: DAY_ONLY,
+            onStart: () => setLoadingPreview(true),
+            onFinish: () => setLoadingPreview(false),
+        });
+    }
+
+    function loadReports() {
+        router.reload({
+            only: REPORTS_ONLY,
+            onStart: () => setLoadingReports(true),
+            onFinish: () => setLoadingReports(false),
+        });
+    }
 
     function generate() {
         router.post(
             store.url(),
-            { business_date: today.business_date },
+            { business_date: day.business_date },
             {
                 preserveScroll: true,
                 onStart: () => setProcessing(true),
@@ -61,6 +104,8 @@ export default function ZReports({ today, reports, pending_days, current_date }:
         );
     }
 
+    const dayPickerDates = [...new Set([...pending_days, current_date])].sort();
+
     return (
         <>
             <Head title="Z reports" />
@@ -71,18 +116,14 @@ export default function ZReports({ today, reports, pending_days, current_date }:
                     <p className="text-muted-foreground text-sm">The end-of-day close. Once issued, that day&apos;s sales are locked.</p>
                 </div>
 
-                {pending_days.filter((d) => d !== today.business_date).length > 0 || today.business_date !== current_date ? (
+                {pending_days.length > 0 ? (
                     <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                         <p className="font-medium">Days without a Z report</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            {[...new Set([...pending_days, current_date])].sort().map((d) => (
-                                <Button
-                                    key={d}
-                                    size="sm"
-                                    variant={d === today.business_date ? 'default' : 'outline'}
-                                    onClick={() => router.get(index.url(), { date: d }, { preserveScroll: true, preserveState: true })}
-                                >
+                            {dayPickerDates.map((d) => (
+                                <Button key={d} size="sm" variant={d === day.business_date ? 'default' : 'outline'} onClick={() => pickDate(d)}>
                                     {d === current_date ? `Today (${d})` : d}
+                                    {reopened_days.includes(d) ? ' · reopened' : ''}
                                 </Button>
                             ))}
                         </div>
@@ -93,58 +134,90 @@ export default function ZReports({ today, reports, pending_days, current_date }:
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <h2 className="font-semibold">
-                                {today.business_date === current_date ? 'Today' : 'Business day'} · {today.business_date}
+                                {day.business_date === current_date ? 'Today' : 'Business day'} · {day.business_date}
+                                {reopened_days.includes(day.business_date) && !isClosed ? (
+                                    <Badge variant="secondary" className="ml-2">
+                                        Reopened
+                                    </Badge>
+                                ) : null}
                             </h2>
-                            <p className="text-muted-foreground text-sm">A live preview of what the Z report will contain.</p>
+                            <p className="text-muted-foreground text-sm">
+                                {isClosed ? `Issued report ${issued.report_number} (locked).` : 'Load a preview before closing the day.'}
+                            </p>
                         </div>
 
-                        <Can permission="shift.view-all">
-                            <Button disabled={blocked || alreadyClosed} onClick={() => setConfirming(true)}>
-                                {alreadyClosed ? 'Day closed' : 'Close the day'}
-                            </Button>
-                        </Can>
+                        <div className="flex flex-wrap gap-2">
+                            {!isClosed && (
+                                <Button variant="outline" disabled={loadingPreview} onClick={loadPreview}>
+                                    {loadingPreview ? 'Loading…' : 'Load preview'}
+                                </Button>
+                            )}
+                            {isClosed && (
+                                <Button variant="outline" onClick={() => setViewing(issued)}>
+                                    View / print
+                                </Button>
+                            )}
+                            <Can permission="shift.view-all">
+                                <Button disabled={blocked || isClosed || !previewData} onClick={() => setConfirming(true)}>
+                                    {isClosed ? 'Day closed' : 'Close the day'}
+                                </Button>
+                            </Can>
+                        </div>
                     </div>
 
-                    {blocked && !alreadyClosed && (
+                    {blocked && (
                         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                             <p className="font-medium">Fix these before closing the day:</p>
                             <ul className="mt-1 list-disc pl-5">
-                                {blockers.map((b) => (
+                                {day.blockers.map((b) => (
                                     <li key={b}>{b}</li>
                                 ))}
                             </ul>
+                            {day.open_shifts.length > 0 && (
+                                <div className="mt-3 space-y-1">
+                                    <p className="font-medium">Open shifts</p>
+                                    <ul className="space-y-1">
+                                        {day.open_shifts.map((shift) => (
+                                            <li key={shift.id}>
+                                                {shift.cashier} · {shift.business_date} ·{' '}
+                                                <Link href={shiftsIndex.url()} className="font-medium underline">
+                                                    Go to shifts
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        <Stat label="Orders" value={preview.orders_count.toLocaleString()} />
-                        <Stat label="Gross sales" value={formatPeso(preview.gross_sales_cents)} />
-                        <Stat label="Discounts" value={formatPeso(preview.discounts_cents)} />
-                        <Stat label="Refunds" value={formatPeso(preview.refunds_cents)} />
-                        <Stat label="Net sales" value={formatPeso(preview.net_sales_cents)} />
-                        <Stat label="Tax" value={formatPeso(preview.tax_cents)} />
-                        <Stat label="Tips" value={formatPeso(preview.tips_cents)} />
-                        <Stat label="Voids" value={`${preview.voids_count} · ${formatPeso(preview.voids_cents)}`} />
-                    </div>
-
-                    {preview.payments.length > 0 && (
-                        <div className="space-y-1 text-sm">
-                            {preview.payments.map((p: PaymentBreakdownRow) => (
-                                <div key={p.code} className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                        {p.name} ({p.count})
-                                    </span>
-                                    <span className="tabular-nums">{formatPeso(p.net_cents)}</span>
-                                </div>
-                            ))}
+                    {isClosed ? (
+                        <ZReportIssuedPanel report={issued} />
+                    ) : previewData ? (
+                        <ZReportPreviewPanel preview={previewData} />
+                    ) : (
+                        <div className="text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed p-10 text-sm">
+                            <p>The preview is not loaded yet.</p>
+                            <Button onClick={loadPreview} disabled={loadingPreview}>
+                                {loadingPreview ? 'Loading…' : 'Load preview'}
+                            </Button>
                         </div>
                     )}
                 </section>
 
                 <section className="space-y-3">
-                    <h2 className="font-semibold">Issued reports</h2>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="font-semibold">Issued reports</h2>
+                        {!reportsData && (
+                            <Button variant="outline" size="sm" disabled={loadingReports} onClick={loadReports}>
+                                {loadingReports ? 'Loading…' : 'Load history'}
+                            </Button>
+                        )}
+                    </div>
 
-                    {reports.length === 0 ? (
+                    {!reportsData ? (
+                        <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">Load history to see past Z reports.</p>
+                    ) : reportsData.length === 0 ? (
                         <p className="text-muted-foreground text-sm">No Z reports yet.</p>
                     ) : (
                         <div className="overflow-x-auto rounded-lg border">
@@ -153,20 +226,32 @@ export default function ZReports({ today, reports, pending_days, current_date }:
                                     <tr>
                                         <th className="px-3 py-2 font-medium">Report</th>
                                         <th className="px-3 py-2 font-medium">Business date</th>
+                                        <th className="px-3 py-2 font-medium">Issued</th>
                                         <th className="px-3 py-2 text-right font-medium">Orders</th>
-                                        <th className="px-3 py-2 text-right font-medium">Net sales</th>
-                                        <th className="px-3 py-2 font-medium">Cash</th>
-                                        <th className="px-3 py-2 font-medium">Issued by</th>
+                                        <th className="px-3 py-2 text-right font-medium">Gross</th>
+                                        <th className="px-3 py-2 text-right font-medium">Net</th>
+                                        <th className="px-3 py-2 text-right font-medium">Tax</th>
+                                        <th className="px-3 py-2 text-right font-medium">Expected</th>
+                                        <th className="px-3 py-2 text-right font-medium">Counted</th>
+                                        <th className="px-3 py-2 font-medium">Variance</th>
+                                        <th className="px-3 py-2 font-medium">By</th>
                                         <th className="px-3 py-2" />
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {reports.map((z) => (
+                                    {reportsData.map((z) => (
                                         <tr key={z.id}>
                                             <td className="px-3 py-2 font-medium">{z.report_number}</td>
                                             <td className="px-3 py-2">{z.business_date}</td>
+                                            <td className="text-muted-foreground px-3 py-2 whitespace-nowrap" suppressHydrationWarning>
+                                                {new Date(z.generated_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                            </td>
                                             <td className="px-3 py-2 text-right tabular-nums">{z.orders_count}</td>
+                                            <td className="px-3 py-2 text-right tabular-nums">{formatPeso(z.gross_sales_cents)}</td>
                                             <td className="px-3 py-2 text-right tabular-nums">{formatPeso(z.net_sales_cents)}</td>
+                                            <td className="px-3 py-2 text-right tabular-nums">{formatPeso(z.tax_cents)}</td>
+                                            <td className="px-3 py-2 text-right tabular-nums">{formatPeso(z.expected_cash_cents)}</td>
+                                            <td className="px-3 py-2 text-right tabular-nums">{formatPeso(z.counted_cash_cents)}</td>
                                             <td className="px-3 py-2">
                                                 {z.variance_cents === 0 ? (
                                                     <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Balanced</Badge>
@@ -201,16 +286,32 @@ export default function ZReports({ today, reports, pending_days, current_date }:
             <Dialog open={confirming} onOpenChange={setConfirming}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Close {today.business_date}?</DialogTitle>
+                        <DialogTitle>Close {day.business_date}?</DialogTitle>
                         <DialogDescription>
                             This issues the Z report and locks the day. If you close it by mistake, someone with permission can reopen the day.
                         </DialogDescription>
                     </DialogHeader>
+                    {previewData && !isClosed && (
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            <p>
+                                Net sales: <span className="font-medium tabular-nums">{formatPeso(previewData.summary.net_sales_cents)}</span>
+                            </p>
+                            <p>
+                                Orders: <span className="font-medium tabular-nums">{previewData.summary.orders_count}</span>
+                            </p>
+                            <p className="flex flex-wrap items-center gap-1">
+                                Cash variance: <CashVarianceBadge varianceCents={previewData.cash.variance_cents} />
+                            </p>
+                            <p>
+                                Unpaid: <span className="font-medium tabular-nums">{previewData.unpaid_orders}</span>
+                            </p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setConfirming(false)}>
                             Not yet
                         </Button>
-                        <Button onClick={generate} disabled={processing}>
+                        <Button onClick={generate} disabled={processing || !previewData}>
                             {processing ? 'Issuing…' : 'Issue Z report'}
                         </Button>
                     </DialogFooter>

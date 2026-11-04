@@ -3,7 +3,7 @@
 namespace App\Services\Orders;
 
 use App\Models\OrderNumberSequence;
-use App\Support\PosSettings;
+use App\Services\ConfigurationService;
 use Illuminate\Support\Facades\DB;
 
 class OrderNumberService
@@ -18,7 +18,7 @@ class OrderNumberService
         DB::table('order_number_sequences')->insertOrIgnore([
             'business_date' => $businessDate,
             'last_number' => 0,
-            'prefix' => substr((string) PosSettings::get('orders', 'pickup_prefix', 'A'), 0, 4),
+            'prefix' => substr((string) (app(ConfigurationService::class)->get('orders_pickup_prefix') ?: 'A'), 0, 4),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

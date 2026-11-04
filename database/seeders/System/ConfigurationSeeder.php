@@ -4,6 +4,7 @@ namespace Database\Seeders\System;
 
 use App\Models\Configuration;
 use App\Services\ConfigurationService;
+use App\Support\ConfigValue;
 use Illuminate\Database\Seeder;
 
 class ConfigurationSeeder extends Seeder
@@ -20,7 +21,7 @@ class ConfigurationSeeder extends Seeder
         foreach ($this->configurations() as $group => $rows) {
             foreach ($rows as $key => $row) {
                 $attributes = [
-                    'value' => $this->stringify($row['value']),
+                    'value' => ConfigValue::stringify($row['value']),
                     'group' => $group,
                     'type' => $row['type'],
                 ];
@@ -73,6 +74,7 @@ class ConfigurationSeeder extends Seeder
 
             'shifts' => [
                 'shifts_require_open_shift' => ['type' => 'bool', 'value' => true],
+                'shifts_variance_attention_cents' => ['type' => 'int', 'value' => 5000],
             ],
 
             'kitchen' => [
@@ -81,18 +83,5 @@ class ConfigurationSeeder extends Seeder
             ],
 
         ];
-    }
-
-    private function stringify(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-
-        return (string) $value;
     }
 }

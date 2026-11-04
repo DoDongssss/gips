@@ -23,9 +23,7 @@ class SecurityController extends Controller
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {
-            if (method_exists($request, 'ensureStateIsValid')) {
-                $request->ensureStateIsValid();
-            }
+            $request->ensureStateIsValid();
 
             $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');

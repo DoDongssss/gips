@@ -1,4 +1,8 @@
-import { ChefHat, Clock, Wallet } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { ChefHat, Wallet } from 'lucide-react';
+
+import { show as shiftShow } from '@/routes/shifts';
+import { index as shiftsIndex } from '@/routes/shifts';
 
 import { Card, Empty, Pill, Stat } from './card';
 import type { Tone } from './card';
@@ -63,9 +67,18 @@ export function LiveStrip({ live }: { live: Live }) {
 const statusTone: Record<string, Tone> = { open: 'neutral', confirmed: 'info', preparing: 'warning', ready: 'good', completed: 'good', cancelled: 'danger', voided: 'danger' };
 const payTone: Record<string, Tone> = { paid: 'good', partial: 'warning', unpaid: 'neutral', refunded: 'danger' };
 
-export function RecentOrders({ live, now }: { live: Live; now: number }) {
+export function RecentOrders({ live, now, businessDate }: { live: Live; now: number; businessDate: string }) {
     return (
-        <Card title="Latest orders" hint="Today" className="lg:col-span-2">
+        <Card
+            title="Latest orders"
+            hint="Business day"
+            className="lg:col-span-2"
+            action={
+                <Link href={`/orders?date=${businessDate}`} className="text-primary text-xs hover:underline">
+                    View all
+                </Link>
+            }
+        >
             {live.recent.length === 0 ? (
                 <Empty>No orders yet today.</Empty>
             ) : (
@@ -108,7 +121,15 @@ export function RecentOrders({ live, now }: { live: Live; now: number }) {
 
 export function ShiftsCard({ shifts, mine }: { shifts: Shifts; mine: boolean }) {
     return (
-        <Card title={mine ? 'My shift' : 'Cash drawers'} hint="Estimated cash in each open drawer" action={<Clock className="text-muted-foreground size-4" />}>
+        <Card
+            title={mine ? 'My shift' : 'Cash drawers'}
+            hint="Expected cash matches shift close math"
+            action={
+                <Link href={shiftsIndex.url()} className="text-primary text-xs hover:underline">
+                    Shifts
+                </Link>
+            }
+        >
             {shifts.open.length === 0 ? (
                 <Empty>No shift is open.</Empty>
             ) : (
@@ -116,15 +137,19 @@ export function ShiftsCard({ shifts, mine }: { shifts: Shifts; mine: boolean }) 
                     {shifts.open.map((s) => (
                         <li key={s.id} className="rounded-lg border p-3">
                             <div className="flex items-baseline justify-between gap-2">
-                                <p className="font-medium">{s.cashier}</p>
+                                <Link href={shiftShow.url(s.id)} className="font-medium hover:underline">
+                                    {s.cashier}
+                                </Link>
                                 <p className="text-muted-foreground text-xs">since {timeOf(s.opened_at)}</p>
                             </div>
                             <p className="mt-1 text-xl font-semibold tabular-nums">{peso(s.expected_cents)}</p>
                             <dl className="text-muted-foreground mt-2 space-y-0.5 text-xs">
                                 <Line label="Opening cash" value={peso(s.opening_cents)} />
                                 <Line label="Cash sales" value={`+ ${peso(s.cash_sales_cents)}`} />
+                                {s.cash_tips_cents > 0 && <Line label="Cash tips" value={`+ ${peso(s.cash_tips_cents)}`} />}
                                 {s.cash_in_cents > 0 && <Line label="Cash in" value={`+ ${peso(s.cash_in_cents)}`} />}
                                 {s.cash_out_cents > 0 && <Line label="Paid out and drops" value={`− ${peso(s.cash_out_cents)}`} />}
+                                {s.cash_refunds_cents > 0 && <Line label="Cash refunds" value={`− ${peso(s.cash_refunds_cents)}`} />}
                             </dl>
                         </li>
                     ))}
@@ -137,7 +162,9 @@ export function ShiftsCard({ shifts, mine }: { shifts: Shifts; mine: boolean }) 
                     <ul className="space-y-1 text-sm">
                         {shifts.closed_today.map((s) => (
                             <li key={s.id} className="flex items-center justify-between gap-2">
-                                <span className="truncate">{s.cashier}</span>
+                                <Link href={shiftShow.url(s.id)} className="truncate hover:underline">
+                                    {s.cashier}
+                                </Link>
                                 {s.variance_cents === null ? (
                                     <span className="text-muted-foreground text-xs">no count</span>
                                 ) : s.variance_cents === 0 ? (

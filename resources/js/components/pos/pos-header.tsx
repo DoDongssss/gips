@@ -2,7 +2,6 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Banknote,
-    BellRing,
     CalendarDays,
     ChevronDown,
     ClipboardList,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { PosOrderNotificationsBell } from '@/components/pos/pos-order-notifications-bell';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -103,7 +103,7 @@ export function PosHeader() {
 
         return () => setPosLive(false);
     }, [live]);
-    const readyCount = (useQuery(readyOrdersQuery()).data ?? []).length;
+
     const summary = data?.summary;
     const unpaidCount = summary?.unpaid_count ?? 0;
     const salesCount = summary?.sales_count ?? 0;
@@ -159,19 +159,7 @@ export function PosHeader() {
                     )}
                 </Button>
 
-                {readyCount > 0 && (
-                    <Button
-                        variant="outline"
-                        className="h-11 gap-2 border-green-300 bg-green-50 px-4 text-base text-green-700 hover:bg-green-100 hover:text-green-800"
-                        onClick={() => openDrawer('ready')}
-                    >
-                        <BellRing className="size-5" />
-                        Ready
-                        <span className="rounded-md bg-green-600 px-1.5 text-sm leading-6 font-medium text-white tabular-nums">
-                            {readyCount}
-                        </span>
-                    </Button>
-                )}
+                <PosOrderNotificationsBell />
 
                 <div className="hidden h-6 w-px bg-gray-200 sm:block" />
 

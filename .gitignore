@@ -28,6 +28,9 @@
 !.env.example
 /auth.json
 
+# Test
+/tests/*
+
 # Logs
 npm-debug.log
 yarn-error.log
@@ -46,6 +49,13 @@ Homestead.yaml
 /.nova
 /.vscode
 /.zed
+
+# Desloppify local state
+/.desloppify
+scorecard.png
+
+# graphify local state
+/graphify-out
 
 # AI/editor tools
 /.agents

@@ -14,8 +14,8 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\ConfigurationService;
 use App\Services\Orders\OrderStatusService;
-use App\Support\PosSettings;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -311,7 +311,7 @@ class KdsService
      */
     public function board(?Station $station): array
     {
-        $open = $this->openStatuses();
+        $open = KdsTicketStatus::openValues();
         $scope = fn () => $station ? $station->tickets() : KdsTicket::query();
 
         $tickets = $scope()
@@ -332,8 +332,8 @@ class KdsService
                 ? ['id' => $station->id, 'name' => $station->name, 'type' => $station->type->value]
                 : ['id' => 0, 'name' => 'All stations', 'type' => 'all'],
             'thresholds' => [
-                'warning_minutes' => (int) PosSettings::get('kitchen', 'warning_minutes', 5),
-                'late_minutes' => (int) PosSettings::get('kitchen', 'late_minutes', 10),
+                'warning_minutes' => (int) app(ConfigurationService::class)->get('kitchen_warning_minutes'),
+                'late_minutes' => (int) app(ConfigurationService::class)->get('kitchen_late_minutes'),
             ],
             'server_time' => now()->toIso8601String(),
             'can_recall' => $canRecall,
@@ -380,11 +380,5 @@ class KdsService
         $this->stationNames ??= Station::query()->pluck('name', 'id')->all();
 
         return $this->stationNames[$stationId] ?? null;
-    }
-
-    /** @return array<int, string> */
-    private function openStatuses(): array
-    {
-        return [KdsTicketStatus::New->value, KdsTicketStatus::Preparing->value, KdsTicketStatus::Ready->value];
     }
 }

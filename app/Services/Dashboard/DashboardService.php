@@ -2,6 +2,12 @@
 
 namespace App\Services\Dashboard;
 
+use App\Enums\ShiftStatus;
+use App\Models\Shift;
+use App\Services\Inventory\CostReportService;
+use App\Services\Reports\ReportService;
+use App\Services\Shifts\ShiftService;
+use App\Support\BusinessDate;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Query\Builder;
@@ -11,16 +17,20 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Read-only numbers for the dashboard. Everything is money in centavos.
  *
- * It reads tables directly (DB::table), so it does not depend on model code that may differ.
- *
- * "Sold" order = payment_status paid or refunded, and not cancelled or voided. Refunds are then
- * subtracted once, from the refunds table, so a refunded order is never subtracted twice.
- * Net sales = sum(orders.total_cents) - completed refunds. (Tips are in total_cents only if your
- * payment service puts them there; see SALES_COLUMN to change the column.)
+ * A sale is whatever ReportService counts as a sale: paid or refunded, not cancelled or voided.
+ * Gross is the order subtotal, discounts come off, and completed refunds on that business date
+ * come off the net. Charts use the same orders. Live kitchen, shifts, inventory, and kiosk stay here.
  */
 class DashboardService
 {
-    private const SALES_COLUMN = 'total_cents';
+    /** Order-level sales before refunds, matching ReportService daily and cashier rows. */
+    private const SALE_CENTS = '(orders.subtotal_cents - orders.discount_cents)';
+
+    public function __construct(
+        private ReportService $reports,
+        private CostReportService $costReports,
+        private ShiftService $shifts,
+    ) {}
 
     public const RANGES = ['today', 'yesterday', '7d', '30d', 'month'];
 
@@ -28,7 +38,7 @@ class DashboardService
     public function range(?string $key): array
     {
         $key = in_array($key, self::RANGES, true) ? $key : 'today';
-        $today = now()->startOfDay();
+        $today = Carbon::parse(BusinessDate::current())->startOfDay();
 
         [$from, $to, $label] = match ($key) {
             'yesterday' => [$today->copy()->subDay(), $today->copy()->subDay(), 'Yesterday'],
@@ -56,43 +66,31 @@ class DashboardService
             ->whereNotIn('orders.status', ['cancelled', 'voided']);
     }
 
-    /** KPI block for one period. */
+    /** KPI block for one period. The figures are ReportService's, under the dashboard's field names. */
     public function summary(CarbonInterface $from, CarbonInterface $to): array
     {
-        $col = self::SALES_COLUMN;
-        $row = $this->sold($from, $to)->selectRaw(
-            "COUNT(*) as orders, COALESCE(SUM(orders.$col),0) as gross, COALESCE(SUM(orders.discount_cents),0) as discounts, "
-            .'COALESCE(SUM(orders.tax_cents),0) as tax, COALESCE(SUM(orders.tip_cents),0) as tips'
-        )->first();
-
-        $refunds = DB::table('refunds')->where('status', 'completed')
-            ->whereBetween('refunded_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
-            ->selectRaw('COUNT(*) as n, COALESCE(SUM(amount_cents),0) as amount')->first();
+        $report = $this->reports->summary($from->toDateString(), $to->toDateString());
+        $orders = (int) $report['orders_count'];
+        $net = (int) $report['net_sales_cents'];
 
         $items = (int) DB::table('order_items')
             ->joinSub($this->sold($from, $to)->select('orders.id'), 's', 's.id', '=', 'order_items.order_id')
             ->where('order_items.status', '!=', 'voided')
             ->sum('order_items.quantity');
 
-        $orders = (int) $row->orders;
-        $gross = (int) $row->gross;
-        $net = $gross - (int) $refunds->amount;
-
-        $range = [$from->toDateString(), $to->toDateString()];
-
         return [
             'orders' => $orders,
-            'gross_cents' => $gross,
+            'gross_cents' => (int) $report['gross_sales_cents'],
             'net_cents' => $net,
-            'discount_cents' => (int) $row->discounts,
-            'tax_cents' => (int) $row->tax,
-            'tip_cents' => (int) $row->tips,
-            'refund_cents' => (int) $refunds->amount,
-            'refund_count' => (int) $refunds->n,
+            'discount_cents' => (int) $report['discounts_cents'],
+            'tax_cents' => (int) $report['tax_cents'],
+            'tip_cents' => (int) $report['tips_cents'],
+            'refund_cents' => (int) $report['refunds_cents'],
+            'refund_count' => (int) $report['refunds_count'],
             'items' => $items,
-            'avg_order_cents' => $orders > 0 ? (int) round($gross / $orders) : 0,
-            'voided' => (int) DB::table('orders')->whereBetween('business_date', $range)->where('status', 'voided')->count(),
-            'cancelled' => (int) DB::table('orders')->whereBetween('business_date', $range)->where('status', 'cancelled')->count(),
+            'avg_order_cents' => $orders > 0 ? (int) round($net / $orders) : 0,
+            'voided' => (int) $report['voids_count'],
+            'cancelled' => (int) DB::table('orders')->whereBetween('business_date', [$from->toDateString(), $to->toDateString()])->where('status', 'cancelled')->count(),
         ];
     }
 
@@ -102,14 +100,14 @@ class DashboardService
      */
     public function trend(array $r): array
     {
-        $col = self::SALES_COLUMN;
+        $cents = self::SALE_CENTS;
 
         if ($r['days'] === 1) {
             $hour = $this->hourExpr('orders.created_at');
             $now = $this->bucketHours($this->sold($r['from'], $r['to'])
-                ->selectRaw("$hour as h, COUNT(*) as n, COALESCE(SUM(orders.$col),0) as cents")->groupByRaw($hour)->get());
+                ->selectRaw("$hour as h, COUNT(*) as n, COALESCE(SUM($cents),0) as cents")->groupByRaw($hour)->get());
             $prev = $this->bucketHours($this->sold($r['prev_from'], $r['prev_to'])
-                ->selectRaw("$hour as h, COUNT(*) as n, COALESCE(SUM(orders.$col),0) as cents")->groupByRaw($hour)->get());
+                ->selectRaw("$hour as h, COUNT(*) as n, COALESCE(SUM($cents),0) as cents")->groupByRaw($hour)->get());
 
             $out = [];
             for ($h = 0; $h < 24; $h++) {
@@ -120,11 +118,13 @@ class DashboardService
         }
 
         $byDay = fn (CarbonInterface $a, CarbonInterface $b) => $this->sold($a, $b)
-            ->selectRaw("orders.business_date as d, COUNT(*) as n, COALESCE(SUM(orders.$col),0) as cents")
+            ->selectRaw("orders.business_date as d, COUNT(*) as n, COALESCE(SUM($cents),0) as cents")
             ->groupBy('orders.business_date')->get()->keyBy(fn ($x) => substr((string) $x->d, 0, 10));
 
         $now = $byDay($r['from'], $r['to']);
         $prev = $byDay($r['prev_from'], $r['prev_to']);
+        $refundsNow = $this->refundsByDate($r['from'], $r['to']);
+        $refundsPrev = $this->refundsByDate($r['prev_from'], $r['prev_to']);
         $out = [];
 
         for ($i = 0; $i < $r['days']; $i++) {
@@ -132,9 +132,9 @@ class DashboardService
             $before = $r['prev_from']->copy()->addDays($i)->toDateString();
             $out[] = [
                 'label' => $day->format('M j'),
-                'cents' => (int) ($now[$day->toDateString()]->cents ?? 0),
+                'cents' => (int) ($now[$day->toDateString()]->cents ?? 0) - ($refundsNow[$day->toDateString()] ?? 0),
                 'orders' => (int) ($now[$day->toDateString()]->n ?? 0),
-                'prev_cents' => (int) ($prev[$before]->cents ?? 0),
+                'prev_cents' => (int) ($prev[$before]->cents ?? 0) - ($refundsPrev[$before] ?? 0),
             ];
         }
 
@@ -153,24 +153,24 @@ class DashboardService
 
     public function paymentMethods(array $r): array
     {
-        return DB::table('payments as p')
-            ->join('payment_methods as pm', 'pm.id', '=', 'p.payment_method_id')
-            ->where('p.status', 'completed')
-            ->whereBetween('p.paid_at', [$r['from']->copy()->startOfDay(), $r['to']->copy()->endOfDay()])
-            ->groupBy('pm.id', 'pm.name', 'pm.type')
-            ->orderByRaw('SUM(p.amount_cents) desc')
-            ->get(['pm.name', 'pm.type', DB::raw('COUNT(*) as count'), DB::raw('SUM(p.amount_cents) as cents')])
-            ->map(fn ($x) => ['name' => $x->name, 'type' => $x->type, 'count' => (int) $x->count, 'cents' => (int) $x->cents])->all();
+        $payments = $this->reports->summary($r['from']->toDateString(), $r['to']->toDateString())['payments'];
+
+        return array_map(fn (array $payment) => [
+            'name' => $payment['name'],
+            'type' => $payment['type'],
+            'count' => $payment['count'],
+            'cents' => $payment['net_cents'],
+        ], $payments);
     }
 
     /** Sales split by channel (pos, kiosk, ...) and by order type (dine_in, takeout, ...). */
     public function split(array $r, string $column): array
     {
-        $col = self::SALES_COLUMN;
+        $cents = self::SALE_CENTS;
 
         return $this->sold($r['from'], $r['to'])
-            ->groupBy("orders.$column")->orderByRaw("SUM(orders.$col) desc")
-            ->get(["orders.$column as k", DB::raw('COUNT(*) as count'), DB::raw("SUM(orders.$col) as cents")])
+            ->groupBy("orders.$column")->orderByRaw("SUM($cents) desc")
+            ->get(["orders.$column as k", DB::raw('COUNT(*) as count'), DB::raw("SUM($cents) as cents")])
             ->map(fn ($x) => ['key' => $x->k, 'count' => (int) $x->count, 'cents' => (int) $x->cents])->all();
     }
 
@@ -207,12 +207,12 @@ class DashboardService
     /** Sales per staff member (who rang the order up). */
     public function staff(array $r): array
     {
-        $col = self::SALES_COLUMN;
+        $cents = self::SALE_CENTS;
 
         return $this->sold($r['from'], $r['to'])
             ->join('users as u', 'u.id', '=', 'orders.created_by')
-            ->groupBy('u.id', 'u.name')->orderByRaw("SUM(orders.$col) desc")->limit(6)
-            ->get(['u.name', DB::raw('COUNT(*) as orders'), DB::raw("SUM(orders.$col) as cents")])
+            ->groupBy('u.id', 'u.name')->orderByRaw("SUM($cents) desc")->limit(6)
+            ->get(['u.name', DB::raw('COUNT(*) as orders'), DB::raw("SUM($cents) as cents")])
             ->map(fn ($x) => ['name' => $x->name, 'orders' => (int) $x->orders, 'cents' => (int) $x->cents])->all();
     }
 
@@ -221,7 +221,7 @@ class DashboardService
     /** What is happening right now. Always about today, whatever range is chosen. */
     public function live(): array
     {
-        $today = now()->toDateString();
+        $today = BusinessDate::current();
         $statuses = DB::table('orders')->where('business_date', $today)
             ->whereIn('status', ['open', 'confirmed', 'preparing', 'ready'])
             ->groupBy('status')->get(['status', DB::raw('COUNT(*) as n')])->pluck('n', 'status');
@@ -260,8 +260,8 @@ class DashboardService
     {
         return DB::table('orders as o')
             ->leftJoin('users as u', 'u.id', '=', 'o.created_by')
-            ->where('o.business_date', now()->toDateString())
-            ->orderByDesc('o.id')->limit(8)
+            ->where('o.business_date', BusinessDate::current())
+            ->orderByDesc('o.id')->limit(10)
             ->get(['o.id', 'o.order_number', 'o.channel', 'o.type', 'o.status', 'o.payment_status', 'o.total_cents', 'o.customer_name', 'o.created_at', 'u.name as cashier',
                 DB::raw('(select COALESCE(SUM(quantity),0) from order_items where order_items.order_id = o.id and order_items.status != \'voided\') as items')])
             ->map(fn ($x) => [
@@ -274,35 +274,36 @@ class DashboardService
 
     // ------------------------------------------------------------- cash / shifts
 
-    /** Open drawers with an estimate of the cash that should be in each. $userId limits it to one cashier. */
+    /** Open drawers with expected cash from ShiftService (matches close count). $userId limits it to one cashier. */
     public function shifts(?int $userId): array
     {
-        $open = DB::table('shifts as s')->join('users as u', 'u.id', '=', 's.user_id')
-            ->where('s.status', 'open')
-            ->when($userId, fn ($q) => $q->where('s.user_id', $userId))
-            ->orderBy('s.opened_at')->get(['s.id', 's.opened_at', 's.opening_cash_cents', 'u.name']);
+        $open = Shift::query()
+            ->with('user:id,name')
+            ->where('status', ShiftStatus::Open)
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('opened_at')
+            ->get();
 
         $rows = [];
-        foreach ($open as $s) {
-            $cashSales = (int) DB::table('payments as p')->join('payment_methods as pm', 'pm.id', '=', 'p.payment_method_id')
-                ->where('p.shift_id', $s->id)->where('p.status', 'completed')->where('pm.type', 'cash')->sum('p.amount_cents');
-
-            $moves = DB::table('cash_movements')->where('shift_id', $s->id)->groupBy('type')
-                ->get(['type', DB::raw('SUM(amount_cents) as cents')])->pluck('cents', 'type');
-            $in = (int) ($moves['cash_in'] ?? 0);
-            $out = (int) (($moves['cash_out'] ?? 0) + ($moves['drop'] ?? 0) + ($moves['payout'] ?? 0));
+        foreach ($open as $shift) {
+            $cash = $this->shifts->cashBreakdown($shift);
 
             $rows[] = [
-                'id' => (int) $s->id, 'cashier' => $s->name, 'opened_at' => Carbon::parse($s->opened_at)->toIso8601String(),
-                'opening_cents' => (int) $s->opening_cash_cents, 'cash_sales_cents' => $cashSales,
-                'cash_in_cents' => $in, 'cash_out_cents' => $out,
-                // Estimate: does not subtract cash refunds, because refunds carry no shift.
-                'expected_cents' => (int) $s->opening_cash_cents + $cashSales + $in - $out,
+                'id' => $shift->id,
+                'cashier' => $shift->user?->name ?? '',
+                'opened_at' => $shift->opened_at->toIso8601String(),
+                'opening_cents' => $cash['opening_cents'],
+                'cash_sales_cents' => $cash['cash_sales_cents'],
+                'cash_tips_cents' => $cash['cash_tips_cents'],
+                'cash_in_cents' => $cash['cash_in_cents'],
+                'cash_out_cents' => $cash['cash_out_cents'],
+                'cash_refunds_cents' => $cash['cash_refunds_cents'],
+                'expected_cents' => $cash['expected_cents'],
             ];
         }
 
         $closed = DB::table('shifts as s')->join('users as u', 'u.id', '=', 's.user_id')
-            ->where('s.status', 'closed')->whereDate('s.closed_at', now()->toDateString())
+            ->where('s.status', 'closed')->whereDate('s.closed_at', BusinessDate::current())
             ->when($userId, fn ($q) => $q->where('s.user_id', $userId))
             ->orderByDesc('s.closed_at')->limit(5)
             ->get(['s.id', 'u.name', 's.closed_at', 's.variance_cents'])
@@ -329,13 +330,7 @@ class DashboardService
                 .'COALESCE(SUM(CASE WHEN sl.quantity < 0 THEN 1 ELSE 0 END),0) as neg_n, '
                 .'COALESCE(SUM(CASE WHEN sl.quantity <= 0 THEN 1 ELSE 0 END),0) as empty_n')->first();
 
-        $moves = DB::table('stock_movements as m')->join('ingredients as i', 'i.id', '=', 'm.ingredient_id')
-            ->whereBetween('m.created_at', [$r['from']->copy()->startOfDay(), $r['to']->copy()->endOfDay()])
-            ->whereIn('m.type', ['sale', 'waste'])->groupBy('m.type')
-            ->get(['m.type', DB::raw('SUM(-m.quantity_change * COALESCE(m.unit_cost_cents, i.average_cost_cents)) as cents')])
-            ->pluck('cents', 'type');
-
-        $cogs = (int) round((float) ($moves['sale'] ?? 0));
+        $foodCost = $this->costReports->foodCostSummary($r['from'], $r['to']);
 
         return [
             'low' => [
@@ -349,8 +344,8 @@ class DashboardService
             'stock_value_cents' => (int) round((float) $value->v),
             'negative_count' => (int) $value->neg_n,
             'empty_count' => (int) $value->empty_n,
-            'cogs_cents' => $cogs,
-            'waste_cents' => (int) round((float) ($moves['waste'] ?? 0)),
+            'cogs_cents' => $foodCost['cogs_cents'],
+            'waste_cents' => $foodCost['waste_cents'],
             'count_in_progress' => DB::table('stock_counts')->where('status', 'in_progress')->exists(),
         ];
     }
@@ -440,6 +435,25 @@ class DashboardService
             ],
             'sessions' => ['total' => 42, 'completed' => 27, 'abandoned' => 15, 'rate' => 64],
         ];
+    }
+
+    /**
+     * Completed refunds on non-voided orders, keyed by the business date the money went back.
+     *
+     * @return array<string, int>
+     */
+    private function refundsByDate(CarbonInterface $from, CarbonInterface $to): array
+    {
+        return DB::table('refunds')
+            ->join('orders', 'orders.id', '=', 'refunds.order_id')
+            ->where('refunds.status', 'completed')
+            ->where('orders.status', '!=', 'voided')
+            ->whereBetween('refunds.business_date', [$from->toDateString(), $to->toDateString()])
+            ->groupBy('refunds.business_date')
+            ->selectRaw('refunds.business_date as d, COALESCE(SUM(refunds.amount_cents), 0) as cents')
+            ->get()
+            ->mapWithKeys(fn ($row) => [substr((string) $row->d, 0, 10) => (int) $row->cents])
+            ->all();
     }
 
     private function hourExpr(string $column): string

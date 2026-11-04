@@ -4,12 +4,28 @@ namespace App\Http\Controllers\Api\V1\Kiosk;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Kiosk\KioskOrderRequest;
+use App\Http\Requests\Kiosk\KioskPriceOrderRequest;
 use App\Models\Order;
+use App\Services\Kiosk\KioskActor;
 use App\Services\Kiosk\KioskOrderService;
+use App\Services\Orders\OrderPricingService;
 use Illuminate\Http\JsonResponse;
 
 class KioskOrderController extends Controller
 {
+    /** Price the cart (tax included) without saving. */
+    public function preview(KioskPriceOrderRequest $request, OrderPricingService $pricing, KioskOrderService $kiosk, KioskActor $actor): JsonResponse
+    {
+        $kiosk->assertInService($request->user());
+
+        $validated = $request->validated();
+        unset($validated['senior_pwd']);
+
+        $priced = $pricing->price($validated, $actor->user(), enforceApproval: false);
+
+        return response()->json(['data' => $priced['summary']]);
+    }
+
     /** 201 for a new order, 200 when this session already placed it (a retry). */
     public function store(KioskOrderRequest $request, KioskOrderService $service): JsonResponse
     {

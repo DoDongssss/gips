@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\IdempotencyKey;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Runs a create-style request exactly once per Idempotency-Key.
@@ -75,7 +75,13 @@ class IdempotencyService
             }
 
             if ($existing->response_status === null) {
-                throw new HttpException(409, 'A request with this Idempotency-Key is still being processed.');
+                $message = 'A request with this Idempotency-Key is still being processed.';
+
+                throw new HttpResponseException(response()->json([
+                    'message' => $message,
+                    'code' => 'idempotency_in_progress',
+                    'errors' => ['idempotency_key' => [$message]],
+                ], 409));
             }
 
             return ['status' => $existing->response_status, 'body' => $existing->response_body ?? [], 'replayed' => true];

@@ -8,7 +8,11 @@ import type { Modifier, ModifierGroup, Product, Variant } from '@/kiosk/types';
 import { useDragScroll } from '@/kiosk/use-drag-scroll';
 import { cn } from '@/lib/utils';
 
-type Props = { product: Product | null; onClose: () => void; onAdd: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number) => void };
+type Props = {
+    product: Product | null;
+    onClose: () => void;
+    onAdd: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number, notes?: string | null) => void;
+};
 
 const available = (group: ModifierGroup): Modifier[] => group.modifiers.filter((m) => m.is_available);
 
@@ -20,6 +24,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
     const [variantId, setVariantId] = useState<number | null>(null);
     const [picked, setPicked] = useState<Record<number, number[]>>({});
     const [quantity, setQuantity] = useState(1);
+    const [notes, setNotes] = useState('');
     const dragScroll = useDragScroll<HTMLDivElement>();
 
     useEffect(() => {
@@ -28,6 +33,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
         const variant = product.variants.find((v) => v.is_default) ?? product.variants[0] ?? null;
         setVariantId(variant?.id ?? null);
         setQuantity(1);
+        setNotes('');
         setPicked(Object.fromEntries(product.modifier_groups.map((g) => [g.id, available(g).filter((m) => m.is_default).map((m) => m.id)])));
     }, [product]);
 
@@ -135,12 +141,24 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
                         })}
                     </div>
 
+                    <div className="border-t px-3 pt-3">
+                        <label className="text-muted-foreground mb-2 block text-sm">Special instructions (optional)</label>
+                        <input
+                            type="text"
+                            maxLength={255}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="e.g. less ice"
+                            className="bg-secondary mb-3 w-full rounded-lg px-3 py-2 text-base outline-none"
+                        />
+                    </div>
+
                     <div className="bg-card flex items-center gap-3 border-t p-3">
                         <Stepper value={quantity} onChange={setQuantity} />
                         <BigButton
                             disabled={missing !== undefined}
                             onClick={() => {
-                                onAdd(product, variant, chosen, quantity);
+                                onAdd(product, variant, chosen, quantity, notes.trim() || null);
                                 onClose();
                             }}
                             className="flex-1"

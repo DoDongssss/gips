@@ -20,7 +20,7 @@ export default function UpsellScreen() {
 
     const products = new Map(menu.flatMap((c) => c.products).map((p) => [p.id, p]));
     const cards = suggestions.flatMap((s) => {
-        const p = products.get(s.product_id);
+        const p = s.product ?? products.get(s.product_id);
 
         return p ? [{ product: p, message: s.message }] : [];
     });

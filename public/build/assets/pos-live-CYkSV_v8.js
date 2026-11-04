@@ -1,1 +1,0 @@
-function e(e){return e}var t=!1,n=e=>{t=e},r=(e,n=6e4)=>()=>t?n:e;export{n,e as r,r as t};

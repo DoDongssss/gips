@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { deviceTypeLabels } from '@/lib/devices';
+import { creatableDeviceTypeLabels, type PairableDeviceType } from '@/lib/devices';
 import { orNull } from '@/lib/kiosk';
 import { destroy, store, update } from '@/routes/devices';
 import type { DeviceRow, Station } from '@/types/devices';
@@ -17,7 +17,7 @@ type Props = { open: boolean; onOpenChange: (open: boolean) => void; device?: De
 
 type FormData = {
     name: string;
-    type: 'kiosk' | 'pos' | 'kds';
+    type: PairableDeviceType;
     station_id: string;
     is_active: boolean;
     idle_timeout_seconds: string;
@@ -116,7 +116,7 @@ export default function DeviceDialog({ open, onOpenChange, device, stations }: P
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {Object.entries(deviceTypeLabels).map(([value, label]) => (
+                                    {Object.entries(creatableDeviceTypeLabels).map(([value, label]) => (
                                         <SelectItem key={value} value={value}>
                                             {label}
                                         </SelectItem>

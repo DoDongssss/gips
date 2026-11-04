@@ -4,6 +4,7 @@ namespace App\Services\Kiosk;
 
 use App\Enums\OrderStatus;
 use App\Models\Device;
+use App\Models\KioskHeartbeat;
 use App\Models\KioskSession;
 use App\Models\Order;
 use App\Models\User;
@@ -11,8 +12,8 @@ use App\Notifications\KioskOfflineNotification;
 use App\Services\Orders\OrderStatusService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 
 /** The once-a-minute housekeeping behind `kiosk:maintain`. */
 class KioskMaintenance
@@ -87,5 +88,11 @@ class KioskMaintenance
         }
 
         return $reported;
+    }
+
+    /** Drop heartbeat rows older than the retention window. */
+    public function pruneHeartbeats(): int
+    {
+        return KioskHeartbeat::query()->where('created_at', '<', now()->subDays(config('kiosk.heartbeat_retention_days')))->delete();
     }
 }
