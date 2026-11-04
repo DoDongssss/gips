@@ -36,7 +36,14 @@ type State = {
     begin: () => Promise<void>;
     chooseType: (type: OrderType) => void;
     goto: (step: Step) => void;
-    addLine: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number, notes?: string | null) => void;
+    addLine: (
+        product: Product,
+        variant: Variant | null,
+        modifiers: Modifier[],
+        quantity: number,
+        notes?: string | null,
+        upsell?: { ruleId: number; unitPriceCents: number | null },
+    ) => void;
     setQuantity: (key: string, quantity: number) => void;
     setSeniorPwd: (value: boolean) => void;
     setCustomerName: (value: string) => void;
@@ -102,8 +109,10 @@ export const useKiosk = create<State>((set, get) => ({
     chooseType: (type) => set({ orderType: type, step: 'menu' }),
     goto: (step) => set({ step }),
 
-    addLine(product, variant, modifiers, quantity, notes = null) {
-        const key = lineKey(product.id, variant?.id ?? null, modifiers);
+    addLine(product, variant, modifiers, quantity, notes = null, upsell) {
+        const upsellRuleId = upsell?.ruleId ?? null;
+        const upsellUnitPriceCents = upsell?.unitPriceCents ?? null;
+        const key = lineKey(product.id, variant?.id ?? null, modifiers, upsellRuleId);
         const lines = get().lines;
         const existing = lines.find((l) => l.key === key);
 
@@ -112,7 +121,7 @@ export const useKiosk = create<State>((set, get) => ({
             upsellDone: false,
             lines: existing
                 ? lines.map((l) => (l.key === key ? { ...l, quantity: Math.min(99, l.quantity + quantity), notes: notes ?? l.notes } : l))
-                : [...lines, { key, product, variant, modifiers, quantity, notes }],
+                : [...lines, { key, product, variant, modifiers, quantity, notes, upsellRuleId, upsellUnitPriceCents }],
         });
     },
 
@@ -172,6 +181,7 @@ export const useKiosk = create<State>((set, get) => ({
                     quantity: l.quantity,
                     modifiers: l.modifiers.map((m) => m.id),
                     notes: l.notes?.trim() || undefined,
+                    upsell_rule_id: l.upsellRuleId ?? undefined,
                 })),
             });
 

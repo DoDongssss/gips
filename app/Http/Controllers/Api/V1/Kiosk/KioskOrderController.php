@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Kiosk;
 
+use App\Enums\OrderChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Kiosk\KioskOrderRequest;
 use App\Http\Requests\Kiosk\KioskPriceOrderRequest;
@@ -21,7 +22,7 @@ class KioskOrderController extends Controller
         $validated = $request->validated();
         unset($validated['senior_pwd']);
 
-        $priced = $pricing->price($validated, $actor->user(), enforceApproval: false);
+        $priced = $pricing->price($validated, $actor->user(), enforceApproval: false, channel: OrderChannel::Kiosk);
 
         return response()->json(['data' => $priced['summary']]);
     }

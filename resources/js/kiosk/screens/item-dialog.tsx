@@ -12,6 +12,8 @@ type Props = {
     product: Product | null;
     onClose: () => void;
     onAdd: (product: Product, variant: Variant | null, modifiers: Modifier[], quantity: number, notes?: string | null) => void;
+    /** Upsell promo unit base; modifiers still add on top. */
+    promoUnitCents?: number | null;
 };
 
 const available = (group: ModifierGroup): Modifier[] => group.modifiers.filter((m) => m.is_available);
@@ -20,7 +22,7 @@ const available = (group: ModifierGroup): Modifier[] => group.modifiers.filter((
  * Size, add-ons and quantity for one product. "Add" stays off until every required choice is made.
  * Landscape: picture and price on the left, choices on the right. Portrait: stacked.
  */
-export default function ItemDialog({ product, onClose, onAdd }: Props) {
+export default function ItemDialog({ product, onClose, onAdd, promoUnitCents = null }: Props) {
     const [variantId, setVariantId] = useState<number | null>(null);
     const [picked, setPicked] = useState<Record<number, number[]>>({});
     const [quantity, setQuantity] = useState(1);
@@ -44,7 +46,7 @@ export default function ItemDialog({ product, onClose, onAdd }: Props) {
     const variant = product.variants.find((v) => v.id === variantId) ?? null;
     const chosen: Modifier[] = groups.flatMap((g) => available(g).filter((m) => (picked[g.id] ?? []).includes(m.id)));
     const missing = groups.find((g) => (picked[g.id] ?? []).length < neededFrom(g));
-    const unit = unitCents(product, variant, chosen);
+    const unit = unitCents(product, variant, chosen, promoUnitCents);
 
     function toggle(group: ModifierGroup, modifier: Modifier) {
         setPicked((current) => {

@@ -32,6 +32,7 @@ export type UpsellRuleRow = {
     trigger_kind: 'product' | 'category';
     suggested_product_id: number;
     suggested: string | null;
+    upsell_price_cents: number | null;
     channel: 'all' | 'pos' | 'kiosk';
     message: string | null;
     priority: number;
