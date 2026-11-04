@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { channelLabels, orNull } from '@/lib/kiosk';
+import { centsToPesos, pesosToCents } from '@/lib/money';
 import { destroy, store, update } from '@/routes/kiosk/upsell';
 import type { NamedOption, UpsellRuleRow } from '@/types/kiosk';
 
@@ -18,6 +19,7 @@ type FormData = {
     trigger_kind: 'product' | 'category';
     trigger_id: string;
     suggested_product_id: string;
+    upsell_price: string;
     channel: UpsellRuleRow['channel'];
     message: string;
     priority: string;
@@ -28,6 +30,7 @@ const initial = (r?: UpsellRuleRow): FormData => ({
     trigger_kind: r?.trigger_kind ?? 'category',
     trigger_id: r ? String(r.trigger_product_id ?? r.trigger_category_id ?? '') : '',
     suggested_product_id: r ? String(r.suggested_product_id) : '',
+    upsell_price: r?.upsell_price_cents != null ? centsToPesos(r.upsell_price_cents) : '',
     channel: r?.channel ?? 'kiosk',
     message: r?.message ?? '',
     priority: String(r?.priority ?? 10),
@@ -54,6 +57,7 @@ export default function RuleDialog({ open, onOpenChange, rule, products, categor
             trigger_product_id: data.trigger_kind === 'product' && data.trigger_id ? Number(data.trigger_id) : null,
             trigger_category_id: data.trigger_kind === 'category' && data.trigger_id ? Number(data.trigger_id) : null,
             suggested_product_id: data.suggested_product_id ? Number(data.suggested_product_id) : null,
+            upsell_price_cents: data.upsell_price.trim() ? pesosToCents(data.upsell_price) : null,
             channel: data.channel,
             message: orNull(data.message),
             priority: Number(data.priority || 0),
@@ -132,6 +136,10 @@ export default function RuleDialog({ open, onOpenChange, rule, products, categor
                                 ))}
                             </SelectContent>
                         </Select>
+                    </Field>
+
+                    <Field id="up-price" label="Upsell price" error={errors.upsell_price_cents} hint="Leave empty to charge the product's menu price.">
+                        <Input id="up-price" inputMode="decimal" placeholder="65.00" value={form.data.upsell_price} onChange={(e) => form.setData('upsell_price', e.target.value)} />
                     </Field>
 
                     <Field id="up-message" label="Message" error={errors.message} hint="Shown with the suggestion. Optional.">

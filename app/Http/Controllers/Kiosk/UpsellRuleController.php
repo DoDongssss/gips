@@ -28,6 +28,7 @@ class UpsellRuleController extends Controller implements HasMiddleware
                     'id' => $r->id, 'trigger_product_id' => $r->trigger_product_id, 'trigger_category_id' => $r->trigger_category_id,
                     'trigger' => $r->triggerProduct?->name ?? $r->triggerCategory?->name, 'trigger_kind' => $r->trigger_product_id ? 'product' : 'category',
                     'suggested_product_id' => $r->suggested_product_id, 'suggested' => $r->suggestedProduct?->name,
+                    'upsell_price_cents' => $r->upsell_price_cents,
                     'channel' => $r->channel, 'message' => $r->message, 'priority' => $r->priority, 'is_active' => $r->is_active,
                 ]),
             'products' => DB::table('products')->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']),

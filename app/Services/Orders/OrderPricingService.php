@@ -3,11 +3,13 @@
 namespace App\Services\Orders;
 
 use App\Enums\DiscountScope;
+use App\Enums\OrderChannel;
 use App\Models\Discount;
 use App\Models\Modifier;
 use App\Models\Product;
 use App\Models\Tax;
 use App\Models\User;
+use App\Services\Kiosk\UpsellRulePricing;
 use App\Services\Pricing\PricingCalculator;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +25,7 @@ class OrderPricingService
     public function __construct(
         private PricingCalculator $calculator,
         private ApprovalService $approvals,
+        private UpsellRulePricing $upsellPricing,
     ) {}
 
     /**
@@ -30,7 +33,7 @@ class OrderPricingService
      * @param  bool  $enforceApproval  false for the live cart preview, true when saving the order
      * @return array<string, mixed>
      */
-    public function price(array $input, ?User $user, bool $enforceApproval = true): array
+    public function price(array $input, ?User $user, bool $enforceApproval = true, OrderChannel $channel = OrderChannel::Pos): array
     {
         // One manager PIN check covers every overridden line in the cart.
         $overrideApprover = null;
@@ -38,7 +41,7 @@ class OrderPricingService
             return $overrideApprover ??= $this->approvals->resolve($user, $input['approval'] ?? null, 'order.price-override');
         };
 
-        $lines = $this->resolveLines($input['items'], $enforceApproval ? $approveOverride : null);
+        $lines = $this->resolveLines($input['items'], $enforceApproval ? $approveOverride : null, $channel);
         $discounts = $this->resolveDiscounts($input['discounts'] ?? [], count($lines), $user, $input['approval'] ?? null, $enforceApproval);
         $tax = Tax::where('is_active', true)->where('is_default', true)->first();
 
@@ -73,7 +76,7 @@ class OrderPricingService
      * @param  (callable(): User)|null  $approveOverride  resolves the approver of a price override; null on the live preview
      * @return array<int, array<string, mixed>>
      */
-    private function resolveLines(array $items, ?callable $approveOverride): array
+    private function resolveLines(array $items, ?callable $approveOverride, OrderChannel $channel): array
     {
         $products = Product::query()
             ->with([
@@ -117,8 +120,29 @@ class OrderPricingService
             $unitPrice = $listPrice;
             $override = null;
 
+            if (! empty($item['upsell_rule_id']) && ! empty($item['price_override'])) {
+                $this->fail("items.$i.upsell_rule_id", 'An upsell line cannot include a manual price override.');
+            }
+
+            $upsell = $this->upsellPricing->forLine(
+                isset($item['upsell_rule_id']) ? (int) $item['upsell_rule_id'] : null,
+                (int) $product->id,
+                $listPrice,
+                $channel,
+                $i,
+            );
+
+            if ($upsell !== null) {
+                $unitPrice = $upsell['unit_price_cents'];
+                $override = [
+                    'original_unit_price_cents' => $upsell['original_unit_price_cents'],
+                    'reason' => $upsell['reason'],
+                    'approved_by' => null,
+                ];
+            }
+
             // An override to the same price changes nothing, so it is not recorded or approved.
-            if (! empty($item['price_override']) && (int) $item['price_override']['unit_price_cents'] !== $listPrice) {
+            if ($override === null && ! empty($item['price_override']) && (int) $item['price_override']['unit_price_cents'] !== $listPrice) {
                 $unitPrice = (int) $item['price_override']['unit_price_cents'];
                 $override = [
                     'original_unit_price_cents' => $listPrice,

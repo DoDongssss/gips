@@ -15,7 +15,7 @@ class UpsellService
      * only products that are active and not sold out. At most $limit suggestions.
      *
      * @param  array<int, int>  $productIds  product ids in the cart
-     * @return array<int, array{product_id:int, message:?string, product:array<string, mixed>|null}>
+     * @return array<int, array{rule_id:int, product_id:int, message:?string, upsell_price_cents:?int, product:array<string, mixed>}>
      */
     public function suggest(array $productIds, int $limit = 3): array
     {
@@ -42,7 +42,7 @@ class UpsellService
                 }
             })
             ->orderByDesc('r.priority')->orderBy('r.id')
-            ->get(['r.suggested_product_id', 'r.message']);
+            ->get(['r.id', 'r.suggested_product_id', 'r.message', 'r.upsell_price_cents']);
 
         $menuById = collect($this->menu->menu(false))
             ->flatMap(fn (array $category) => $category['products'])
@@ -62,8 +62,10 @@ class UpsellService
             }
 
             $out[$productId] = [
+                'rule_id' => (int) $rule->id,
                 'product_id' => $productId,
                 'message' => $rule->message,
+                'upsell_price_cents' => $rule->upsell_price_cents !== null ? (int) $rule->upsell_price_cents : null,
                 'product' => $product,
             ];
 

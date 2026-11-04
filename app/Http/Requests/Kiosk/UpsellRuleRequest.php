@@ -19,6 +19,7 @@ class UpsellRuleRequest extends FormRequest
             'trigger_product_id' => ['nullable', 'integer', 'exists:products,id'],
             'trigger_category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'suggested_product_id' => ['required', 'integer', 'exists:products,id'],
+            'upsell_price_cents' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'channel' => ['required', Rule::in(['all', 'pos', 'kiosk'])],
             'message' => ['nullable', 'string', 'max:150'],
             'priority' => ['required', 'integer', 'min:0', 'max:1000'],

@@ -71,7 +71,11 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
                             )}
                             <p className="text-base font-semibold tabular-nums">
                                 {peso(lineCents(line))}
-                                {line.quantity > 1 && <span className="text-muted-foreground ml-1.5 text-xs font-normal">{peso(unitCents(line.product, line.variant, line.modifiers))} each</span>}
+                                {line.quantity > 1 && (
+                                    <span className="text-muted-foreground ml-1.5 text-xs font-normal">
+                                        {peso(unitCents(line.product, line.variant, line.modifiers, line.upsellUnitPriceCents))} each
+                                    </span>
+                                )}
                             </p>
                         </div>
                         <CompactStepper value={line.quantity} onChange={(n) => setQuantity(line.key, n)} />

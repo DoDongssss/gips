@@ -47,7 +47,13 @@ export type Status = {
 
 export type Banner = { id: number; title: string; type: string; image_url: string | null; content: { headline?: string; subtext?: string } | null };
 
-export type Suggestion = { product_id: number; message: string | null; product?: Product | null };
+export type Suggestion = {
+    rule_id: number;
+    product_id: number;
+    message: string | null;
+    upsell_price_cents: number | null;
+    product?: Product | null;
+};
 
 export type PricedSummary = {
     subtotal_cents: number;
@@ -58,7 +64,17 @@ export type PricedSummary = {
 
 export type OrderType = 'dine_in' | 'takeout';
 
-export type CartLine = { key: string; product: Product; variant: Variant | null; modifiers: Modifier[]; quantity: number; notes?: string | null };
+export type CartLine = {
+    key: string;
+    product: Product;
+    variant: Variant | null;
+    modifiers: Modifier[];
+    quantity: number;
+    notes?: string | null;
+    upsellRuleId?: number | null;
+    /** Promo unit base from the rule (modifiers still add on). Server re-validates. */
+    upsellUnitPriceCents?: number | null;
+};
 
 export type PlacedOrder = {
     order_number: string;

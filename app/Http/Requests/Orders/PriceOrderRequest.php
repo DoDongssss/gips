@@ -33,6 +33,7 @@ class PriceOrderRequest extends FormRequest
             'items.*.modifiers' => ['nullable', 'array', 'max:30'],
             'items.*.modifiers.*' => ['integer'],
             'items.*.notes' => ['nullable', 'string', 'max:255'],
+            'items.*.upsell_rule_id' => ['nullable', 'integer'],
 
             // A manager-approved change to the line's unit price (before add-ons), in centavos.
             'items.*.price_override' => ['nullable', 'array'],

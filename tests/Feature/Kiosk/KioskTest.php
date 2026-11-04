@@ -128,6 +128,28 @@ it('cancels unpaid kiosk orders after the configured time', function () {
     expect(Order::first()->status->value)->toBe('cancelled');
 });
 
+it('charges the upsell rule price when the kiosk tags the line', function () {
+    [, $token] = pairedKiosk();
+    $latte = kioskProduct('Latte', 12000);
+    $croissant = kioskProduct('Croissant', 8000);
+    $ruleId = DB::table('upsell_rules')->insertGetId([
+        'trigger_product_id' => $latte,
+        'suggested_product_id' => $croissant,
+        'upsell_price_cents' => 4900,
+        'channel' => 'kiosk',
+        'priority' => 10,
+        'is_active' => true,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $session = startSession($token);
+    $cart = kioskCart($latte, $session);
+    $cart['items'][] = ['product_id' => $croissant, 'quantity' => 1, 'upsell_rule_id' => $ruleId];
+
+    $this->withToken($token)->postJson('/api/v1/kiosk/orders', $cart)->assertCreated()->assertJsonPath('data.subtotal_cents', 28900);
+});
+
 it('suggests upsell products for the cart and skips sold-out ones', function () {
     [, $token] = pairedKiosk();
     $latte = kioskProduct('Latte');
@@ -140,7 +162,8 @@ it('suggests upsell products for the cart and skips sold-out ones', function () 
 
     $this->withToken($token)->postJson('/api/v1/kiosk/upsell', ['product_ids' => [$latte]])->assertOk()
         ->assertJsonCount(1, 'data')->assertJsonPath('data.0.product_id', $croissant)
-        ->assertJsonPath('data.0.product.id', $croissant);
+        ->assertJsonPath('data.0.product.id', $croissant)
+        ->assertJsonStructure(['data' => [['rule_id', 'upsell_price_cents']]]);
 
     $this->withToken($token)->postJson('/api/v1/kiosk/upsell', ['product_ids' => [$latte, $croissant]])->assertJsonCount(0, 'data');
 });

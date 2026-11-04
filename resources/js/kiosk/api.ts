@@ -91,13 +91,16 @@ export const api = {
     upsell: (productIds: number[]) => request<Suggestion[]>('POST', '/upsell', { product_ids: productIds }),
     startSession: (language?: string) => request<{ session_uuid: string }>('POST', '/sessions', { language }),
     endSession: (uuid: string, status: 'abandoned' | 'timed_out', itemsCount: number) => request<{ ok: boolean }>('POST', `/sessions/${uuid}/end`, { status, items_count: itemsCount }),
-    previewOrder: (payload: { type: OrderType; customer_name?: string; items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[]; notes?: string | null }[] }) =>
-        request<PricedSummary>('POST', '/orders/preview', payload),
+    previewOrder: (payload: {
+        type: OrderType;
+        customer_name?: string;
+        items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[]; notes?: string | null; upsell_rule_id?: number }[];
+    }) => request<PricedSummary>('POST', '/orders/preview', payload),
     placeOrder: (payload: {
         session_uuid: string;
         type: OrderType;
         senior_pwd: boolean;
         customer_name?: string;
-        items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[]; notes?: string | null }[];
+        items: { product_id: number; variant_id: number | null; quantity: number; modifiers: number[]; notes?: string | null; upsell_rule_id?: number }[];
     }) => request<PlacedOrder>('POST', '/orders', payload),
 };

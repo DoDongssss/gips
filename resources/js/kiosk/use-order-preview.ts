@@ -32,6 +32,7 @@ export function useOrderPreview(): { summary: PricedSummary | null; calculating:
                     quantity: l.quantity,
                     modifiers: l.modifiers.map((m) => m.id),
                     notes: l.notes ?? null,
+                    upsell_rule_id: l.upsellRuleId ?? null,
                 })),
             }),
         [lines, orderType],

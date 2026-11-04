@@ -40,7 +40,7 @@ class OrderService
         bool $confirm = true,
     ): Order {
         $order = DB::transaction(function () use ($input, $user, $channel, $deviceId) {
-            $priced = $this->pricing->price($input, $user, enforceApproval: true);
+            $priced = $this->pricing->price($input, $user, enforceApproval: true, channel: $channel);
             $calc = $priced['calc'];
             $businessDate = BusinessDate::current();
             ClosedDay::assertOpen($businessDate, 'order');
@@ -185,7 +185,11 @@ class OrderService
 
             if (! empty($line['price_override'])) {
                 $override = $line['price_override'];
-                $this->approvals->record($user, User::findOrFail($override['approved_by']), ApprovalAction::PriceOverride, $item, $override['reason']);
+
+                if ($override['approved_by'] !== null) {
+                    $this->approvals->record($user, User::findOrFail($override['approved_by']), ApprovalAction::PriceOverride, $item, $override['reason']);
+                }
+
                 Audit::record('orders', 'order.price-overridden', "Order {$order->order_number}: {$item->product_name} price changed", $order, [
                     'from_cents' => $override['original_unit_price_cents'],
                     'to_cents' => $item->unit_price_cents,

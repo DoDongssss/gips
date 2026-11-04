@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['trigger_product_id', 'trigger_category_id', 'suggested_product_id', 'channel', 'message', 'priority', 'is_active'])]
+#[Fillable(['trigger_product_id', 'trigger_category_id', 'suggested_product_id', 'upsell_price_cents', 'channel', 'message', 'priority', 'is_active'])]
 class UpsellRule extends Model
 {
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'priority' => 'integer'];
+        return ['is_active' => 'boolean', 'priority' => 'integer', 'upsell_price_cents' => 'integer'];
     }
 
     public function triggerProduct(): BelongsTo

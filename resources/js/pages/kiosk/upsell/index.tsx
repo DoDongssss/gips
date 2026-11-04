@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { channelLabels } from '@/lib/kiosk';
+import { formatPeso } from '@/lib/money';
 import RuleDialog from '@/pages/kiosk/upsell/rule-dialog';
 import { index } from '@/routes/kiosk/upsell';
 import type { NamedOption, UpsellRuleRow } from '@/types/kiosk';
@@ -33,6 +34,7 @@ export default function UpsellIndex({ rules, products, categories }: Props) {
                             <tr>
                                 <th className="p-3 font-medium">When the cart has</th>
                                 <th className="p-3 font-medium">Offer</th>
+                                <th className="p-3 font-medium">Upsell price</th>
                                 <th className="p-3 font-medium">Message</th>
                                 <th className="p-3 font-medium">Where</th>
                                 <th className="p-3 text-right font-medium">Priority</th>
@@ -53,6 +55,7 @@ export default function UpsellIndex({ rules, products, categories }: Props) {
                                             {r.suggested ?? '—'}
                                         </span>
                                     </td>
+                                    <td className="text-muted-foreground p-3 tabular-nums">{r.upsell_price_cents != null ? formatPeso(r.upsell_price_cents) : 'Menu price'}</td>
                                     <td className="text-muted-foreground max-w-56 truncate p-3">{r.message ?? '—'}</td>
                                     <td className="text-muted-foreground p-3">{channelLabels[r.channel]}</td>
                                     <td className="p-3 text-right tabular-nums">{r.priority}</td>
@@ -68,7 +71,7 @@ export default function UpsellIndex({ rules, products, categories }: Props) {
                             ))}
                             {rules.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="text-muted-foreground p-8 text-center">
+                                    <td colSpan={8} className="text-muted-foreground p-8 text-center">
                                         No rules yet. Example: when the cart has a coffee, offer a croissant.
                                     </td>
                                 </tr>
