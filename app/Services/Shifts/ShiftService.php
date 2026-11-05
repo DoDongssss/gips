@@ -12,7 +12,7 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\Shift;
 use App\Models\User;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use App\Support\Audit;
 use App\Support\BusinessDate;
 use App\Support\ClosedDay;

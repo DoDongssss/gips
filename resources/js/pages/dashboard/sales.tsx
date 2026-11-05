@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AreaChart, BarList, ColumnChart, ShareBar } from './charts';
 import { Card, Empty, Stat } from './card';
 import { delta, int, peso, pesoCompact, percent, words } from './format';
-import type { InventoryStats, Range, Sales, Summary } from './types';
+import type { InventoryStats, Range, Sales, Summary } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 
 function Delta({ current, previous, inverse = false }: { current: number; previous: number; inverse?: boolean }) {

@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 
-import { Can } from '@/components/can';
+import { Can } from '@/components/shared/can';
 import { PoStatusBadge } from '@/components/inventory/status-badges';
 import { Button } from '@/components/ui/button';
 import { formatQty } from '@/lib/inventory';

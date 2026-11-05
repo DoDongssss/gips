@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Services\Devices\DeviceAlerts;
 use App\Services\Inventory\LowStockReport;
-use App\Services\PrinterStatusService;
+use App\Services\Printer\PrinterStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

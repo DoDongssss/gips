@@ -3,9 +3,9 @@ import type { SortingState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Can } from '@/components/can';
-import { DataTable } from '@/components/data-table';
-import { Pager } from '@/components/pager';
+import { Can } from '@/components/shared/can';
+import { DataTable } from '@/components/shared/data-table';
+import { Pager } from '@/components/shared/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

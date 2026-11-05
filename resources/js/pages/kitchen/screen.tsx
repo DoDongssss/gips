@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import PairingScreen from '@/components/devices/pairing-screen';
 import { KdsBoard } from '@/components/kitchen/kds-board';
-import { errorList, posPost } from '@/lib/pos-http';
+import { errorList, posPost } from '@/lib/pos/http';
 
 type Paired = { token: string; station: { id: number; name: string; type?: string }; device: { name: string } };
 

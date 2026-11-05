@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { configureDevice, connectionNeedsConnect } from '@/lib/printer/device-choice';
 import { connect, usePrinter } from '@/lib/printer/printer';
 import { printerSettingsQuery, reprintSale } from '@/lib/printer/print-sale';
 
@@ -18,7 +19,8 @@ export function ReprintButton({ orderId, className }: { orderId: number; classNa
         setBusy(true);
 
         try {
-            if (settings!.printer_connection !== 'browser' && printer.status !== 'ready') {
+            const mine = configureDevice(settings!);
+            if (connectionNeedsConnect(mine.printer_connection) && printer.status !== 'ready') {
                 await connect();
             }
 

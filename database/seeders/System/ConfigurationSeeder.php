@@ -3,7 +3,7 @@
 namespace Database\Seeders\System;
 
 use App\Models\Configuration;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use App\Support\ConfigValue;
 use Illuminate\Database\Seeder;
 
@@ -56,7 +56,7 @@ class ConfigurationSeeder extends Seeder
         return [
 
             'business' => [
-                'business_name' => ['type' => 'string', 'value' => 'My Coffee Shop'],
+                'business_name' => ['type' => 'string', 'value' => app()->isProduction() ? config('app.name') : 'My Coffee Shop'],
                 'business_address' => ['type' => 'text', 'value' => null],
                 'business_phone' => ['type' => 'string', 'value' => null],
                 'business_tin' => ['type' => 'string', 'value' => null],
@@ -75,6 +75,17 @@ class ConfigurationSeeder extends Seeder
             'shifts' => [
                 'shifts_require_open_shift' => ['type' => 'bool', 'value' => true],
                 'shifts_variance_attention_cents' => ['type' => 'int', 'value' => 5000],
+            ],
+
+            'payments' => [
+                'payments_kiosk_instructions' => ['type' => 'text', 'value' => 'Pay at the counter with cash, GCash, Maya, or card. Show your pickup number to the cashier.'],
+                'payments_pos_ewallet_help' => ['type' => 'text', 'value' => 'For GCash, Maya, or bank transfer, enter the amount and the reference number from the customer\'s app.'],
+            ],
+
+            'loyalty' => [
+                'loyalty_enabled' => ['type' => 'bool', 'value' => true],
+                'loyalty_cents_per_point' => ['type' => 'int', 'value' => 10000],
+                'loyalty_redeem_centavos_per_point' => ['type' => 'int', 'value' => 10000],
             ],
 
             'kitchen' => [

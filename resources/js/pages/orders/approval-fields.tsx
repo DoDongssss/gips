@@ -1,8 +1,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Approval } from '@/lib/pos-api';
-import type { Approver } from '@/pages/orders/types';
+import type { Approval } from '@/lib/pos/api';
+import type { Approver } from '@/types/orders';
 
 type Props = {
     approvers: Approver[];

@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { OrdersDrawer } from '@/components/pos/orders-drawer';
 import { PosHeader } from '@/components/pos/pos-header';
 import { ShiftRequiredGate } from '@/components/pos/shift-required-gate';
-import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useOnlineStatus } from '@/hooks/shared/use-online-status';
 
 /** Full-screen layout for the register: a slim header and the rest of the screen for the page. */
 export default function PosLayout({ children }: PropsWithChildren) {

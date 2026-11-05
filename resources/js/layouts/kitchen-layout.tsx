@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 
-import { InertiaToasts } from '@/components/inertia-toast';
+import { InertiaToasts } from '@/components/app/inertia-toast';
 
 /** Full-screen, no sidebar: the kitchen screens fill the whole display. */
 export default function KitchenLayout({ children }: PropsWithChildren) {

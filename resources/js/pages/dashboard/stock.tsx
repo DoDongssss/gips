@@ -3,7 +3,7 @@ import { Monitor } from 'lucide-react';
 
 import { Card, Empty, Pill, Stat } from './card';
 import { ago, int, peso, words } from './format';
-import type { InventoryStats, Kiosk, Purchasing, Range } from './types';
+import type { InventoryStats, Kiosk, Purchasing, Range } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 import { index as ingredientsIndex } from '@/routes/inventory/ingredients';
 

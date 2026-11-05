@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 
-import { Can } from '@/components/can';
-import { DataTable } from '@/components/data-table';
-import { Pager } from '@/components/pager';
+import { Can } from '@/components/shared/can';
+import { DataTable } from '@/components/shared/data-table';
+import { Pager } from '@/components/shared/pager';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -21,9 +21,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { errorMessages } from '@/lib/api';
 import { formatPeso } from '@/lib/money';
-import { lookupOrder } from '@/lib/pos-api';
+import { lookupOrder } from '@/lib/pos/api';
 import { columnClassNames, getColumns } from '@/pages/orders/columns';
-import type { OrderRow, OrderSummary } from '@/pages/orders/types';
+import type { OrderRow, OrderSummary } from '@/types/orders';
 import { index } from '@/routes/orders';
 import { show } from '@/routes/orders';
 import { index as posIndex } from '@/routes/pos';

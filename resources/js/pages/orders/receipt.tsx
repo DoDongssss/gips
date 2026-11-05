@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { formatPeso } from '@/lib/money';
 import { orderTypeLabel } from '@/pages/orders/status-badges';
-import type { ReceiptContent } from '@/pages/orders/types';
+import type { ReceiptContent } from '@/types/orders';
 
 // Inline styles only: the same markup is shown on screen and printed from an isolated frame,
 // where the app's stylesheet does not exist.

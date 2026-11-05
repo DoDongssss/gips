@@ -6,7 +6,7 @@ import { printXReport, XReportPaper } from '@/components/reports/report-paper';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { errorMessages } from '@/lib/api';
-import { makeXReport } from '@/lib/pos-api';
+import { makeXReport } from '@/lib/pos/api';
 import type { XReport } from '@/lib/reports';
 
 type Props = {

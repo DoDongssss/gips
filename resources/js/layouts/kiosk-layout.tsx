@@ -2,7 +2,7 @@ import { WifiOff } from 'lucide-react';
 import { useEffect } from 'react';
 import type { PropsWithChildren } from 'react';
 
-import { useKiosk } from '@/kiosk/store';
+import { useKiosk } from '@/stores/kiosk-store';
 
 /**
  * Full-screen layout for the kiosk: no sidebar, no header, the page gets the whole screen.

@@ -3,13 +3,13 @@ import { useSyncExternalStore } from 'react';
 
 import { useEffect } from 'react';
 
-import { effectiveSettings } from '@/lib/printer/device-choice';
+import { configureDevice, effectiveSettings } from '@/lib/printer/device-choice';
 import { configure, print, restore, usePrinter } from '@/lib/printer/printer';
 import { drawerPulse } from '@/lib/printer/receipt';
 import { saleReceipt } from '@/lib/printer/sale-receipt';
-import { posGet, posPost } from '@/lib/pos-http';
+import { posGet, posPost } from '@/lib/pos/http';
 import { uuid } from '@/lib/uuid';
-import type { OrderDetail, ReceiptContent } from '@/pages/orders/types';
+import type { OrderDetail, ReceiptContent } from '@/types/orders';
 import type { PrinterSettings } from '@/types/printer';
 
 /* ---------------- settings (the register reads them once a minute at most) ---------------- */
@@ -77,8 +77,7 @@ const saleContent = (order: OrderDetail): ReceiptContent | null => order.receipt
 
 async function printContent(content: ReceiptContent, storeSettings: PrinterSettings, options: { reprint?: boolean; drawer?: boolean }) {
     // This device may print differently from the store setting (the tablet through RawBT, a PC through USB).
-    const settings = effectiveSettings(storeSettings);
-    configure(settings);
+    const settings = configureDevice(storeSettings);
     await restore();
 
     await print(saleReceipt(content, settings, { reprint: options.reprint }), settings.printer_copies);
@@ -163,7 +162,7 @@ export function useRegisterPrinterHealth(storeSettings: PrinterSettings | undefi
 
     useEffect(() => {
         if (!settings) return;
-        configure(settings);
+        configureDevice(settings);
         void restore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings?.printer_connection, settings?.printer_serial_baud, settings?.printer_paper_width]);

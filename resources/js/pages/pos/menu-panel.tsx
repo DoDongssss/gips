@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { formatPeso } from '@/lib/money';
-import type { MenuCategory, MenuProduct } from '@/pages/pos/types';
+import type { MenuCategory, MenuProduct } from '@/types/pos';
 import { useCartStore } from '@/stores/cart-store';
 
 // File location on disk: storage/app/public/menu/products/default_product.jpg (served through `php artisan storage:link`).

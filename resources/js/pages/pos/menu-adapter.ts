@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuProduct } from '@/pages/pos/types';
+import type { MenuCategory, MenuProduct } from '@/types/pos';
 
 /**
  * The ONLY place that knows the shape of GET /api/v1/menu.

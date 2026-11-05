@@ -2,7 +2,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 
 import { Card, Stat } from './card';
 import { delta, int, peso, percent } from './format';
-import type { Live, Range, Sales } from './types';
+import type { Live, Range, Sales } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 
 function Change({ current, previous }: { current: number; previous: number }) {

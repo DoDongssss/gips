@@ -1,5 +1,5 @@
 import { formatPeso } from '@/lib/money';
-import type { ShiftRecord } from '@/pages/shifts/types';
+import type { ShiftRecord } from '@/types/shifts';
 
 export function ShiftCashRows({ shift }: { shift: ShiftRecord }) {
     if (shift.cash) {

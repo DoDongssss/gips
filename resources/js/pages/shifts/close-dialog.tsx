@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import type { PaymentBreakdownRow } from '@/lib/reports';
 import { formatPeso } from '@/lib/money';
 import { close } from '@/routes/shifts';
+
+import { ShiftPaymentsSummary } from '@/pages/shifts/shift-payments-summary';
 
 type Props = {
     shiftId: number;
@@ -16,10 +19,12 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     /** Shown to managers closing their own shift (cashiers stay blind). */
     closePreviewCents?: number | null;
+    payments?: PaymentBreakdownRow[];
+    nonCashNetCents?: number;
 };
 
 /** Count the drawer by bills and coins. The server works out the expected cash and the difference. */
-export function CloseShiftDialog({ shiftId, open, onOpenChange, closePreviewCents }: Props) {
+export function CloseShiftDialog({ shiftId, open, onOpenChange, closePreviewCents, payments = [], nonCashNetCents = 0 }: Props) {
     const [counted, setCounted] = useState(0);
     const form = useForm({ notes: '' });
 
@@ -44,8 +49,16 @@ export function CloseShiftDialog({ shiftId, open, onOpenChange, closePreviewCent
                 <form onSubmit={submit} className="space-y-4">
                     <DialogHeader>
                         <DialogTitle>Close shift</DialogTitle>
-                        <DialogDescription>Count all the cash in the drawer, including the opening cash.</DialogDescription>
+                        <DialogDescription>
+                            Count every bill and coin in the drawer, including opening cash. E-wallet and card payments are not in the drawer.
+                        </DialogDescription>
                     </DialogHeader>
+
+                    {(payments.length > 0 || nonCashNetCents > 0) && (
+                        <div className="bg-muted/60 rounded-md border p-3">
+                            <ShiftPaymentsSummary payments={payments} nonCashNetCents={nonCashNetCents} compact />
+                        </div>
+                    )}
 
                     {closePreviewCents != null && (
                         <p className="bg-muted rounded-md p-3 text-sm">

@@ -80,6 +80,9 @@ function CashDrawerSummary({ cash }: { cash: ZReportDayCash }) {
     return (
         <div className="space-y-2">
             <h3 className="text-sm font-medium">Cash drawer (all shifts)</h3>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+                Variance is cash-only: opening float plus cash sales and movements, compared to what was counted. E-wallet and card totals in Payments above are not in the drawer.
+            </p>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Stat label="Opening" value={formatPeso(cash.opening_cents)} />
                 <Stat label="Expected" value={formatPeso(cash.expected_cents)} />

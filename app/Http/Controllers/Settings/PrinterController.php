@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PrinterSettingsRequest;
-use App\Services\ConfigurationService;
-use App\Services\PrinterSettingsService;
+use App\Services\Configuration\ConfigurationService;
+use App\Services\Printer\PrinterSettingsService;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;

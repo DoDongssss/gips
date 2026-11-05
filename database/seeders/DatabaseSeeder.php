@@ -16,12 +16,11 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 /**
- * Production-safe data first, demo data last (local only).
+ * Production: system access, store configuration, units/conversions, and POS reference data.
+ * Local only: demo menu, inventory, and extra demo staff (see DemoSeeder).
  *
- *   php artisan db:seed                          system + reference data (+ demo data when APP_ENV=local)
- *   php artisan db:seed --class="Database\Seeders\Demo\DemoSeeder"   demo data on any environment
- *
- * Every seeder is safe to re-run. See README.md in this folder for what each one overwrites.
+ *   php artisan db:seed
+ *   php artisan db:seed --class="Database\Seeders\Demo\DemoSeeder"
  */
 class DatabaseSeeder extends Seeder
 {
@@ -30,13 +29,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // System: access and settings. Permissions -> roles -> users.
             PermissionSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
             ConfigurationSeeder::class,
-
-            // Reference: lookup data the app cannot run without.
             UnitSeeder::class,
             PaymentMethodSeeder::class,
             TaxSeeder::class,

@@ -52,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->parameters(['purchase-orders' => 'purchaseOrder']);
         Route::post('purchase-orders/{purchaseOrder}/send', [PurchaseOrderController::class, 'send'])->name('purchase-orders.send');
         Route::post('purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+        Route::post('purchase-orders/from-suggestions', [PurchaseOrderController::class, 'fromSuggestions'])->name('purchase-orders.from-suggestions');
 
         Route::resource('receipts', GoodsReceiptController::class)->only(['index', 'create', 'store', 'show']);
 

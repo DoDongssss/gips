@@ -3,7 +3,7 @@
 namespace App\Services\Orders;
 
 use App\Models\OrderNumberSequence;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use Illuminate\Support\Facades\DB;
 
 class OrderNumberService

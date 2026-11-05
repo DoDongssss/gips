@@ -3,14 +3,14 @@ import { Minus, Plus, ShoppingCart, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useCan } from '@/hooks/use-can';
-import { usePricedCart } from '@/hooks/use-priced-cart';
-import { configQuery, menuQuery } from '@/lib/pos-api';
-import { errorList } from '@/lib/pos-http';
+import { useCan } from '@/hooks/shared/use-can';
+import { usePricedCart } from '@/hooks/pos/use-priced-cart';
+import { configQuery, menuQuery } from '@/lib/pos/api';
+import { errorList } from '@/lib/pos/http';
 import { formatPeso } from '@/lib/money';
 import type { CartLine } from '@/stores/cart-store';
 import { useCartStore } from '@/stores/cart-store';
-import { cancelEditing } from '@/lib/order-edit';
+import { cancelEditing } from '@/lib/pos/order-edit';
 import { PriceOverrideDialog } from '@/pages/pos/price-override-dialog';
 import { useOrderEdit } from '@/stores/order-edit-store';
 

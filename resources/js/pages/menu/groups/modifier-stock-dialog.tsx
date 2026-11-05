@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { unitsFor, useIngredientOptions } from '@/hooks/use-ingredient-options';
-import { useCan } from '@/hooks/use-can';
+import { unitsFor, useIngredientOptions } from '@/hooks/inventory/use-ingredient-options';
+import { useCan } from '@/hooks/shared/use-can';
 import { api } from '@/lib/api';
 import { show, update } from '@/routes/modifier-recipes';
 

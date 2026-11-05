@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-import type { PosOrderRow } from '@/lib/pos-session';
-import { readSessionStart, writeSessionStart } from '@/lib/pos-session';
+import type { PosOrderRow } from '@/lib/pos/session';
+import { readSessionStart, writeSessionStart } from '@/lib/pos/session';
 
 export type DrawerTab = 'unpaid' | 'kiosk' | 'all' | 'ready';
 

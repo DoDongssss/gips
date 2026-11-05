@@ -1,11 +1,11 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, Copy, ImageIcon, Trash2 } from 'lucide-react';
 
-import { AvailabilitySwitch } from '@/components/availability-switch';
-import { Can } from '@/components/can';
-import type { DataTableFeatures } from '@/components/data-table';
-import { IconActionTooltip } from '@/components/icon-action-tooltip';
-import { SortableHeader } from '@/components/sortable-header';
+import { AvailabilitySwitch } from '@/components/shared/availability-switch';
+import { Can } from '@/components/shared/can';
+import type { DataTableFeatures } from '@/components/shared/data-table';
+import { IconActionTooltip } from '@/components/shared/icon-action-tooltip';
+import { SortableHeader } from '@/components/shared/sortable-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';

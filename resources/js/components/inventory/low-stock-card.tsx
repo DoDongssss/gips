@@ -1,9 +1,9 @@
 import { Link } from '@inertiajs/react';
 import { PackageCheck, TriangleAlert } from 'lucide-react';
 
-import { Can } from '@/components/can';
+import { Can } from '@/components/shared/can';
 import { Button } from '@/components/ui/button';
-import { useLowStock } from '@/hooks/use-low-stock';
+import { useLowStock } from '@/hooks/inventory/use-low-stock';
 import { formatQty } from '@/lib/inventory';
 import { index } from '@/routes/inventory/ingredients';
 

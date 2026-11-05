@@ -1,4 +1,4 @@
-import { InertiaToasts } from '@/components/inertia-toast';
+import { InertiaToasts } from '@/components/app/inertia-toast';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import type { BreadcrumbItem } from '@/types';
 

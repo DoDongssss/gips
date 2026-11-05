@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\Shifts\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {

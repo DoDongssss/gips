@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { AlertTriangle, CircleAlert, Info } from 'lucide-react';
 
-import type { AttentionItem } from '@/pages/dashboard/types';
+import type { AttentionItem } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 
 const styles = {

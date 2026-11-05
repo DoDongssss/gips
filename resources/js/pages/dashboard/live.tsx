@@ -7,7 +7,7 @@ import { index as shiftsIndex } from '@/routes/shifts';
 import { Card, Empty, Pill, Stat } from './card';
 import type { Tone } from './card';
 import { ago, int, peso, timeOf, words } from './format';
-import type { Live, Shifts } from './types';
+import type { Live, Shifts } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 
 const stages: { key: keyof Live['pipeline']; label: string; bar: string }[] = [

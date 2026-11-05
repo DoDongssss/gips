@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FieldError } from '@/components/fieldError';
+import { FieldError } from '@/components/shared/fieldError';
 import { destroy as destroyImage, primary as primaryImage, store as storeImage } from '@/routes/menu/products/images';
 import type { ProductDetail } from '@/types/menu';
 

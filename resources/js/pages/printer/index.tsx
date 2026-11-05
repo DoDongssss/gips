@@ -178,6 +178,14 @@ export default function PrinterPage({ settings, connections, business }: Props) 
 
                         <label className="flex items-center justify-between gap-4">
                             <span>
+                                <span className="block text-sm font-medium">Print kiosk order ticket automatically</span>
+                                <span className="text-muted-foreground block text-xs">When a customer places an order on the kiosk. Uses the same printer setup as the register on this tablet.</span>
+                            </span>
+                            <Switch checked={form.data.printer_kiosk_auto_print} onCheckedChange={(v) => form.setData('printer_kiosk_auto_print', v)} />
+                        </label>
+
+                        <label className="flex items-center justify-between gap-4">
+                            <span>
                                 <span className="block text-sm font-medium">Open the cash drawer on cash payments</span>
                                 <span className="text-muted-foreground block text-xs">The drawer plugs into the printer. Needs a direct connection (not Browser print).</span>
                             </span>
@@ -204,7 +212,7 @@ export default function PrinterPage({ settings, connections, business }: Props) 
                             {direct
                                 ? 'The permission to use the printer belongs to this browser, so every register connects once. Connect and test it here.'
                                 : mine.printer_connection === 'rawbt'
-                                  ? 'RawBT needs no connection here. Press Test print: the receipt is handed to the RawBT app, which prints it.'
+                                  ? 'RawBT needs no connection here. Press Test print: the receipt is handed to the RawBT app, which prints it. On one Android tablet running both kiosk and register, set RawBT here once — both apps share this browser choice.'
                                   : 'Browser print needs no connection. Press Test print to check the printer and paper size.'}
                         </p>
 

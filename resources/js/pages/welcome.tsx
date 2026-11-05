@@ -4,6 +4,7 @@ import type { ComponentType } from 'react';
 
 import { formatPeso } from '@/lib/money';
 import { dashboard, login } from '@/routes';
+import type { SharedPageProps } from '@/types/inertia';
 
 const modules: { icon: ComponentType<{ className?: string }>; label: string; text: string }[] = [
     { icon: ReceiptText, label: 'Point of sale', text: 'Sizes, add-ons, discounts' },
@@ -22,8 +23,8 @@ const sampleOrder = [
 const sampleTotal = sampleOrder.reduce((sum, line) => sum + line.cents * line.qty, 0);
 
 export default function Welcome() {
-    const { auth, ...props } = usePage().props;
-    const appName = (props as { name?: string }).name || 'POS & Inventory';
+    const { auth, name: appNameFromProps } = usePage<SharedPageProps>().props;
+    const appName = appNameFromProps || 'POS & Inventory';
 
     return (
         <>

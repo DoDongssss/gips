@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDelta, formatPeso } from '@/lib/money';
-import type { MenuGroup, MenuProduct } from '@/pages/pos/types';
+import type { MenuGroup, MenuProduct } from '@/types/pos';
 import type { CartLine } from '@/stores/cart-store';
 
 type Props = {

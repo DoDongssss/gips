@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { errorMessages, fieldError } from '@/lib/api';
 import { centsToPesos, formatPeso, pesosToCents } from '@/lib/money';
-import { newIdempotencyKey, refundPayment } from '@/lib/pos-api';
-import type { Approval } from '@/lib/pos-api';
+import { newIdempotencyKey, refundPayment } from '@/lib/pos/api';
+import type { Approval } from '@/lib/pos/api';
 import { ApprovalFields, isApprovalComplete } from '@/pages/orders/approval-fields';
-import type { Approver, OrderDetail, OrderPayment } from '@/pages/orders/types';
+import type { Approver, OrderDetail, OrderPayment } from '@/types/orders';
 
 type Props = {
     order: OrderDetail;

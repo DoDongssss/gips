@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Orders\DiscountController;
 use App\Http\Controllers\Orders\OrderController;
-use App\Http\Controllers\PosController;
+use App\Http\Controllers\Pos\PosController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {

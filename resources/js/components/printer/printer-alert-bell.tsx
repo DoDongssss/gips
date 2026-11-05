@@ -3,8 +3,8 @@ import { Printer } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useAlerts } from '@/hooks/use-alerts';
-import { useCan } from '@/hooks/use-can';
+import { useAlerts } from '@/hooks/alerts/use-alerts';
+import { useCan } from '@/hooks/shared/use-can';
 
 /** Header icon: red count when a register's printer stopped working. Renders nothing without device.manage. */
 export function PrinterAlertBell() {

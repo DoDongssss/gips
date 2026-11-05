@@ -2,8 +2,8 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { useCan } from '@/hooks/use-can';
-import { errorList, posPost } from '@/lib/pos-http';
+import { useCan } from '@/hooks/shared/use-can';
+import { errorList, posPost } from '@/lib/pos/http';
 import { uuid } from '@/lib/uuid';
 
 type Props = {

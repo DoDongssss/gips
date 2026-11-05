@@ -9,9 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useCan } from '@/hooks/use-can';
+import { useCan } from '@/hooks/shared/use-can';
 import { centsToPesos, pesosToCents } from '@/lib/money';
-import { IconActionTooltip } from '@/components/icon-action-tooltip';
+import { IconActionTooltip } from '@/components/shared/icon-action-tooltip';
 import ModifierStockDialog from '@/pages/menu/groups/modifier-stock-dialog';
 import { store, update } from '@/routes/menu/groups';
 

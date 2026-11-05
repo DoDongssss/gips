@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { Can } from '@/components/can';
-import { ReopenDialog } from '@/components/reopen-dialog';
+import { Can } from '@/components/shared/can';
+import { ReopenDialog } from '@/components/shared/reopen-dialog';
 import { printShift, ShiftPaper } from '@/components/reports/shift-paper';
 import { XReportButton } from '@/components/reports/x-report-button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { CloseShiftDialog } from '@/pages/shifts/close-dialog';
 import { MovementDialog } from '@/pages/shifts/movement-dialog';
 import { ShiftCashRows } from '@/pages/shifts/shift-cash-rows';
-import type { ShiftRecord } from '@/pages/shifts/types';
+import { ShiftPaymentsSummary } from '@/pages/shifts/shift-payments-summary';
+import type { ShiftRecord } from '@/types/shifts';
 import { formatPeso } from '@/lib/money';
 import { index, show } from '@/routes/shifts';
 import { index as auditLogsIndex } from '@/routes/audit-logs';
@@ -109,7 +110,12 @@ export default function ShiftShow({ shift, can_close, can_move, can_reopen }: Pr
                         {shift.notes && <p className="text-muted-foreground text-sm">Notes: {shift.notes}</p>}
                     </section>
 
-                    <section className="rounded-lg border p-5">
+                    <section className="space-y-2 rounded-lg border p-5">
+                        <h2 className="font-semibold">Other payments</h2>
+                        <ShiftPaymentsSummary payments={shift.payments} nonCashNetCents={shift.non_cash_net_cents} />
+                    </section>
+
+                    <section className="rounded-lg border p-5 lg:col-span-2">
                         <h2 className="mb-2 font-semibold">Cash movements</h2>
                         {shift.movements.length === 0 ? (
                             <p className="text-muted-foreground text-sm">None recorded.</p>
@@ -151,6 +157,8 @@ export default function ShiftShow({ shift, can_close, can_move, can_reopen }: Pr
                     open={closing}
                     onOpenChange={setClosing}
                     closePreviewCents={shift.close_preview_cents}
+                    payments={shift.payments}
+                    nonCashNetCents={shift.non_cash_net_cents}
                 />
             )}
 

@@ -1,9 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { PackagePlus } from 'lucide-react';
 import type { SortingState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 
-import { DataTable } from '@/components/data-table';
-import { Pager } from '@/components/pager';
+import { DataTable } from '@/components/shared/data-table';
+import { Pager } from '@/components/shared/pager';
 import { Button } from '@/components/ui/button';
 import { cleanQuery, poStatusLabels } from '@/lib/inventory';
 import { columnClassNames, getColumns } from '@/pages/inventory/purchase-orders/columns';
@@ -18,18 +19,29 @@ type Filters = {
     direction?: 'asc' | 'desc' | null;
 };
 
+type ReorderSuggestion = {
+    ingredient_id: number;
+    name: string;
+    quantity_on_hand: string;
+    reorder_level: string;
+    suggested_quantity: string;
+    unit_abbreviation: string;
+    supplier_name: string | null;
+};
+
 type Props = {
     // Optional on the server: undefined until the person asks for it.
     orders?: Paginated<PurchaseOrderRow>;
+    reorder_suggestions?: ReorderSuggestion[];
     statuses: PoStatus[];
     filters: Filters;
 };
 
 // Partial reloads: only these props are requested, which is also what makes the optional
 // `orders` prop come back.
-const ONLY = ['orders', 'filters'];
+const ONLY = ['orders', 'filters', 'reorder_suggestions'];
 
-export default function PurchaseOrdersIndex({ orders, statuses, filters }: Props) {
+export default function PurchaseOrdersIndex({ orders, reorder_suggestions, statuses, filters }: Props) {
     const [loading, setLoading] = useState(false);
 
     // The last page of orders that was loaded. Shown while a refresh is on its way.
@@ -94,10 +106,33 @@ export default function PurchaseOrdersIndex({ orders, statuses, filters }: Props
                         <h1 className="text-xl font-semibold tracking-tight">Purchase orders</h1>
                         {data && <p className="text-muted-foreground text-sm">{data.total} total</p>}
                     </div>
-                    <Button asChild>
-                        <Link href={create.url()}>New purchase order</Link>
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        {reorder_suggestions && reorder_suggestions.length > 0 && (
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() =>
+                                    router.post('/inventory/purchase-orders/from-suggestions', {}, { preserveScroll: true })
+                                }
+                            >
+                                <PackagePlus className="size-4" />
+                                Create drafts from low stock ({reorder_suggestions.length})
+                            </Button>
+                        )}
+                        <Button asChild>
+                            <Link href={create.url()}>New purchase order</Link>
+                        </Button>
+                    </div>
                 </div>
+
+                {reorder_suggestions && reorder_suggestions.length > 0 && (
+                    <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+                        <p className="font-medium">Suggested reorder</p>
+                        <p className="text-muted-foreground mt-1">
+                            {reorder_suggestions.length} ingredient(s) are at or below reorder level. Draft POs group items by preferred supplier.
+                        </p>
+                    </div>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                     <Button size="sm" variant={filters.status === null ? 'default' : 'outline'} disabled={loading} onClick={() => visit({ status: null })}>

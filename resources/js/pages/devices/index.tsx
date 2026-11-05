@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { deviceTypeLabels } from '@/lib/devices';
-import { ago } from '@/lib/kiosk';
+import { ago } from '@/lib/kiosk/helpers';
 import DeviceDialog from '@/pages/devices/device-dialog';
 import PairingDialog from '@/pages/devices/pairing-dialog';
 import { index, pairingCode, unpair, update } from '@/routes/devices';

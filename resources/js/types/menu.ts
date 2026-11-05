@@ -29,14 +29,7 @@ export type ProductRow = {
     deleted_at?: string | null;
 };
 
-export type Paginated<T> = {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    prev_page_url: string | null;
-    next_page_url: string | null;
-};
+export type { Paginated } from '@/types/common';
 
 export type Variant = {
     id?: number;

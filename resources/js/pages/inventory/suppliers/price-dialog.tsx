@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { unitsFor, useIngredientOptions } from '@/hooks/use-ingredient-options';
+import { unitsFor, useIngredientOptions } from '@/hooks/inventory/use-ingredient-options';
 import { centsToPesos, pesosToCents } from '@/lib/money';
 import { save } from '@/routes/inventory/suppliers/prices';
 import type { SupplierPrice } from '@/types/inventory';

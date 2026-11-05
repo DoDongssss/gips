@@ -7,7 +7,7 @@ use App\Http\Middleware\RequireIdempotencyKey;
 use App\Http\Requests\Orders\TakePaymentRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
-use App\Services\IdempotencyService;
+use App\Services\Orders\IdempotencyService;
 use App\Services\Payments\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;

@@ -2,7 +2,7 @@
 
 namespace App\Services\Dashboard;
 
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use Carbon\Carbon;
 
 /** Short “needs attention” items for the dashboard strip (not header bells). */
