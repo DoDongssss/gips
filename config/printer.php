@@ -22,6 +22,7 @@ return [
         'printer_copies' => ['type' => 'int', 'default' => 1, 'rules' => ['required', 'integer', 'between:1,3']],
         'printer_serial_baud' => ['type' => 'int', 'default' => 9600, 'rules' => ['required', 'integer', 'in:9600,19200,38400,57600,115200']],
         'printer_auto_print' => ['type' => 'bool', 'default' => true, 'rules' => ['boolean']],
+        'printer_kiosk_auto_print' => ['type' => 'bool', 'default' => true, 'rules' => ['boolean']],
         'printer_open_drawer' => ['type' => 'bool', 'default' => true, 'rules' => ['boolean']],
     ],
 ];

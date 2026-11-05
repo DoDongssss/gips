@@ -32,6 +32,7 @@ import { index as WasteIndex } from '@/routes/inventory/waste';
 import { index as CategoriesIndex } from '@/routes/menu/categories';
 import { index as GroupsIndex } from '@/routes/menu/groups';
 import { index as ProductsIndex } from '@/routes/menu/products';
+import { index as CustomersIndex } from '@/routes/customers';
 import { index as OrdersIndex } from '@/routes/orders';
 import { index as ReportsIndex } from '@/routes/reports';
 import { index as RolesIndex } from '@/routes/roles';
@@ -111,7 +112,15 @@ const sections: Section[] = [
     {
         label: 'Administration',
         items: [
-            { title: 'User', href: userIndex(), icon: User, permission: 'user.view' },
+            {
+                title: 'People',
+                href: '#',
+                icon: User,
+                children: [
+                    { title: 'Users', href: userIndex(), permission: 'user.view' },
+                    { title: 'Customers', href: CustomersIndex(), permission: 'customer.view' },
+                ],
+            },
             {
                 title: 'Kiosks',
                 href: '#',

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Discount;
 use App\Models\PaymentMethod;
 use App\Models\Tax;
+use App\Services\Configuration\ConfigurationService;
 use App\Services\Shifts\ShiftService;
 use App\Support\Approvers;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +22,7 @@ class PosConfigController extends Controller implements HasMiddleware
     }
 
     /** Everything the payment and discount screens need besides the menu. */
-    public function __invoke(Request $request, ShiftService $shifts): JsonResponse
+    public function __invoke(Request $request, ShiftService $shifts, ConfigurationService $configuration): JsonResponse
     {
         $shift = $shifts->current($request->user());
         $tax = Tax::where('is_active', true)->where('is_default', true)->first();
@@ -58,6 +59,14 @@ class PosConfigController extends Controller implements HasMiddleware
             'approvers' => Approvers::for(['discount.manage']),
             // Managers whose PIN can approve a price change.
             'price_override_approvers' => Approvers::for(['order.price-override']),
+            'payments' => [
+                'ewallet_help' => $configuration->get('payments_pos_ewallet_help'),
+            ],
+            'loyalty' => [
+                'enabled' => (bool) $configuration->get('loyalty_enabled'),
+                'cents_per_point' => (int) $configuration->get('loyalty_cents_per_point'),
+                'redeem_centavos_per_point' => (int) $configuration->get('loyalty_redeem_centavos_per_point'),
+            ],
         ]]);
     }
 }

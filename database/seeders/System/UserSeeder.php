@@ -3,51 +3,29 @@
 namespace Database\Seeders\System;
 
 use App\Models\User;
+use Database\Seeders\Support\SeedCredentials;
 use Illuminate\Database\Seeder;
 
 /**
- * The owner and super admin accounts, taken from .env (SUPER_ADMIN_EMAIL, OWNER_EMAIL and their passwords).
- * An account that already exists keeps its name and password, so re-seeding never resets a password
- * someone has changed. Roles are re-synced every time. Demo staff live in Demo\DemoUserSeeder.
+ * Core staff accounts. Production: superadmin, owner, manager, cashier @ kjips.com.
+ * Local: superadmin and owner @ example.com; other roles come from DemoUserSeeder.
+ * Existing users keep their password; roles are re-synced on every run.
  */
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach ($this->accounts() as $account) {
-            if (app()->isProduction() && $account['password'] === 'password') {
-                $this->command?->warn("{$account['email']} is using the default password. Set it in .env before seeding production.");
-            }
-
+        foreach (SeedCredentials::coreAccounts() as $account) {
             $user = User::firstOrCreate(
                 ['email' => $account['email']],
                 [
-                    'name'              => $account['name'],
-                    'password'          => $account['password'],
+                    'name' => $account['name'],
+                    'password' => $account['password'],
                     'email_verified_at' => now(),
                 ],
             );
 
             $user->syncRoles($account['role']);
         }
-    }
-
-    /** @return array<int, array{name: string, email: string, password: string, role: string}> */
-    private function accounts(): array
-    {
-        return [
-            [
-                'name'     => 'Super Admin',
-                'email'    => env('SUPER_ADMIN_EMAIL', 'superadmin@example.com'),
-                'password' => env('SUPER_ADMIN_PASSWORD', 'password'),
-                'role'     => 'superadmin',
-            ],
-            [
-                'name'     => 'Store Owner',
-                'email'    => env('OWNER_EMAIL', 'owner@example.com'),
-                'password' => env('OWNER_PASSWORD', 'password'),
-                'role'     => 'owner',
-            ],
-        ];
     }
 }

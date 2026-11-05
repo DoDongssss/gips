@@ -524,6 +524,8 @@ export default function ShiftsIndex({
                         }
                     }}
                     closePreviewCents={closeTarget.close_preview_cents}
+                    payments={closeTarget.payments}
+                    nonCashNetCents={closeTarget.non_cash_net_cents}
                 />
             )}
         </>

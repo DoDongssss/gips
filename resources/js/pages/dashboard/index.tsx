@@ -15,6 +15,9 @@ import { greeting, timeOf } from './format';
 import { LiveStrip, RecentOrders, ShiftsCard } from './live';
 import { Breakdown, CategoriesCard, FoodCostCard, FinanceRow, HoursCard, KpiRow, MixCard, PaymentsCard, ProductsCard } from './sales';
 import { KioskCard, PurchasingCard, StockCard } from './stock';
+import { HelpPanel } from './help-panel';
+import { HiddenDashboardPanelsBar } from './hidden-panels-bar';
+import { SetupChecklist } from './setup-checklist';
 import { TodayHero } from './today-hero';
 import type { DashboardProps, RangeKey } from '@/types/dashboard';
 
@@ -39,7 +42,7 @@ function RealtimeBadge({ status }: { status: ReturnType<typeof usePusherStatus> 
 }
 
 export default function Dashboard(props: DashboardProps) {
-    const { meta, range, access, can_load, live, shifts, sales, inventory, purchasing, kiosk, attention } = props;
+    const { meta, range, access, can_load, live, shifts, sales, inventory, purchasing, kiosk, attention, setup, help } = props;
     const { auth } = usePage<{ auth?: { user?: { name?: string } } }>().props;
 
     const [loading, setLoading] = useState(false);
@@ -147,6 +150,11 @@ export default function Dashboard(props: DashboardProps) {
                 )}
 
                 {can_load && attentionItems.length > 0 && <AttentionStrip items={attentionItems} />}
+
+                <HiddenDashboardPanelsBar setupAvailable={Boolean(setup && !setup.complete)} helpAvailable={Boolean(help)} />
+
+                {setup && <SetupChecklist setup={setup} />}
+                {help && <HelpPanel help={help} />}
 
                 {can_load && (
                     <div className={cn('flex flex-col gap-4 transition-opacity', loading && 'pointer-events-none opacity-60')}>

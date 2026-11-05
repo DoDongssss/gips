@@ -9,6 +9,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Customers\CustomerService;
 use App\Services\Shifts\ShiftService;
 use App\Support\Audit;
 use App\Support\BusinessDate;
@@ -24,6 +25,7 @@ class OrderService
         private OrderStatusService $statuses,
         private ShiftService $shifts,
         private ApprovalService $approvals,
+        private CustomerService $customers,
     ) {}
 
     /**
@@ -40,6 +42,7 @@ class OrderService
         bool $confirm = true,
     ): Order {
         $order = DB::transaction(function () use ($input, $user, $channel, $deviceId) {
+            $input = $this->customers->normalizeCartInput($input);
             $priced = $this->pricing->price($input, $user, enforceApproval: true, channel: $channel);
             $calc = $priced['calc'];
             $businessDate = BusinessDate::current();
@@ -55,12 +58,15 @@ class OrderService
                 'payment_status' => PaymentStatus::Unpaid,
                 'created_by' => $user->id,
                 'device_id' => $deviceId,
+                'customer_id' => $input['customer_id'] ?? null,
                 'customer_name' => $input['customer_name'] ?? null,
                 'notes' => $input['notes'] ?? null,
                 'subtotal_cents' => $calc['subtotal_cents'],
                 'discount_cents' => $calc['discount_cents'],
                 'tax_cents' => $calc['tax_cents'],
                 'total_cents' => $calc['total_cents'],
+                'loyalty_points_redeemed' => $priced['loyalty']['points'] ?? 0,
+                'loyalty_redeem_cents' => $priced['loyalty']['redeem_cents'] ?? 0,
             ]);
 
             $order->statusHistory()->create([
@@ -98,6 +104,7 @@ class OrderService
                 throw ValidationException::withMessages(['order' => 'This order can no longer be changed. It may have been paid, cancelled or sent to the kitchen.']);
             }
 
+            $input = $this->customers->normalizeCartInput($input);
             $priced = $this->pricing->price($input, $user, enforceApproval: true);
             $calc = $priced['calc'];
             $before = $order->items()->count();
@@ -111,12 +118,16 @@ class OrderService
 
             $order->update([
                 'type' => $input['type'],
+                'customer_id' => $input['customer_id'] ?? null,
                 'customer_name' => $input['customer_name'] ?? null,
                 'notes' => $input['notes'] ?? null,
                 'subtotal_cents' => $calc['subtotal_cents'],
                 'discount_cents' => $calc['discount_cents'],
                 'tax_cents' => $calc['tax_cents'],
                 'total_cents' => $calc['total_cents'],
+                'loyalty_points_redeemed' => $priced['loyalty']['points'] ?? 0,
+                'loyalty_redeem_cents' => $priced['loyalty']['redeem_cents'] ?? 0,
+                'loyalty_redeemed' => false,
             ]);
 
             $this->persist($order, $priced, $user);

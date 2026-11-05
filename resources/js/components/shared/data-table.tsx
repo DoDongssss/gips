@@ -20,6 +20,7 @@ type DataTableProps<TData extends RowData> = {
     columnClassNames?: Record<string, string>;
     /** Shown in the body when there are no rows (text or any node, e.g. a button). */
     emptyContent?: ReactNode;
+    className?: string;
 };
 
 export function DataTable<TData extends RowData>({
@@ -29,6 +30,7 @@ export function DataTable<TData extends RowData>({
     onSortingChange,
     columnClassNames = {},
     emptyContent = 'No results.',
+    className,
 }: DataTableProps<TData>) {
     const table = useTable({
         features: dataTableFeatures,
@@ -41,7 +43,7 @@ export function DataTable<TData extends RowData>({
     });
 
     return (
-        <div className="overflow-hidden rounded-lg border">
+        <div className={cn('overflow-hidden rounded-lg border', className)}>
             <Table>
                 <TableHeader className="bg-muted/50">
                     {table.getHeaderGroups().map((headerGroup) => (

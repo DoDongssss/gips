@@ -49,7 +49,9 @@ export function usePricedCart({ exact = false }: Options = {}) {
     const localSubtotal = localLines.reduce((sum, line) => sum + (line?.gross_cents ?? 0), 0);
 
     const taxIsAddedOnTop = !!config.data?.tax && !config.data.tax.is_inclusive;
-    const needsServer = hasLines && (exact || cart.discounts.length > 0 || taxIsAddedOnTop || !localReady);
+    const needsServer =
+        hasLines &&
+        (exact || cart.discounts.length > 0 || cart.loyaltyPointsRedeem > 0 || cart.customerId !== null || taxIsAddedOnTop || !localReady);
 
     const signature = useMemo(() => JSON.stringify(buildCartPayload(cart, { withApproval: false })), [cart]);
     const settled = useDebounced(signature, 250);

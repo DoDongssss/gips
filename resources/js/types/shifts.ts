@@ -1,4 +1,4 @@
-import type { CashBreakdown } from '@/lib/reports';
+import type { CashBreakdown, PaymentBreakdownRow } from '@/lib/reports';
 
 export type ShiftMovement = {
     id: number;
@@ -25,6 +25,8 @@ export type ShiftRecord = {
     notes: string | null;
     device_id?: number | null;
     cash: CashBreakdown | null;
+    payments: PaymentBreakdownRow[];
+    non_cash_net_cents: number;
     close_preview_cents?: number | null;
     is_mine?: boolean;
     movements: ShiftMovement[];

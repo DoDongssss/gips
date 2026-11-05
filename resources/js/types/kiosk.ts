@@ -1,3 +1,5 @@
+import type { BusinessInfo, PrinterSettings } from '@/types/printer';
+
 export type KioskSettings = {
     language: string;
     theme: string | null;
@@ -74,11 +76,18 @@ export type KioskProduct = {
 
 export type KioskCategory = { id: number; name: string; slug: string; sort_order: number; products: KioskProduct[] };
 
+export type KioskPrinterBundle = {
+    settings: PrinterSettings;
+    business: BusinessInfo;
+};
+
 export type KioskStatus = {
     device: { id: number; name: string };
     settings: KioskSettings | null;
+    payment_instructions?: string | null;
     unpaid_expiry_minutes: number;
     server_time: string;
+    printer?: KioskPrinterBundle;
 };
 
 export type KioskBanner = {

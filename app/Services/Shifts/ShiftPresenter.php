@@ -2,13 +2,18 @@
 
 namespace App\Services\Shifts;
 
+use App\Enums\PaymentMethodType;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Reports\ReportService;
 
 /** Maps a shift model to Inertia/API props. */
 class ShiftPresenter
 {
-    public function __construct(private ShiftService $shifts) {}
+    public function __construct(
+        private ShiftService $shifts,
+        private ReportService $reports,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -22,6 +27,12 @@ class ShiftPresenter
         $cash = ($isOpen && $showExpected) || ! $isOpen
             ? $this->shifts->cashBreakdown($shift)
             : null;
+
+        $date = $shift->business_date->toDateString();
+        $payments = $this->reports->summary($date, $date, $shift->id)['payments'];
+        $nonCashNetCents = (int) collect($payments)
+            ->filter(fn (array $row) => $row['type'] !== PaymentMethodType::CASH->value)
+            ->sum('net_cents');
 
         return [
             'id' => $shift->id,
@@ -40,6 +51,8 @@ class ShiftPresenter
             'notes' => $shift->notes,
             'device_id' => $shift->device_id,
             'cash' => $cash,
+            'payments' => $payments,
+            'non_cash_net_cents' => $nonCashNetCents,
             'close_preview_cents' => ($isOpen && $isOwner && $canViewAll)
                 ? $this->shifts->expectedCashCents($shift)
                 : null,

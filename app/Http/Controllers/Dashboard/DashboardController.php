@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Services\Dashboard\DashboardAttentionBuilder;
 use App\Services\Dashboard\DashboardService;
+use App\Services\Dashboard\SetupChecklistBuilder;
 use App\Support\BusinessDate;
 use App\Support\ClosedDay;
 use Closure;
@@ -21,7 +22,7 @@ class DashboardController extends Controller
     /** @var array<string, mixed> */
     private array $memo = [];
 
-    public function __invoke(Request $request, DashboardService $svc, DashboardAttentionBuilder $attention): Response
+    public function __invoke(Request $request, DashboardService $svc, DashboardAttentionBuilder $attention, SetupChecklistBuilder $setup): Response
     {
         $user = $request->user();
         $r = $svc->range($request->query('range'));
@@ -92,6 +93,13 @@ class DashboardController extends Controller
             'attention' => $hasData
                 ? $attention->build($access, $liveData, $shiftsData, $inventoryData, $purchasingData, $kioskData)
                 : [],
+
+            'setup' => $user->can('setting.view') ? $setup->build() : null,
+            'help' => $user->can('setting.view') ? [
+                'register' => 'Open Shift before selling if your store requires it. Use Register for sales; e-wallet payments need a reference number from the customer\'s app.',
+                'kiosk' => 'Kiosk orders are pay-at-counter unless you add a payment provider later. Edit the kiosk payment message under Settings → Configuration → Payments.',
+                'reports' => 'Run an X report during the day for a snapshot. Run a Z report to close the business day for accounting.',
+            ] : null,
         ]);
     }
 

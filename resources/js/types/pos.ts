@@ -63,4 +63,5 @@ export type PricedSummary = {
     tax_cents: number;
     total_cents: number;
     vat_exempt_sales_cents: number;
+    loyalty_redeem?: { points: number; amount_cents: number };
 };

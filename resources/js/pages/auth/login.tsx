@@ -19,19 +19,24 @@ type Props = {
 export default function Login({ status, canResetPassword }: Props) {
     return (
         <>
-            <Head title="Log in" />
+            <Head title="Sign in" />
+
+            <div className="mb-5">
+                <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Sign in</h1>
+                <p className="mt-1.5 text-sm text-muted-foreground">Staff email and password. Bar and kitchen tablets pair with a code, not this page.</p>
+            </div>
 
             {status && (
-                <div className="mb-5 rounded-lg bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-700 ring-1 ring-green-200">
+                <div className="mb-4 rounded-md border border-success/25 bg-success/10 px-3 py-2 text-sm font-medium text-success" role="status">
                     {status}
                 </div>
             )}
 
-            <Form {...store.form()} resetOnSuccess={['password']} className="flex flex-col gap-5">
+            <Form {...store.form()} resetOnSuccess={['password']} className="flex flex-col gap-4">
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email address</Label>
+                            <Label htmlFor="email">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -40,17 +45,19 @@ export default function Login({ status, canResetPassword }: Props) {
                                 autoFocus
                                 tabIndex={1}
                                 autoComplete="email"
-                                placeholder="email@example.com"
+                                placeholder="you@cafe.com"
                             />
                             <InputError message={errors.email} />
                         </div>
 
                         <div className="grid gap-2">
-                            <div className="flex items-center">
-                                <Label htmlFor="password">Password</Label>
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="password" className="shrink-0">
+                                    Password
+                                </Label>
                                 {canResetPassword && (
                                     <TextLink href={request()} className="ml-auto text-sm" tabIndex={5}>
-                                        Forgot your password?
+                                        Forgot password?
                                     </TextLink>
                                 )}
                             </div>
@@ -60,28 +67,27 @@ export default function Login({ status, canResetPassword }: Props) {
                                 required
                                 tabIndex={2}
                                 autoComplete="current-password"
-                                placeholder="Password"
+                                placeholder="Your password"
                             />
                             <InputError message={errors.password} />
                         </div>
 
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center gap-3">
                             <Checkbox id="remember" name="remember" tabIndex={3} />
-                            <Label htmlFor="remember">Remember me</Label>
+                            <Label htmlFor="remember" className="font-normal">
+                                Keep me signed in on this device
+                            </Label>
                         </div>
 
-                        <Button type="submit" className="mt-1 w-full" tabIndex={4} disabled={processing} data-test="login-button">
+                        <Button type="submit" className="mt-1 h-11 w-full" tabIndex={4} disabled={processing} data-test="login-button">
                             {processing && <Spinner />}
-                            Log in
+                            Sign in
                         </Button>
+
+                        <p className="text-center text-xs leading-relaxed text-muted-foreground">Guests order on the kiosk. This page is for owners and staff.</p>
                     </>
                 )}
             </Form>
         </>
     );
 }
-
-Login.layout = {
-    title: 'Log in',
-    description: 'Enter your email and password to continue.',
-};

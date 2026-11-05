@@ -15,7 +15,10 @@ export type Approval = { user_id: number; pin: string };
 
 export type CartPayload = {
     type: 'dine_in' | 'takeout';
+    customer_id?: number | null;
+    customer_phone?: string | null;
     customer_name: string | null;
+    loyalty_points_redeem?: number;
     notes: string | null;
     items: {
         product_id: number;

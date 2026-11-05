@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\RefundController;
@@ -7,6 +8,11 @@ use Illuminate\Support\Facades\Route;
 
 // Loaded inside: prefix 'v1', name 'api.v1.', middleware web + auth
 // Order matters: the static 'preview' and 'lookup/{number}' routes must stay above '{order}'.
+
+Route::controller(CustomerController::class)->prefix('customers')->name('customers.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::post('/', 'store')->name('store');
+});
 
 Route::controller(OrderController::class)->prefix('orders')->name('orders.')->group(function () {
     Route::post('preview', 'preview')->name('preview');

@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { configure, connect, restore, usePrinter } from '@/lib/printer/printer';
+import { configureDevice, connectionNeedsConnect, effectiveSettings } from '@/lib/printer/device-choice';
+import { connect, restore, usePrinter } from '@/lib/printer/printer';
 import { dropQueued, printerSettingsQuery, printQueued, reportPrinterStatus, usePrintQueue, useRegisterPrinterHealth } from '@/lib/printer/print-sale';
 
 /**
@@ -14,37 +15,38 @@ export function PrinterBanner() {
     const { data: settings } = useQuery(printerSettingsQuery);
     const printer = usePrinter();
     const queue = usePrintQueue();
+    const deviceSettings = settings ? effectiveSettings(settings) : undefined;
     const health = useRegisterPrinterHealth(settings);
     const [busy, setBusy] = useState(false);
     const lastSent = useRef('');
 
-    // Use the store's connection type and reconnect without a click when the browser remembers the printer.
+    // Use this tablet's connection (store setting or local override) and reconnect when the browser remembers the printer.
     useEffect(() => {
         if (settings) {
-            configure(settings);
+            configureDevice(settings);
             void restore();
         }
     }, [settings]);
 
     // Tell the server when this register's printer state changes (Pusher handles alerts for managers).
     useEffect(() => {
-        if (!settings) {
+        if (!settings || !deviceSettings) {
             return;
         }
 
-        const signature = `${health.online}|${health.message}|${settings.printer_connection}`;
+        const signature = `${health.online}|${health.message}|${deviceSettings.printer_connection}`;
 
         if (signature === lastSent.current) {
             return;
         }
 
         lastSent.current = signature;
-        void reportPrinterStatus(health.online, health.message, settings.printer_connection);
-    }, [settings, health.online, health.message]);
+        void reportPrinterStatus(health.online, health.message, deviceSettings.printer_connection);
+    }, [settings, deviceSettings, health.online, health.message]);
 
     // Printer came back by itself (restored or reconnected): print what was waiting.
     useEffect(() => {
-        if (settings && printer.status === 'ready' && queue.length > 0 && settings.printer_connection !== 'browser') {
+        if (settings && deviceSettings && printer.status === 'ready' && queue.length > 0 && deviceSettings.printer_connection !== 'browser') {
             void printQueued(settings);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,7 +61,9 @@ export function PrinterBanner() {
     async function printWaiting() {
         setBusy(true);
 
-        if (settings!.printer_connection !== 'browser' && printer.status !== 'ready') {
+        const mine = effectiveSettings(settings!);
+        if (connectionNeedsConnect(mine.printer_connection) && printer.status !== 'ready') {
+            configureDevice(settings!);
             await connect();
         }
 
@@ -82,7 +86,7 @@ export function PrinterBanner() {
             </span>
 
             <span className="flex gap-2">
-                {offline && settings.printer_connection !== 'browser' && (
+                {offline && deviceSettings && connectionNeedsConnect(deviceSettings.printer_connection) && (
                     <Button size="sm" className="h-10" disabled={printer.status === 'connecting'} onClick={() => void connect()}>
                         Connect printer
                     </Button>

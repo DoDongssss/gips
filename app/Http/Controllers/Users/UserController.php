@@ -31,6 +31,8 @@ class UserController extends Controller implements HasMiddleware
     {
         $actor = $request->user();
         $search = $request->string('search')->toString();
+        $role = $request->query('role');
+        $status = $request->query('status');
 
         $sortable = ['name', 'email', 'role', 'is_active'];
         $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : null;
@@ -46,6 +48,12 @@ class UserController extends Controller implements HasMiddleware
                         fn ($roles) => $roles->where('name', 'superadmin'),
                     ),
                 )
+                ->when(
+                    is_string($role) && $role !== '',
+                    fn ($query) => $query->whereHas('roles', fn ($roles) => $roles->where('name', $role)),
+                )
+                ->when($status === 'active', fn ($query) => $query->where('is_active', true))
+                ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
                 ->when($search !== '', fn ($query) => $query->where(
                     fn ($q) => $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%"),
@@ -72,6 +80,8 @@ class UserController extends Controller implements HasMiddleware
             'roles' => $this->assignableRoles(),
             'filters' => [
                 'search' => $search,
+                'role' => is_string($role) && $role !== '' ? $role : null,
+                'status' => in_array($status, ['active', 'inactive'], true) ? $status : null,
                 'sort' => $sort,
                 'direction' => $sort ? $direction : null,
             ],

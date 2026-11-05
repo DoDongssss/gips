@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { ApiError, api, tokenStore } from '@/lib/kiosk/api';
+import { printKioskTicket } from '@/lib/printer/print-kiosk';
 import { cartCount, lineKey } from '@/lib/kiosk/pricing';
 import type { Banner, CartLine, Category, Modifier, OrderType, PlacedOrder, Product, Status, Step, Suggestion, Variant } from '@/types/kiosk';
 
@@ -79,7 +80,17 @@ export const useKiosk = create<State>((set, get) => ({
         const result = await api.pair(code);
 
         tokenStore.set(result.token);
-        set({ paired: true, step: 'welcome', status: { device: result.device, settings: result.settings, unpaid_expiry_minutes: result.unpaid_expiry_minutes, server_time: result.server_time } });
+        set({
+            paired: true,
+            step: 'welcome',
+            status: {
+                device: result.device,
+                settings: result.settings,
+                payment_instructions: result.payment_instructions ?? null,
+                unpaid_expiry_minutes: result.unpaid_expiry_minutes,
+                server_time: result.server_time,
+            },
+        });
     },
 
     unpair() {
@@ -185,7 +196,15 @@ export const useKiosk = create<State>((set, get) => ({
                 })),
             });
 
+            const printer = get().status?.printer;
+
             set({ placed, step: 'done', placing: false });
+
+            if (printer) {
+                void printKioskTicket(placed, printer).catch(() => {
+                    set({ notice: 'Your order was placed, but the ticket did not print. Show your order number on screen to the cashier.' });
+                });
+            }
         } catch (error) {
             const message =
                 error instanceof ApiError

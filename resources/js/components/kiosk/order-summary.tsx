@@ -18,6 +18,7 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
     const seniorPwd = useKiosk((s) => s.seniorPwd);
     const customerName = useKiosk((s) => s.customerName);
     const placing = useKiosk((s) => s.placing);
+    const paymentInstructions = useKiosk((s) => s.status?.payment_instructions);
     const { setQuantity, setSeniorPwd, setCustomerName, checkout } = useKiosk.getState();
 
     const dragScroll = useDragScroll<HTMLDivElement>();
@@ -126,7 +127,7 @@ export default function OrderSummary({ onClose }: { onClose?: () => void }) {
                 )}
                 <p className="text-muted-foreground flex items-center gap-2 text-sm">
                     <Banknote className="size-4 shrink-0" />
-                    Pay at the counter. Final amount confirmed there.
+                    {paymentInstructions || 'Pay at the counter. Final amount confirmed there.'}
                 </p>
 
                 <div className="flex gap-2">

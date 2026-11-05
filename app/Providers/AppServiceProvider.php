@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Events\OrderPaid;
+use App\Events\OrderStatusChanged;
+use App\Listeners\AwardLoyaltyWhenOrderPaid;
 use App\Listeners\DeductStockWhenOrderPaid;
 use App\Listeners\LogAuthEvents;
+use App\Listeners\ReverseLoyaltyWhenOrderVoided;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -40,6 +43,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Failed::class, [LogAuthEvents::class, 'onFailed']);
 
         Event::listen(OrderPaid::class, DeductStockWhenOrderPaid::class);
+        Event::listen(OrderPaid::class, AwardLoyaltyWhenOrderPaid::class);
+        Event::listen(OrderStatusChanged::class, ReverseLoyaltyWhenOrderVoided::class);
     }
 
     /**

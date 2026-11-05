@@ -120,6 +120,13 @@ export type Kiosk = {
 
 export type AttentionItem = { id: string; level: 'danger' | 'warning' | 'info'; text: string; href?: string };
 
+export type SetupChecklist = {
+    complete: boolean;
+    completed_count: number;
+    total_count: number;
+    steps: { key: string; label: string; description: string; done: boolean; href: string | null }[];
+};
+
 export type DashboardProps = {
     meta: DashboardMeta;
     range: Range;
@@ -132,4 +139,6 @@ export type DashboardProps = {
     purchasing: Purchasing | null;
     kiosk: Kiosk | null;
     attention: AttentionItem[];
+    setup: SetupChecklist | null;
+    help: { register: string; kiosk: string; reports: string } | null;
 };

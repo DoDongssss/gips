@@ -184,4 +184,6 @@ export type PosConfig = {
     tax: { name: string; rate: string; is_inclusive: boolean } | null;
     approvers: Approver[];
     price_override_approvers: Approver[];
+    payments: { ewallet_help: string | null };
+    loyalty: { enabled: boolean; cents_per_point: number; redeem_centavos_per_point: number };
 };

@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 
 import ConfigurationController from '@/actions/App/Http/Controllers/Settings/ConfigurationController';
+import { useCan } from '@/hooks/shared/use-can';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,8 +84,13 @@ function FieldControl({ field, error, disabled }: { field: SettingField; error?:
 }
 
 export default function SettingsGroupForm({ group, canUpdate }: { group: SettingGroup; canUpdate: boolean }) {
+    const { can } = useCan();
+    const canEditGroup =
+        canUpdate &&
+        (group.key !== 'loyalty' || can('loyalty.manage') || can('setting.update'));
+
     return (
-        <section className="space-y-4 rounded-lg border p-5">
+        <section id={group.key} className="scroll-mt-20 space-y-4 rounded-lg border p-5">
             <div>
                 <h2 className="font-semibold">{group.label}</h2>
                 {group.description && <p className="text-muted-foreground text-sm">{group.description}</p>}
@@ -98,11 +104,11 @@ export default function SettingsGroupForm({ group, canUpdate }: { group: Setting
                                 key={field.name}
                                 field={field}
                                 error={errors[field.name]}
-                                disabled={!canUpdate}
+                                disabled={!canEditGroup}
                             />
                         ))}
 
-                        {canUpdate && (
+                        {canEditGroup && (
                             <div className="flex items-center gap-3">
                                 <Button type="submit" disabled={processing}>
                                     {processing ? 'Saving...' : `Save ${group.label.toLowerCase()} settings`}
