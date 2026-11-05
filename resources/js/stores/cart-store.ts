@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { Approval, CartPayload } from '@/lib/pos-api';
+import type { Approval, CartPayload } from '@/lib/pos/api';
 import { uuid } from '@/lib/uuid';
 
 /**
@@ -35,14 +35,20 @@ export type CartDiscount = {
 
 type CartState = {
     type: 'dine_in' | 'takeout';
+    customerId: number | null;
+    customerPhone: string;
     customerName: string;
     notes: string;
     lines: CartLine[];
     discounts: CartDiscount[];
     approval: Approval | null;
+    loyaltyPointsRedeem: number;
 
     setType: (type: 'dine_in' | 'takeout') => void;
     setCustomerName: (value: string) => void;
+    setCustomerPhone: (value: string) => void;
+    setCustomer: (value: { customerId: number | null; name: string; phone: string }) => void;
+    setLoyaltyPointsRedeem: (value: number) => void;
     setNotes: (value: string) => void;
     addLine: (line: Omit<CartLine, 'uid'>) => void;
     updateLine: (uid: string, line: Omit<CartLine, 'uid'>) => void;
@@ -69,14 +75,21 @@ export const useCartStore = create<CartState>()(
     persist(
         (set) => ({
             type: 'takeout',
+            customerId: null,
+            customerPhone: '',
             customerName: '',
             notes: '',
             lines: [],
             discounts: [],
             approval: null,
+            loyaltyPointsRedeem: 0,
 
             setType: (type) => set({ type }),
-            setCustomerName: (customerName) => set({ customerName }),
+            setCustomerName: (customerName) => set({ customerName, customerId: null, loyaltyPointsRedeem: 0 }),
+            setCustomerPhone: (customerPhone) => set({ customerPhone, customerId: null, loyaltyPointsRedeem: 0 }),
+            setCustomer: ({ customerId, name, phone }) =>
+                set({ customerId, customerName: name, customerPhone: phone, loyaltyPointsRedeem: 0 }),
+            setLoyaltyPointsRedeem: (loyaltyPointsRedeem) => set({ loyaltyPointsRedeem: Math.max(0, loyaltyPointsRedeem) }),
             setNotes: (notes) => set({ notes }),
 
             addLine: (line) =>
@@ -152,19 +165,24 @@ export const useCartStore = create<CartState>()(
             clear: () =>
                 set({
                     type: 'takeout',
+                    customerId: null,
+                    customerPhone: '',
                     customerName: '',
                     notes: '',
                     lines: [],
                     discounts: [],
                     approval: null,
+                    loyaltyPointsRedeem: 0,
                 }),
         }),
         {
             name: 'pos-cart',
-            version: 1,
+            version: 2,
             // The manager approval holds a PIN, so it is never written to storage.
             partialize: (state) => ({
                 type: state.type,
+                customerId: state.customerId,
+                customerPhone: state.customerPhone,
                 customerName: state.customerName,
                 notes: state.notes,
                 lines: state.lines,
@@ -176,12 +194,18 @@ export const useCartStore = create<CartState>()(
 
 /** The request body for /orders/preview and /orders. Names and prices never go to the server. */
 export function buildCartPayload(
-    state: Pick<CartState, 'type' | 'customerName' | 'notes' | 'lines' | 'discounts' | 'approval'>,
+    state: Pick<
+        CartState,
+        'type' | 'customerId' | 'customerPhone' | 'customerName' | 'notes' | 'lines' | 'discounts' | 'approval' | 'loyaltyPointsRedeem'
+    >,
     { withApproval }: { withApproval: boolean },
 ): CartPayload {
     return {
         type: state.type,
+        customer_id: state.customerId,
+        customer_phone: state.customerPhone.trim() || null,
         customer_name: state.customerName.trim() || null,
+        loyalty_points_redeem: state.loyaltyPointsRedeem > 0 ? state.loyaltyPointsRedeem : undefined,
         notes: state.notes.trim() || null,
         items: state.lines.map((l) => ({
             product_id: l.product_id,

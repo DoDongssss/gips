@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { channelLabels, orNull } from '@/lib/kiosk';
+import { channelLabels, orNull } from '@/lib/kiosk/helpers';
 import { centsToPesos, pesosToCents } from '@/lib/money';
 import { destroy, store, update } from '@/routes/kiosk/upsell';
 import type { NamedOption, UpsellRuleRow } from '@/types/kiosk';

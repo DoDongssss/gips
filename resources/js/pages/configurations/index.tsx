@@ -1,12 +1,24 @@
+import { useEffect } from 'react';
+
 import ConfigurationGroupForm from '@/pages/configurations/group-form';
 import type { SettingGroup } from '@/pages/configurations/group-form';
-import { useCan } from '@/hooks/use-can';
+import { useCan } from '@/hooks/shared/use-can';
 
-import { index } from '@/routes/configurations'
+import { index } from '@/routes/configurations';
 
 export default function Index({ groups }: { groups: SettingGroup[] }) {
     const { can } = useCan();
     const canUpdate = can('setting.update');
+
+    useEffect(() => {
+        const hash = window.location.hash.replace('#', '');
+
+        if (!hash) {
+            return;
+        }
+
+        document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, []);
 
     return (
         <>

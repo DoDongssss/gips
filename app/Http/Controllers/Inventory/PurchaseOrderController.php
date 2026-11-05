@@ -12,6 +12,7 @@ use App\Models\Supplier;
 use App\Models\SupplierIngredient;
 use App\Models\Unit;
 use App\Services\Inventory\PurchaseOrderService;
+use App\Services\Inventory\ReorderSuggestionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -66,6 +67,7 @@ class PurchaseOrderController extends Controller implements HasMiddleware
                 'sort' => $sort,
                 'direction' => $sort ? $direction : null,
             ],
+            'reorder_suggestions' => app(ReorderSuggestionService::class)->suggestions()->values()->all(),
         ]);
     }
 
@@ -127,6 +129,25 @@ class PurchaseOrderController extends Controller implements HasMiddleware
     public function cancel(PurchaseOrder $purchaseOrder, PurchaseOrderService $orders): RedirectResponse
     {
         return $this->attempt(fn () => $orders->cancel($purchaseOrder), "{$purchaseOrder->po_number} cancelled.");
+    }
+
+    public function fromSuggestions(ReorderSuggestionService $suggestions, PurchaseOrderService $orders, Request $request): RedirectResponse
+    {
+        $result = $suggestions->createDraftPurchaseOrders($orders, $request->user());
+
+        if ($result['created'] === 0) {
+            return redirect()
+                ->route('inventory.purchase-orders.index')
+                ->with('error', 'No draft purchase orders were created. Link suppliers to ingredients or adjust reorder levels.');
+        }
+
+        $message = "{$result['created']} draft purchase order(s) created from low-stock items.";
+
+        if ($result['skipped'] > 0) {
+            $message .= " {$result['skipped']} item(s) skipped (no preferred supplier price).";
+        }
+
+        return redirect()->route('inventory.purchase-orders.index')->with('success', $message);
     }
 
     private function summary(PurchaseOrder $p): array

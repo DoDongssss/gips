@@ -9,19 +9,20 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useCan } from '@/hooks/use-can';
-import { usePricedCart } from '@/hooks/use-priced-cart';
+import { useCan } from '@/hooks/shared/use-can';
+import { usePricedCart } from '@/hooks/pos/use-priced-cart';
 import { formatPeso } from '@/lib/money';
-import { updateOrder } from '@/lib/order-edit';
+import { updateOrder } from '@/lib/pos/order-edit';
 import { printAfterPayment, printerSettingsQuery } from '@/lib/printer/print-sale';
-import { createOrder, newIdempotencyKey } from '@/lib/pos-api';
-import { errorFor, errorList, posGet } from '@/lib/pos-http';
-import type { PayRow, PosOrderRow } from '@/lib/pos-session';
-import { payOrder } from '@/lib/pos-session';
+import { createOrder, newIdempotencyKey } from '@/lib/pos/api';
+import { errorFor, errorList, posGet } from '@/lib/pos/http';
+import type { PayRow, PosOrderRow } from '@/lib/pos/session';
+import { payOrder } from '@/lib/pos/session';
 import { uuid } from '@/lib/uuid';
 import { ReprintButton } from '@/components/printer/reprint-button';
 import { ApprovalFields, isApprovalComplete } from '@/pages/orders/approval-fields';
-import type { OrderDetail, PosConfig } from '@/pages/orders/types';
+import type { OrderDetail, PosConfig } from '@/types/orders';
+import { CustomerPicker } from '@/components/pos/customer-picker';
 import { DiscountDialog } from '@/pages/pos/discount-dialog';
 import { OrderReview } from '@/pages/pos/order-review';
 import type { ReviewLine } from '@/pages/pos/order-review';
@@ -373,7 +374,18 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
 
         if (cartMode && summary) {
             rows.push({ label: 'Subtotal', value: formatPeso(summary.subtotal_cents) });
-            if (summary.discount_cents > 0) rows.push({ label: 'Discounts', value: `−${formatPeso(summary.discount_cents)}`, tone: 'discount' });
+            const loyaltyRedeemCents = summary.loyalty_redeem?.amount_cents ?? 0;
+            const promoDiscountCents = summary.discount_cents - loyaltyRedeemCents;
+            if (promoDiscountCents > 0) {
+                rows.push({ label: 'Discounts', value: `−${formatPeso(promoDiscountCents)}`, tone: 'discount' });
+            }
+            if (loyaltyRedeemCents > 0 && summary.loyalty_redeem) {
+                rows.push({
+                    label: `Loyalty (${summary.loyalty_redeem.points} pt)`,
+                    value: `−${formatPeso(loyaltyRedeemCents)}`,
+                    tone: 'discount',
+                });
+            }
             const vat = summary.taxes[0];
             if (vat) rows.push({ label: `${vat.name}${vat.is_inclusive ? ' (included)' : ''}`, value: formatPeso(vat.tax_cents) });
         } else if (savedMode && order) {
@@ -524,15 +536,20 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                                         />
 
                                         {method?.requires_reference && (
-                                            <Input
-                                                id={`pay-ref-${row.uid}`}
-                                                className="h-11"
-                                                maxLength={100}
-                                                placeholder="Reference number"
-                                                aria-label="Reference number"
-                                                value={row.reference}
-                                                onChange={(event) => patchRow(index, { reference: event.target.value })}
-                                            />
+                                            <>
+                                                {config?.payments?.ewallet_help && (
+                                                    <p className="text-muted-foreground text-xs">{config.payments.ewallet_help}</p>
+                                                )}
+                                                <Input
+                                                    id={`pay-ref-${row.uid}`}
+                                                    className="h-11"
+                                                    maxLength={100}
+                                                    placeholder="Reference number"
+                                                    aria-label="Reference number"
+                                                    value={row.reference}
+                                                    onChange={(event) => patchRow(index, { reference: event.target.value })}
+                                                />
+                                            </>
                                         )}
                                     </div>
                                 );
@@ -605,7 +622,32 @@ export function CheckoutDialog({ config, order, onClose, onSaved }: Props) {
                                         />
                                     )}
 
-                                    <Input id="checkout-customer" className="h-11" maxLength={100} placeholder="Customer name (optional)" aria-label="Customer name (optional)" value={cart.customerName} onChange={(event) => cart.setCustomerName(event.target.value)} />
+                                    <CustomerPicker
+                                        name={cart.customerName}
+                                        phone={cart.customerPhone}
+                                        customerId={cart.customerId}
+                                        loyaltyEnabled={config?.loyalty?.enabled ?? false}
+                                        onChange={({ customerId, name, phone }) => cart.setCustomer({ customerId, name, phone })}
+                                    />
+                                    {config?.loyalty?.enabled && cart.customerId && (
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-medium" htmlFor="checkout-loyalty-redeem">
+                                                Redeem loyalty points
+                                            </label>
+                                            <Input
+                                                id="checkout-loyalty-redeem"
+                                                type="number"
+                                                min={0}
+                                                step={1}
+                                                value={cart.loyaltyPointsRedeem || ''}
+                                                placeholder="0"
+                                                onChange={(event) => cart.setLoyaltyPointsRedeem(Number(event.target.value) || 0)}
+                                            />
+                                            <p className="text-muted-foreground text-xs">
+                                                Each point saves {formatPeso(config.loyalty.redeem_centavos_per_point)} off this order (whole points only).
+                                            </p>
+                                        </div>
+                                    )}
                                     <Textarea id="checkout-notes" rows={2} maxLength={500} placeholder="Order notes (optional)" aria-label="Order notes (optional)" value={cart.notes} onChange={(event) => cart.setNotes(event.target.value)} />
                                 </CollapsibleContent>
                             </Collapsible>

@@ -9,6 +9,8 @@ use App\Models\Modifier;
 use App\Models\Product;
 use App\Models\Tax;
 use App\Models\User;
+use App\Services\Customers\CustomerService;
+use App\Services\Customers\LoyaltyService;
 use App\Services\Kiosk\UpsellRulePricing;
 use App\Services\Pricing\PricingCalculator;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +28,8 @@ class OrderPricingService
         private PricingCalculator $calculator,
         private ApprovalService $approvals,
         private UpsellRulePricing $upsellPricing,
+        private CustomerService $customers,
+        private LoyaltyService $loyalty,
     ) {}
 
     /**
@@ -63,12 +67,22 @@ class OrderPricingService
             $tax ? ['rate_bp' => $tax->rateBasisPoints(), 'inclusive' => $tax->is_inclusive] : null,
         );
 
+        $requestedRedeem = (int) ($input['loyalty_points_redeem'] ?? 0);
+        $customer = $this->customers->resolveForLoyalty($input);
+        $this->loyalty->validateRedemptionRequest($customer, $requestedRedeem);
+        $redemption = $this->loyalty->resolveRedemption($customer, $requestedRedeem, $calc['total_cents']);
+        $summary = $this->summary($lines, $discounts, $tax, $calc);
+        $applied = $this->loyalty->applyRedemptionToSummary($calc, $summary, $redemption['points'], $redemption['redeem_cents']);
+        $calc = $applied['calc'];
+        $summary = $applied['summary'];
+
         return [
             'lines' => $lines,
             'discounts' => $discounts,
             'tax' => $tax,
             'calc' => $calc,
-            'summary' => $this->summary($lines, $discounts, $tax, $calc),
+            'loyalty' => $redemption,
+            'summary' => $summary,
         ];
     }
 

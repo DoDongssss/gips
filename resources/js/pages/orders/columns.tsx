@@ -1,13 +1,13 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import type { DataTableFeatures } from '@/components/data-table';
-import { SortableHeader } from '@/components/sortable-header';
+import type { DataTableFeatures } from '@/components/shared/data-table';
+import { SortableHeader } from '@/components/shared/sortable-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPeso } from '@/lib/money';
 import { ChannelBadge, OrderStatusBadge, orderTypeLabel, PaymentStatusBadge } from '@/pages/orders/status-badges';
-import type { OrderRow } from '@/pages/orders/types';
+import type { OrderRow } from '@/types/orders';
 import { show } from '@/routes/orders';
 
 export const columnClassNames: Record<string, string> = {

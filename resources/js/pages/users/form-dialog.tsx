@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
-import UserController from '@/actions/App/Http/Controllers/UserController';
+import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

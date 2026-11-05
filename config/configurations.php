@@ -114,6 +114,60 @@ return [
             ],
         ],
 
+        'payments' => [
+            'label' => 'Payments',
+            'description' => 'What staff and kiosk customers see about paying.',
+            'fields' => [
+                'payments_kiosk_instructions' => [
+                    'label' => 'Kiosk payment message',
+                    'type' => 'text',
+                    'default' => 'Pay at the counter with cash, GCash, Maya, or card. Show your pickup number to the cashier.',
+                    'help' => 'Shown on the kiosk order screen before placing an order.',
+                    'rules' => ['nullable', 'string', 'max:500'],
+                ],
+                'payments_pos_ewallet_help' => [
+                    'label' => 'Register e-wallet help',
+                    'type' => 'text',
+                    'default' => 'For GCash, Maya, or bank transfer, enter the amount and the reference number from the customer\'s app.',
+                    'help' => 'Shown at checkout when staff choose a non-cash payment method.',
+                    'rules' => ['nullable', 'string', 'max:500'],
+                ],
+            ],
+        ],
+
+        'loyalty' => [
+            'label' => 'Loyalty',
+            'description' => 'Simple points when a linked customer pays in full.',
+            'fields' => [
+                'loyalty_enabled' => [
+                    'label' => 'Enable loyalty points',
+                    'type' => 'bool',
+                    'default' => true,
+                    'rules' => ['boolean'],
+                ],
+                'loyalty_cents_per_point' => [
+                    'label' => 'Centavos spent for 1 point',
+                    'type' => 'int',
+                    'default' => 10000,
+                    'min' => 100,
+                    'max' => 1000000,
+                    'step' => 100,
+                    'help' => 'Example: 10000 means ₱100.00 of order total earns 1 point.',
+                    'rules' => ['required', 'integer', 'min:100'],
+                ],
+                'loyalty_redeem_centavos_per_point' => [
+                    'label' => 'Centavos off per point redeemed',
+                    'type' => 'int',
+                    'default' => 10000,
+                    'min' => 100,
+                    'max' => 1000000,
+                    'step' => 100,
+                    'help' => 'Example: 10000 means each point redeemed takes ₱100.00 off the order total.',
+                    'rules' => ['required', 'integer', 'min:100'],
+                ],
+            ],
+        ],
+
         'kitchen' => [
             'label' => 'Kitchen',
             'description' => 'When tickets on the kitchen display change color.',

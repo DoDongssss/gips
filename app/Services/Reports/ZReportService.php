@@ -10,7 +10,7 @@ use App\Models\Order;
 use App\Models\Shift;
 use App\Models\User;
 use App\Models\ZReport;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use App\Support\Audit;
 use App\Support\BusinessDate;
 use App\Support\ClosedDay;

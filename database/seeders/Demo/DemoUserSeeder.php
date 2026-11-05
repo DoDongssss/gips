@@ -3,11 +3,12 @@
 namespace Database\Seeders\Demo;
 
 use App\Models\User;
+use Database\Seeders\Support\SeedCredentials;
 use Database\Seeders\System\PermissionSeeder;
 use Database\Seeders\System\RoleSeeder;
 use Illuminate\Database\Seeder;
 
-/** Demo staff, one per working role. Password is "password". Never run in production. */
+/** Extra demo staff for local development only. Never runs in production. */
 class DemoUserSeeder extends Seeder
 {
     public function run(): void
@@ -20,18 +21,17 @@ class DemoUserSeeder extends Seeder
 
         $this->call([PermissionSeeder::class, RoleSeeder::class]);
 
-        foreach ([
-            ['Demo Manager', 'manager@example.com', 'manager'],
-            ['Demo Cashier', 'cashier@example.com', 'cashier'],
-            // ['Demo Barista', 'barista@example.com', 'barista'],
-            // ['Demo Kitchen', 'kitchen@example.com', 'kitchen'],
-        ] as [$name, $email, $role]) {
+        foreach (SeedCredentials::localDemoStaffAccounts() as $account) {
             $user = User::firstOrCreate(
-                ['email' => $email],
-                ['name' => $name, 'password' => 'password', 'email_verified_at' => now()],
+                ['email' => $account['email']],
+                [
+                    'name' => $account['name'],
+                    'password' => $account['password'],
+                    'email_verified_at' => now(),
+                ],
             );
 
-            $user->syncRoles($role);
+            $user->syncRoles($account['role']);
         }
     }
 }

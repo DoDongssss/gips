@@ -33,6 +33,10 @@ class Order extends Model
             'status' => OrderStatus::class,
             'payment_status' => PaymentStatus::class,
             'requires_verification' => 'boolean',
+            'loyalty_points_awarded' => 'boolean',
+            'loyalty_points_redeemed' => 'integer',
+            'loyalty_redeem_cents' => 'integer',
+            'loyalty_redeemed' => 'boolean',
             'confirmed_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -82,6 +86,11 @@ class Order extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function refunds(): HasMany

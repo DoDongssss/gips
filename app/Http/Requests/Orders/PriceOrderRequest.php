@@ -23,7 +23,10 @@ class PriceOrderRequest extends FormRequest
     {
         return [
             'type' => ['required', Rule::in(['dine_in', 'takeout'])],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'customer_phone' => ['nullable', 'string', 'max:30'],
             'customer_name' => ['nullable', 'string', 'max:100'],
+            'loyalty_points_redeem' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'notes' => ['nullable', 'string', 'max:500'],
 
             'items' => ['required', 'array', 'min:1', 'max:50'],

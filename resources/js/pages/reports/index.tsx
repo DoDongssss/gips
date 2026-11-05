@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Can } from '@/components/can';
+import { Can } from '@/components/shared/can';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

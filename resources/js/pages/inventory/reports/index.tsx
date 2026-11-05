@@ -3,8 +3,8 @@ import type { SortingState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Can } from '@/components/can';
-import { DataTable } from '@/components/data-table';
+import { Can } from '@/components/shared/can';
+import { DataTable } from '@/components/shared/data-table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';

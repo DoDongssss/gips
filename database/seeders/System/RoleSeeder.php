@@ -24,6 +24,8 @@ class RoleSeeder extends Seeder
             'manager' => [
                 'menu.view', 'menu.create', 'menu.update', 'menu.delete', 'menu.availability',
                 'order.view', 'order.create', 'order.update', 'order.void',
+                'customer.view', 'customer.manage',
+                'loyalty.view', 'loyalty.manage',
                 'discount.apply', 'discount.manage',
                 'payment.take', 'payment.refund',
                 'kds.view', 'kds.bump',

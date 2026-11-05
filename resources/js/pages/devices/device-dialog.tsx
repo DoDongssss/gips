@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { creatableDeviceTypeLabels, type PairableDeviceType } from '@/lib/devices';
-import { orNull } from '@/lib/kiosk';
+import { orNull } from '@/lib/kiosk/helpers';
 import { destroy, store, update } from '@/routes/devices';
 import type { DeviceRow, Station } from '@/types/devices';
 
@@ -17,7 +17,7 @@ type Props = { open: boolean; onOpenChange: (open: boolean) => void; device?: De
 
 type FormData = {
     name: string;
-    type: PairableDeviceType;
+    type: PairableDeviceType | 'pos';
     station_id: string;
     is_active: boolean;
     idle_timeout_seconds: string;

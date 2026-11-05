@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\KioskHeartbeat;
 use App\Models\KioskScreen;
+use App\Services\Configuration\ConfigurationService;
 use App\Services\Devices\DevicePairingService;
 use App\Services\Kiosk\UpsellService;
 use App\Services\Menu\MenuService;
+use App\Services\Printer\PrinterSettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -76,11 +78,23 @@ class KioskController extends Controller
     /** @return array<string, mixed> */
     private function state(Device $device): array
     {
+        $configuration = app(ConfigurationService::class);
+        $printer = app(PrinterSettingsService::class);
+
         return [
             'device' => ['id' => $device->id, 'name' => $device->name],
             'settings' => $device->freshSettings()?->toKiosk(),
+            'payment_instructions' => $configuration->get('payments_kiosk_instructions'),
             'unpaid_expiry_minutes' => config('kiosk.unpaid_expiry_minutes'),
             'server_time' => now()->toIso8601String(),
+            'printer' => [
+                'settings' => $printer->all(),
+                'business' => [
+                    'name' => $configuration->get('business_name'),
+                    'address' => $configuration->get('business_address'),
+                    'phone' => $configuration->get('business_phone'),
+                ],
+            ],
         ];
     }
 }

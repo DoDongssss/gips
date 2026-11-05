@@ -1,6 +1,6 @@
 import { EscPos, columnsFor } from '@/lib/printer/escpos';
 import type { PrintJob } from '@/lib/printer/receipt';
-import type { ReceiptContent } from '@/pages/orders/types';
+import type { ReceiptContent } from '@/types/orders';
 import type { PrinterSettings } from '@/types/printer';
 
 const esc = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

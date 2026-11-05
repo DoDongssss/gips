@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ZReportController;
+use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\Reports\ZReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {

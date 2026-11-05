@@ -1,0 +1,1 @@
+function e(e){return`₱${(e/100).toLocaleString(void 0,{minimumFractionDigits:2,maximumFractionDigits:2})}`}function t(t){return t%100==0?`₱${(t/100).toLocaleString()}`:e(t)}var n=e=>e===`dine_in`?`Dine in`:`Takeout`;export{t as n,n as r,e as t};

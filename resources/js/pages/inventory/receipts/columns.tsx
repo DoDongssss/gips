@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import type { DataTableFeatures } from '@/components/data-table';
-import { SortableHeader } from '@/components/sortable-header';
+import type { DataTableFeatures } from '@/components/shared/data-table';
+import { SortableHeader } from '@/components/shared/sortable-header';
 import { Button } from '@/components/ui/button';
 import { show as showPo } from '@/routes/inventory/purchase-orders';
 import { index, show } from '@/routes/inventory/receipts';

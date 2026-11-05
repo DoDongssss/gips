@@ -8,10 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { errorMessages, fieldError } from '@/lib/api';
 import { centsToPesos, formatPeso, pesosToCents } from '@/lib/money';
-import { newIdempotencyKey, takePayments } from '@/lib/pos-api';
-import type { PaymentInput } from '@/lib/pos-api';
+import { newIdempotencyKey, takePayments } from '@/lib/pos/api';
+import type { PaymentInput } from '@/lib/pos/api';
 import { printReceipt, ReceiptView } from '@/pages/orders/receipt';
-import type { OrderDetail, PaymentMethodOption } from '@/pages/orders/types';
+import type { OrderDetail, PaymentMethodOption } from '@/types/orders';
 
 type Line = {
     uid: string;

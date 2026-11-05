@@ -2,8 +2,8 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { Can } from '@/components/can';
-import { ReopenDialog } from '@/components/reopen-dialog';
+import { Can } from '@/components/shared/can';
+import { ReopenDialog } from '@/components/shared/reopen-dialog';
 import { printZReport, ZReportPaper } from '@/components/reports/report-paper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

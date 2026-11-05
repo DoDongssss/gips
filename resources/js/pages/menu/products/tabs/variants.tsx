@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { centsToPesos, formatPeso, pesosToCents } from '@/lib/money';
-import { FieldError } from '@/components/fieldError';
+import { FieldError } from '@/components/shared/fieldError';
 import { sync as syncVariants } from '@/routes/menu/products/variants';
 import type { ProductDetail } from '@/types/menu';
 

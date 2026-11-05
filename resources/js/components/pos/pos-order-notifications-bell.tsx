@@ -11,7 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { readyOrdersQuery } from '@/lib/kds';
-import { kioskOrdersQuery } from '@/lib/kiosk-orders';
+import { kioskOrdersQuery } from '@/lib/kiosk/orders';
 import { formatPeso } from '@/lib/money';
 import { usePosUi } from '@/stores/pos-ui-store';
 

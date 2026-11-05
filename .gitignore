@@ -28,6 +28,9 @@
 !.env.example
 /auth.json
 
+# Backups
+/storage/Backups
+
 # Test
 /tests/*
 
@@ -56,6 +59,9 @@ scorecard.png
 
 # graphify local state
 /graphify-out
+
+# Local documentation (not tracked in git)
+/docs
 
 # AI/editor tools
 /.agents

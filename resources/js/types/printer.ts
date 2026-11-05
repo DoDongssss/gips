@@ -7,6 +7,7 @@ export type PrinterSettings = {
     printer_copies: number;
     printer_serial_baud: number;
     printer_auto_print: boolean;
+    printer_kiosk_auto_print: boolean;
     printer_open_drawer: boolean;
 };
 

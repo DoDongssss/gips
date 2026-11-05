@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Can } from '@/components/can';
+import { Can } from '@/components/shared/can';
 import { FormError } from '@/components/inventory/field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

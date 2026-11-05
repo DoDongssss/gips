@@ -14,7 +14,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Station;
 use App\Models\User;
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use App\Services\Orders\OrderStatusService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;

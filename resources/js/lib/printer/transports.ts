@@ -297,12 +297,24 @@ class RawbtTransport implements Transport {
     }
 
     async print(job: PrintJob) {
+        const bytes = job.bytes;
         let binary = '';
-        for (let i = 0; i < job.bytes.length; i += 8192) {
-            binary += String.fromCharCode(...job.bytes.subarray(i, i + 8192));
+
+        // Spread on large arrays overflows the stack; build the string in slices.
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+            const slice = bytes.subarray(i, i + 0x8000);
+            binary += String.fromCharCode.apply(null, slice as unknown as number[]);
         }
 
-        window.location.href = `rawbt:base64,${btoa(binary)}`;
+        const url = `rawbt:base64,${btoa(binary)}`;
+
+        // Do not set window.location — that reloads the POS/kiosk SPA. RawBT listens on a custom URL scheme.
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;visibility:hidden';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        window.setTimeout(() => iframe.remove(), 3000);
+
         // Jobs sent right after each other (copies, the cash drawer) would replace one another.
         await sleep(900);
     }

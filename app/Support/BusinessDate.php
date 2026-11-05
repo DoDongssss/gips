@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Services\ConfigurationService;
+use App\Services\Configuration\ConfigurationService;
 use Carbon\CarbonInterface;
 
 /** A store day can run past midnight: before the cut-off hour we are still on "yesterday". */

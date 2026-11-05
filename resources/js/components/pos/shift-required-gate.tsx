@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useShiftGate } from '@/hooks/use-shift-gate';
+import { useShiftGate } from '@/hooks/pos/use-shift-gate';
 import { index as shiftsIndex } from '@/routes/shifts';
 
 /** Blocks the register when an open shift is required but missing. */

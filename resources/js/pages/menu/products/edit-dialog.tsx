@@ -1,9 +1,9 @@
-import { AvailabilitySwitch } from '@/components/availability-switch';
-import { Can } from '@/components/can';
+import { AvailabilitySwitch } from '@/components/shared/availability-switch';
+import { Can } from '@/components/shared/can';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCan } from '@/hooks/use-can';
+import { useCan } from '@/hooks/shared/use-can';
 import { DetailsTab } from '@/pages/menu/products/tabs/details';
 import { ImagesTab } from '@/pages/menu/products/tabs/images';
 import { ModifiersTab } from '@/pages/menu/products/tabs/modifiers';

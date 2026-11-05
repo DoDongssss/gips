@@ -5,10 +5,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { useRealtimeRefetch } from '@/hooks/use-realtime';
+import { useRealtimeRefetch } from '@/hooks/pusher/use-realtime';
 import { KDS_POLL_MS, kdsClient } from '@/lib/kds';
 import type { KdsTicket } from '@/lib/kds';
-import { errorList, PosHttpError } from '@/lib/pos-http';
+import { errorList, PosHttpError } from '@/lib/pos/http';
 import type { ReactNode } from 'react';
 
 type Props = {

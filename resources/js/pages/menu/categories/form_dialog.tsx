@@ -88,9 +88,11 @@ export default function CategoryFormDialog({ open, onOpenChange, mode, category,
         };
 
         if (isEdit) {
-            form.transform(() => ({ ...payload, _method: 'put' })).post(update.url(category.id), options);
+            form.transform(() => ({ ...payload, _method: 'put' }));
+            form.post(update.url(category.id), options);
         } else {
-            form.transform(() => payload).post(store.url(), options);
+            form.transform(() => payload);
+            form.post(store.url(), options);
         }
     }
 

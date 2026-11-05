@@ -3,10 +3,10 @@ import type { SortingState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Can } from '@/components/can';
-import { DataTable } from '@/components/data-table';
+import { Can } from '@/components/shared/can';
+import { DataTable } from '@/components/shared/data-table';
 import { Field, FormError } from '@/components/inventory/field';
-import { Pager } from '@/components/pager';
+import { Pager } from '@/components/shared/pager';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';

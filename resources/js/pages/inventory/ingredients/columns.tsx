@@ -1,10 +1,10 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { Can } from '@/components/can';
-import type { DataTableFeatures } from '@/components/data-table';
+import { Can } from '@/components/shared/can';
+import type { DataTableFeatures } from '@/components/shared/data-table';
 import { StockFlag } from '@/components/inventory/status-badges';
-import { SortableHeader } from '@/components/sortable-header';
+import { SortableHeader } from '@/components/shared/sortable-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatQty, formatUnitCost } from '@/lib/inventory';

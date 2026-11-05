@@ -1,3 +1,4 @@
+import { configure } from '@/lib/printer/printer';
 import type { PrinterConnection, PrinterSettings } from '@/types/printer';
 
 /**
@@ -35,4 +36,16 @@ export function effectiveSettings(settings: PrinterSettings): PrinterSettings {
     if (connection === 'rawbt' && !isAndroid()) connection = 'browser';
 
     return connection === settings.printer_connection ? settings : { ...settings, printer_connection: connection };
+}
+
+/** Apply this tablet's connection override and prepare the shared printer module. */
+export function configureDevice(storeSettings: PrinterSettings): PrinterSettings {
+    const settings = effectiveSettings(storeSettings);
+    configure(settings);
+
+    return settings;
+}
+
+export function connectionNeedsConnect(connection: PrinterConnection): boolean {
+    return connection !== 'browser' && connection !== 'rawbt';
 }
